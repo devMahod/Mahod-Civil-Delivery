@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  MahodAI + Mahod Civil Delivery — Autodesk autoloader manifest.
+
+  Registry evidence on the build machine: AutoCAD 2026 = R25.1, AutoCAD 2027 = R26.0.
+  The current payload in Contents\ is the Civil 3D 2027 host build (net10.0). A
+  Civil 3D 2026 (net8.0) component gets its own Contents\2026\ payload + Components
+  block when built on a machine that has the Civil 3D 2026 references — the source
+  supports it via -p:AutoCADVersion=2026; DO NOT point R25.1 at the net10 binary.
+-->
+<ApplicationPackage SchemaVersion="1.0" AutodeskProduct="Civil3D" ProductType="Application"
+                    Name="MahodAI Civil Delivery"
+                    AppVersion="1.2.91"
+                    Description="MahodAI Civil platform incl. Mahod Civil Delivery (MHD_SECTIONS / MHD_ESTIMATE)"
+                    Author="Mahod Engineering">
+  <CompanyDetails Name="Mahod Engineering" Url="https://mahodeng.co.il" Email="dev@mahodeng.co.il" />
+  <Components Description="Civil 3D 2027 host (net10.0)">
+    <RuntimeRequirements OS="Win64" Platform="AutoCAD*" SeriesMin="R26.0" SeriesMax="R26.0" />
+    <ComponentEntry AppName="MahodAI.Civil3D.Plugin"
+                    ModuleName="./Contents/MahodAI.Civil3D.Plugin.dll"
+                    AppDescription="MahodAI Civil 3D plugin including Mahod Civil Delivery"
+                    LoadOnAutoCADStartup="True" />
+  </Components>
+  <!--
+    Civil 3D 2026 host. Built against Autodesk's Civil3D.NET reference package (13.8.280 =
+    the 2026 API) on a machine that carries AutoCAD 2026 without the Civil vertical - never
+    against 2027 assemblies. installer\build-setup.ps1 REMOVES this block when the 2026
+    component was not produced, so the manifest can never promise a module that is not there.
+  -->
+  <Components Description="Civil 3D 2026 host (net8.0)">
+    <RuntimeRequirements OS="Win64" Platform="AutoCAD*" SeriesMin="R25.1" SeriesMax="R25.1" />
+    <ComponentEntry AppName="MahodAI.Civil3D.Plugin.2026"
+                    ModuleName="./Contents/2026/MahodAI.Civil3D.Plugin.dll"
+                    AppDescription="MahodAI Civil 3D plugin including Mahod Civil Delivery"
+                    LoadOnAutoCADStartup="True" />
+  </Components>
+</ApplicationPackage>

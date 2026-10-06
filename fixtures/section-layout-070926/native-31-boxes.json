@@ -1,0 +1,319 @@
+{
+  "sourceApply": "sections-apply-selected-20260907-082001-4a215039",
+  "scope": "Read-only native lookup of 31 explicit known handles; positive WCS bounding-box overlap is a collision candidate, corroborated visually for names and car/slope pairs. Not full engineering VERIFY.",
+  "capture": "C:\\Users\\arthurf\\.mahod-eyes\\.mahod-eyes-captures-v1\\cap1_4d0688.png",
+  "provenance": "Native measured WCS boxes from live-section-layout-evidence.json. This fixture tests placement of exact measured shapes, not native text shaping or engineering semantics. Unclassified AcDbText boxes are the eight lower slope-row labels in the captured inventory; no text content is invented.",
+  "entities": [
+    {
+      "handle": "BD89FD",
+      "type": "AcDbText",
+      "kind": "axis-label",
+      "semanticKey": "axis-label|ציר",
+      "minX": 214539.49053065418,
+      "minY": 655422.4470921868,
+      "maxX": 214541.12872983562,
+      "maxY": 655423.1424196083
+    },
+    {
+      "handle": "BD89FF",
+      "type": "AcDbText",
+      "kind": "title",
+      "semanticKey": "title|חתך STA-12145",
+      "minX": 214535.98550488133,
+      "minY": 655424.1687838648,
+      "maxX": 214545.88591415828,
+      "maxY": 655425.4641453928
+    },
+    {
+      "handle": "BD8A22",
+      "type": "AcDbText",
+      "kind": "width-label",
+      "semanticKey": "width-label|-14.21733814651782|-11.091162987133218|3.13",
+      "minX": 214526.6357684912,
+      "minY": 655419.1337906861,
+      "maxX": 214528.674990865,
+      "maxY": 655419.9001617639
+    },
+    {
+      "handle": "BD8A23",
+      "type": "AcDbText",
+      "kind": "width-label",
+      "semanticKey": "width-label|-10.779156997021937|-8.779138000949619|2.00",
+      "minX": 214529.51087155903,
+      "minY": 655419.1343022824,
+      "maxX": 214531.55009393283,
+      "maxY": 655419.9001617639
+    },
+    {
+      "handle": "BD8A24",
+      "type": "AcDbText",
+      "kind": "width-label",
+      "semanticKey": "width-label|-8.449134235950119|-4.038714345659342|4.41",
+      "minX": 214533.04609476723,
+      "minY": 655419.1470921868,
+      "maxX": 214535.08531714103,
+      "maxY": 655419.9001617639
+    },
+    {
+      "handle": "BD8A25",
+      "type": "AcDbText",
+      "kind": "width-label",
+      "semanticKey": "width-label|-4.038714345659342|-2.0293566153870852|2.01",
+      "minX": 214536.2559835775,
+      "minY": 655419.1343022824,
+      "maxX": 214538.2952059513,
+      "maxY": 655419.9001617639
+    },
+    {
+      "handle": "BD8A26",
+      "type": "AcDbText",
+      "kind": "width-label",
+      "semanticKey": "width-label|-1.7993556237336166|0.24096490879527677|2.04",
+      "minX": 214538.51082370055,
+      "minY": 655419.1343022824,
+      "maxX": 214540.55004607435,
+      "maxY": 655419.9001617639
+    },
+    {
+      "handle": "BD8A27",
+      "type": "AcDbText",
+      "kind": "width-label",
+      "semanticKey": "width-label|0.9438776343591934|6.721038839517879|5.78",
+      "minX": 214543.12247729496,
+      "minY": 655419.1343022824,
+      "maxX": 214545.16169966877,
+      "maxY": 655419.9001617639
+    },
+    {
+      "handle": "BD8A28",
+      "type": "AcDbText",
+      "kind": "width-label",
+      "semanticKey": "width-label|6.721038839517879|8.039481591133603|1.32",
+      "minX": 214546.67027927336,
+      "minY": 655419.1337906861,
+      "maxX": 214548.70950164716,
+      "maxY": 655419.9001617639
+    },
+    {
+      "handle": "BD8A29",
+      "type": "AcDbText",
+      "kind": "width-label",
+      "semanticKey": "width-label|8.039481591133603|11.238821095912481|3.20",
+      "minX": 214548.92917040153,
+      "minY": 655419.1337906861,
+      "maxX": 214550.96839277534,
+      "maxY": 655419.9001617639
+    },
+    {
+      "handle": "BD8A32",
+      "type": "AcDbText",
+      "kind": "strip-label",
+      "semanticKey": "strip-label|-14.21733814651782|-11.091162987133218|מדרכה",
+      "minX": 214526.1568803602,
+      "minY": 655420.7383609454,
+      "maxX": 214529.15387899594,
+      "maxY": 655421.3359052837
+    },
+    {
+      "handle": "BD8A33",
+      "type": "AcDbText",
+      "kind": "strip-label",
+      "semanticKey": "strip-label|-10.779156997021937|-8.779138000949619|שביל אופניים",
+      "minX": 214527.72311576095,
+      "minY": 655420.7312668116,
+      "maxX": 214533.33784973095,
+      "maxY": 655421.5470921869
+    },
+    {
+      "handle": "BD8A3A",
+      "type": "AcDbText",
+      "kind": "strip-label",
+      "semanticKey": "strip-label|-8.449134235950119|-4.038714345659342|נתיב נסיעה",
+      "minX": 214531.62586966492,
+      "minY": 655420.6936133328,
+      "maxX": 214536.50554224337,
+      "maxY": 655421.3419080122
+    },
+    {
+      "handle": "BD8A3D",
+      "type": "AcDbText",
+      "kind": "strip-label",
+      "semanticKey": "strip-label|-4.038714345659342|-2.0293566153870852|מדרכה",
+      "minX": 214535.7770954465,
+      "minY": 655420.7383609454,
+      "maxX": 214538.77409408224,
+      "maxY": 655421.3359052837
+    },
+    {
+      "handle": "BD8A3E",
+      "type": "AcDbText",
+      "kind": "strip-label",
+      "semanticKey": "strip-label|-1.7993556237336166|0.24096490879527677|אי תנועה",
+      "minX": 214537.59673775238,
+      "minY": 655420.6936133328,
+      "maxX": 214541.4641320225,
+      "maxY": 655421.3326310682
+    },
+    {
+      "handle": "BD8A3F",
+      "type": "AcDbText",
+      "kind": "strip-label",
+      "semanticKey": "strip-label|0.9438776343591934|6.721038839517879|נתיב נסיעה",
+      "minX": 214541.70225219266,
+      "minY": 655420.6936133328,
+      "maxX": 214546.5819247711,
+      "maxY": 655421.3419080122
+    },
+    {
+      "handle": "BD8A42",
+      "type": "AcDbText",
+      "kind": "strip-label",
+      "semanticKey": "strip-label|6.721038839517879|8.039481591133603|מדרכה",
+      "minX": 214546.19139114238,
+      "minY": 655420.7383609454,
+      "maxX": 214549.1883897781,
+      "maxY": 655421.3359052837
+    },
+    {
+      "handle": "BD8A43",
+      "type": "AcDbText",
+      "kind": "strip-label",
+      "semanticKey": "strip-label|8.039481591133603|11.238821095912481|מדרכה",
+      "minX": 214548.45028227055,
+      "minY": 655420.7383609454,
+      "maxX": 214551.4472809063,
+      "maxY": 655421.3359052837
+    },
+    {
+      "handle": "BD8A2A",
+      "type": "AcDbText",
+      "kind": "slope-row-text",
+      "semanticKey": null,
+      "minX": 214526.1745270178,
+      "minY": 655405.4232003435,
+      "maxX": 214529.1362323384,
+      "maxY": 655406.0766109847
+    },
+    {
+      "handle": "BD8A2B",
+      "type": "AcDbText",
+      "kind": "slope-row-text",
+      "semanticKey": null,
+      "minX": 214529.04963008565,
+      "minY": 655405.5065879542,
+      "maxX": 214532.01133540625,
+      "maxY": 655406.1599985955
+    },
+    {
+      "handle": "BD8A2C",
+      "type": "AcDbText",
+      "kind": "slope-row-text",
+      "semanticKey": null,
+      "minX": 214532.58485329384,
+      "minY": 655405.6086433929,
+      "maxX": 214535.54655861444,
+      "maxY": 655406.2620540342
+    },
+    {
+      "handle": "BD8A2D",
+      "type": "AcDbText",
+      "kind": "slope-row-text",
+      "semanticKey": null,
+      "minX": 214535.7947421041,
+      "minY": 655405.6926659516,
+      "maxX": 214538.7564474247,
+      "maxY": 655406.3460765928
+    },
+    {
+      "handle": "BD8A2E",
+      "type": "AcDbText",
+      "kind": "slope-row-text",
+      "semanticKey": null,
+      "minX": 214538.04958222716,
+      "minY": 655405.7344847015,
+      "maxX": 214541.01128754776,
+      "maxY": 655406.3878953428
+    },
+    {
+      "handle": "BD8A2F",
+      "type": "AcDbText",
+      "kind": "slope-row-text",
+      "semanticKey": null,
+      "minX": 214542.66123582158,
+      "minY": 655405.8049492699,
+      "maxX": 214545.62294114218,
+      "maxY": 655406.4583599111
+    },
+    {
+      "handle": "BD8A30",
+      "type": "AcDbText",
+      "kind": "slope-row-text",
+      "semanticKey": null,
+      "minX": 214546.20903779997,
+      "minY": 655405.8555968051,
+      "maxX": 214549.17074312057,
+      "maxY": 655406.5090074464
+    },
+    {
+      "handle": "BD8A31",
+      "type": "AcDbText",
+      "kind": "slope-row-text",
+      "semanticKey": null,
+      "minX": 214548.46792892815,
+      "minY": 655405.888178195,
+      "maxX": 214551.42963424875,
+      "maxY": 655406.5415888362
+    },
+    {
+      "handle": "BD8A3C",
+      "type": "AcDbBlockReference",
+      "kind": "furniture",
+      "semanticKey": null,
+      "minX": 214533.16570595413,
+      "minY": 655404.9319589117,
+      "maxX": 214534.96570595412,
+      "maxY": 655406.8283330953
+    },
+    {
+      "handle": "BD8A41",
+      "type": "AcDbBlockReference",
+      "kind": "furniture",
+      "semanticKey": null,
+      "minX": 214543.24208848187,
+      "minY": 655405.127262307,
+      "maxX": 214545.04208848186,
+      "maxY": 655406.7073582418
+    },
+    {
+      "handle": "BD8A34",
+      "type": "AcDbBlockReference",
+      "kind": "furniture",
+      "semanticKey": null,
+      "minX": 214530.2844017003,
+      "minY": 655406.3794256079,
+      "maxX": 214530.77656379156,
+      "maxY": 655407.7794256079
+    },
+    {
+      "handle": "BD8A3B",
+      "type": "AcDbBlockReference",
+      "kind": "furniture",
+      "semanticKey": null,
+      "minX": 214533.8196249085,
+      "minY": 655407.0319589117,
+      "maxX": 214534.31178699975,
+      "maxY": 655408.4319589117
+    },
+    {
+      "handle": "BD8A40",
+      "type": "AcDbBlockReference",
+      "kind": "furniture",
+      "semanticKey": null,
+      "minX": 214543.89600743624,
+      "minY": 655407.227262307,
+      "maxX": 214544.3881695275,
+      "maxY": 655408.627262307
+    }
+  ],
+  "originalOverlapCandidateCount": 11
+}

@@ -1,0 +1,36 @@
+{
+  "$contract": {
+    "protocol_version": "1.18",
+    "direction": "client_to_server",
+    "type": "connect",
+    "audience": [
+      "web"
+    ],
+    "description": "Web handshake resuming an existing session via payload.session_id.",
+    "required_payload_fields": [
+      "api_key",
+      "client_type",
+      "client_version",
+      "capabilities"
+    ],
+    "optional_payload_fields": [
+      "session_id"
+    ]
+  },
+  "message": {
+    "id": "0f1e2d3c4b5a69788796a5b4c3d2e1f0",
+    "type": "connect",
+    "timestamp": "2026-08-03T09:15:42.123456Z",
+    "session_id": null,
+    "correlation_id": null,
+    "payload": {
+      "api_key": "<redacted>",
+      "client_type": "web_chat",
+      "client_version": "6.8",
+      "capabilities": [
+        "streaming"
+      ],
+      "session_id": "3f7c1b9e-2d4a-4c8e-9b1f-5a6d7e8f9012"
+    }
+  }
+}

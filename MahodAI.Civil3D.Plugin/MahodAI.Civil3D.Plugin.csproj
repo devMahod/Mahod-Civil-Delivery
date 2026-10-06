@@ -1,0 +1,236 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(AutoCADTargetFramework)</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <!-- MahodAI PLATFORM version. Civil Delivery ships inside this assembly, so
+         installing it is a platform upgrade - the installer compares this value to
+         refuse a silent downgrade of an existing MahodAI. This is packaging identity
+         only; the deterministic engine version (SectionPlanService.ToolVersion) is
+         tracked separately in section artifacts. -->
+    <Version>1.3.81</Version>
+    <FileVersion>1.3.81.0</FileVersion>
+    <AssemblyVersion>1.3.81.0</AssemblyVersion>
+    <Product>MahodAI Civil 3D Platform</Product>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="MahodAI.Civil3D.Plugin.Tests" />
+    <InternalsVisibleTo Include="MahodAI.Core.Tests" />
+  </ItemGroup>
+
+
+  <!-- 2027 uses its installed API. The 2026 baseline is pinned below: the
+       2026.1.2 installed assemblies target net10 and cannot compile our net8 lane. -->
+  <ItemGroup Condition="'$(AutoCADVersion)' != '2026'">
+    <Reference Include="accoremgd">
+      <HintPath>$(AutoCADPath)\accoremgd.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="acdbmgd">
+      <HintPath>$(AutoCADPath)\acdbmgd.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="acmgd">
+      <HintPath>$(AutoCADPath)\acmgd.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="AdWindows">
+      <HintPath>$(AutoCADPath)\AdWindows.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!--
+    Civil 3D managed API.
+
+    2027 resolves from the local Civil 3D install. 2026 resolves from Autodesk's own
+    AutoCAD.NET 25.1.0 (including exact Core/Model dependencies and AdWindows) and
+    Civil3D.NET 13.8.280 baseline packages. Both target net8; installing the AutoCAD
+    2026.1.2 net10 update on a build machine must not silently change these references.
+    A 2026 component must never be compiled against 2027 assemblies.
+
+    ExcludeAssets="runtime" is not cosmetic: Autodesk's assemblies are references only
+    and must never be copied into the bundle we ship.
+  -->
+  <ItemGroup Condition="'$(AutoCADVersion)' != '2026'">
+    <Reference Include="AeccDbMgd">
+      <HintPath>$(AutoCADPath)\C3D\AeccDbMgd.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="AeccPressurePipesMgd">
+      <HintPath>$(AutoCADPath)\C3D\AeccPressurePipesMgd.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="AecBaseMgd">
+      <HintPath>$(AutoCADPath)\ACA\AecBaseMgd.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <!-- AEC PropertySets (ev_pset_component), read-only. The 2026 lane gets the same assembly from the
+         Civil3D.NET 13.8.280 package (lib\net8.0\AecPropDataMgd.dll). Never copied: the host provides it. -->
+    <Reference Include="AecPropDataMgd">
+      <HintPath>$(AutoCADPath)\ACA\AecPropDataMgd.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(AutoCADVersion)' == '2026'">
+    <PackageReference Include="AutoCAD.NET" Version="[25.1.0]" ExcludeAssets="runtime" />
+    <PackageReference Include="Civil3D.NET" Version="13.8.280" ExcludeAssets="runtime" />
+  </ItemGroup>
+
+  <!-- Map 3D .NET API (2027 host only - see MAHOD_MAP3D) -->
+  <ItemGroup Condition="'$(AutoCADVersion)' != '2026'">
+    <Reference Include="Autodesk.Map.Platform">
+      <HintPath>$(AutoCADPath)\Map\Autodesk.Map.Platform.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- FDO / OSGeo (2027 host only - see MAHOD_MAP3D) -->
+  <ItemGroup Condition="'$(AutoCADVersion)' != '2026'">
+    <Reference Include="OSGeo.MapGuide.Foundation">
+      <HintPath>$(AutoCADPath)\Map\bin\GisPlatform\OSGeo.MapGuide.Foundation.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="OSGeo.MapGuide.Geometry">
+      <HintPath>$(AutoCADPath)\Map\bin\GisPlatform\OSGeo.MapGuide.Geometry.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="OSGeo.MapGuide.PlatformBase">
+      <HintPath>$(AutoCADPath)\Map\bin\GisPlatform\OSGeo.MapGuide.PlatformBase.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MahodAI.CivilDelivery.Core\MahodAI.CivilDelivery.Core.csproj" />
+  </ItemGroup>
+
+  <!-- NuGet -->
+  <ItemGroup>
+    <PackageReference Include="DbfDataReader" Version="0.9.0" />
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.0.1" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2792.45" />
+    <PackageReference Include="NAudio" Version="2.2.1" />
+    <PackageReference Include="NetTopologySuite" Version="2.6.0" />
+    <PackageReference Include="NetTopologySuite.IO.ShapeFile" Version="2.1.0" />
+    <PackageReference Include="PdfPig" Version="0.1.9" />
+  </ItemGroup>
+
+  <!-- משאבים -->
+  <ItemGroup>
+    <None Update="logo.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="base.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <!-- Brand assets embedded into the DLL so they are always available at
+       runtime regardless of how Civil 3D loaded the assembly (NETLOAD,
+       bundle auto-load, shadow copy, or byte-array load). Retrieved via
+       Assembly.GetManifestResourceStream. -->
+  <ItemGroup>
+    <EmbeddedResource Include="assets\bot_avatar.png">
+      <LogicalName>MahodAI.Civil3D.Plugin.assets.bot_avatar.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="assets\mahod_mark.png">
+      <LogicalName>MahodAI.Civil3D.Plugin.assets.mahod_mark.png</LogicalName>
+    </EmbeddedResource>
+    <!-- Official white Mahod logo (828x101 RGBA, verbatim from the approved brand
+         asset). Embedded so the product never depends on a local Pictures folder. -->
+    <EmbeddedResource Include="assets\mahod_logo_white.png">
+      <LogicalName>MahodAI.Civil3D.Plugin.assets.mahod_logo_white.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="assets\mahod_logo_full.png">
+      <LogicalName>MahodAI.Civil3D.Plugin.assets.mahod_logo_full.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="assets\mahod_logo_full_dark.png">
+      <LogicalName>MahodAI.Civil3D.Plugin.assets.mahod_logo_full_dark.png</LogicalName>
+    </EmbeddedResource>
+    <!-- Thinking animation: transparent animated WebP (generated from the old
+         Thinking.mp4 — H.264 can't carry alpha, so the white background was
+         baked into the frames and glowed in dark mode). -->
+    <EmbeddedResource Include="assets\Thinking.webp">
+      <LogicalName>MahodAI.Civil3D.Plugin.assets.Thinking.webp</LogicalName>
+    </EmbeddedResource>
+    <!-- Approved Mahod office vehicle-section blocks (Nataly, 31/08). Keep the
+         original DWG bytes inside the assembly: an employee install must never
+         depend on Arthur's Downloads/Materials tree. SectionVehicleBlockService
+         verifies the pinned SHA-256 before Civil is allowed to import either one. -->
+    <EmbeddedResource Include="assets\HW-CARFRBK-01.dwg">
+      <LogicalName>MahodAI.Civil3D.Plugin.assets.sections.HW-CARFRBK-01.dwg</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="assets\HW-CARFRFRW-01.dwg">
+      <LogicalName>MahodAI.Civil3D.Plugin.assets.sections.HW-CARFRFRW-01.dwg</LogicalName>
+    </EmbeddedResource>
+    <!-- Nataly's third approved Sections block: the full office traffic arrow. -->
+    <EmbeddedResource Include="assets\HW-ARRW-01.dwg">
+      <LogicalName>MahodAI.Civil3D.Plugin.assets.sections.HW-ARRW-01.dwg</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <!--
+    Post-build: refresh the repo bundle with the 2027 host.
+
+    Condition matters: Contents/ IS the 2027 slot, and a 2026 build dropping its net8.0
+    output there would ship a 2026 assembly to 2027 users - a mix-up that only surfaces
+    when Civil refuses to load it on someone else's machine. The 2026 output is staged
+    into Contents/2026/ by installer/build-setup.ps1 instead.
+  -->
+  <Target Name="CopyToBundle" AfterTargets="Build" Condition="'$(AutoCADVersion)' != '2026'">
+    <PropertyGroup>
+      <BundleDir>$(ProjectDir)..\MahodAI.bundle\Contents\</BundleDir>
+    </PropertyGroup>
+    <!-- Contents is a generated release slot, not an overlay cache.  Cleaning it
+         first prevents a dependency/asset removed from the current build from
+         surviving into a later setup merely because it existed in an older bundle. -->
+    <RemoveDir Directories="$(BundleDir)" />
+    <MakeDir Directories="$(BundleDir)" />
+    <ItemGroup>
+      <BundleFiles Include="$(OutputPath)**\*.*"
+                   Exclude="$(OutputPath)**\*.xml;$(OutputPath)**\*.pdb;$(OutputPath)**\*.nupkg;$(OutputPath)data\**;$(OutputPath)assets\**;$(OutputPath)net8.0-windows\**;$(OutputPath)net10.0-windows\**" />
+    </ItemGroup>
+    <Copy SourceFiles="@(BundleFiles)" DestinationFolder="$(BundleDir)%(RecursiveDir)" SkipUnchangedFiles="true" />
+    <Message Text="Bundle updated: $(BundleDir)" Importance="high" />
+
+    <!-- The autoloader needs PackageContents.xml at the bundle ROOT (NOT Contents).
+         The build output never contains it, so the Copy step above (which only
+         deploys build output into Contents\) leaves the bundle without a manifest and
+         Civil3D silently SKIPS it — no MAHOD_AI command, no ribbon button, even
+         though Contents\ is fully up to date. Copy the source manifest to the repo
+         bundle root so every build produces a complete, loadable bundle. -->
+    <Copy SourceFiles="$(ProjectDir)..\MahodAI.bundle\PackageContents.xml"
+          DestinationFolder="$(ProjectDir)..\MahodAI.bundle\"
+          SkipUnchangedFiles="true" ContinueOnError="true" />
+
+    <!-- P0-06: Live-install deployment is now OPT-IN. A plain build only refreshes
+         the repo bundle above; it must not silently overwrite the running Civil 3D
+         plugin in %APPDATA%. Opt in explicitly with:
+             dotnet build -p:DeployPlugin=true
+         (the /plugin-build skill sets this). This stops every incidental build /
+         test run from mutating the live install mid-development. -->
+    <PropertyGroup>
+      <DeployPlugin Condition="'$(DeployPlugin)' == ''">false</DeployPlugin>
+      <DeployDir>$(APPDATA)\Autodesk\ApplicationPlugins\MahodAI.bundle\Contents\</DeployDir>
+    </PropertyGroup>
+    <MakeDir Condition="'$(DeployPlugin)' == 'true'" Directories="$(DeployDir)" />
+    <Copy Condition="'$(DeployPlugin)' == 'true'" SourceFiles="@(BundleFiles)" DestinationFolder="$(DeployDir)%(RecursiveDir)" SkipUnchangedFiles="true" ContinueOnError="true" />
+    <Copy Condition="'$(DeployPlugin)' == 'true'" SourceFiles="$(ProjectDir)..\MahodAI.bundle\PackageContents.xml"
+          DestinationFolder="$(APPDATA)\Autodesk\ApplicationPlugins\MahodAI.bundle\"
+          SkipUnchangedFiles="true" ContinueOnError="true" />
+    <Message Condition="'$(DeployPlugin)' == 'true'" Text="Deployed to live ApplicationPlugins bundle: $(DeployDir)" Importance="high" />
+    <Message Condition="'$(DeployPlugin)' != 'true'" Text="Skipped live deploy (set -p:DeployPlugin=true to deploy to %APPDATA%)." Importance="high" />
+  </Target>
+
+</Project>

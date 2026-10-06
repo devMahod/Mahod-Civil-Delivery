@@ -1,0 +1,71 @@
+{
+ "schema": "mahod-ha-exact-retrace-fixture/1",
+ "source_run": "estimate-extract-20260930-225523-7e5a8ff9",
+ "estimate_scan_sha256": "8D888268B2E589C32E3BA6ABE21E3B81EC252FAD3C8DE397D04772227A917EE6",
+ "hatch_area_failure_diagnostics_sha256": "A864A01BB891D0D14F2BAA9CA49068E70F29B88862B2BCBA2183263E162B75C2",
+ "host": {
+  "RunId": "estimate-extract-20260930-225523-7e5a8ff9",
+  "SourceDrawing": "C:\\Users\\arthurf\\MahodCivilDelivery_Work\\6422-boq-live-2909\\6422-HA-MODEL-NATAZ_1.dwg",
+  "SourceDrawingHash": "2bd0bb713caaa9e4ee52271dd1e306a95dd7965bcef55b830709bc2cdbf55fd1",
+  "DatabaseRevision": "{D4F3DE7C-C59B-E246-A4D1-D579CBF71566}:0",
+  "SourceDbMod": 0,
+  "PhysicalUnits": {
+   "IsSupported": true,
+   "RawUnitCode": 6,
+   "EffectiveUnitCode": 6,
+   "LinearToMetres": 1,
+   "UsedDeclaration": false,
+   "DeclarationDigest": null,
+   "Evidence": "{\"contract\":\"physical-drawing-unit-v1\",\"raw_insunits\":6,\"effective_unit\":6,\"metres_per_unit\":1,\"authority\":\"explicit-insunits\"}",
+   "FailureCode": null,
+   "FailureReason": null,
+   "AllowsMetricSections": true
+  }
+ },
+ "source": {
+  "source_kind": "drawing",
+  "source_path_or_uri": "C:\\Users\\arthurf\\MahodCivilDelivery_Work\\6422-boq-live-2909\\6422-HA-MODEL-NATAZ_1.dwg",
+  "drawing_checksum": "2bd0bb713caaa9e4ee52271dd1e306a95dd7965bcef55b830709bc2cdbf55fd1",
+  "source_handle": "71B4",
+  "source_subentity_path": null,
+  "xref_path": null,
+  "xref_transform": null,
+  "entity_type": "Hatch",
+  "layer": "HACTH-GINUN",
+  "station_from": null,
+  "station_to": null,
+  "measurement_method": "hatch-area",
+  "input_hash": null,
+  "tool_version": "civil-delivery/1.2.91",
+  "project_profile_version": null,
+  "run_id": "estimate-extract-20260930-225523-7e5a8ff9"
+ },
+ "boundary": {
+  "Purpose": "original Area API failure evidence; boundary capture alone grants no quantity; strict recovery outcome is recorded in quantity evidence",
+  "CoordinateSystem": "raw hatch OCS / source drawing units; not host WCS or square metres",
+  "DeclaredLoops": 1,
+  "Header": "style=Outer; normal=0,0,1; elevation=0",
+  "Loops": [
+   {
+    "Index": 0,
+    "Evidence": {
+     "Kind": "edge-list",
+     "Flags": "External",
+     "Items": [
+      "line=203668.13424067703,648794.74574257515 -> 203667.45578158411,648791.57140643592",
+      "line=203667.45578158411,648791.57140643592 -> 203670.78627922793,648759.22367700806",
+      "line=203670.78627922793,648759.22367700806 -> 203672.00816914334,648757.11989705544",
+      "line=203672.00816914334,648757.11989705544 -> 203668.13424067703,648794.74574257515",
+      "line=203668.13424067703,648794.74574257515 -> 203672.00816914334,648757.11989705544",
+      "line=203672.00816914334,648757.11989705544 -> 203668.13424067703,648794.74574257515"
+     ],
+     "Truncated": false
+    },
+    "Error": null
+   }
+  ],
+  "Truncated": false,
+  "Error": null
+ },
+ "expected_area_m2": 35.17173917596109
+}

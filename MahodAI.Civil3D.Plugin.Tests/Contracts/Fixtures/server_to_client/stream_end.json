@@ -1,0 +1,50 @@
+{
+  "$contract": {
+    "protocol_version": "1.18",
+    "direction": "server_to_client",
+    "type": "stream_end",
+    "audience": [
+      "plugin",
+      "web"
+    ],
+    "description": "Completes a stream. final_text REPLACES the buffer -- this is what strips [RAG-N] tags.",
+    "required_payload_fields": [
+      "stream_id",
+      "total_tokens",
+      "complete"
+    ],
+    "optional_payload_fields": [
+      "cancelled",
+      "references",
+      "final_text",
+      "lisp_recommendations",
+      "question_log_id"
+    ]
+  },
+  "message": {
+    "id": "0f1e2d3c4b5a69788796a5b4c3d2e1f0",
+    "type": "stream_end",
+    "timestamp": "2026-08-03T09:15:42.123456Z",
+    "session_id": "3f7c1b9e-2d4a-4c8e-9b1f-5a6d7e8f9012",
+    "correlation_id": null,
+    "payload": {
+      "stream_id": "stream-7c2e19a4",
+      "total_tokens": 412,
+      "complete": true,
+      "final_text": "הרדיוס המינימלי לכביש בין-עירוני במהירות 80 קמ\"ש הוא 240 מ'.",
+      "references": [
+        {
+          "document_name": "הנחיות לתכן גיאומטרי של דרכים",
+          "url": "https://mahod.sharepoint.com/sites/standards/roads_geom_2018.pdf#page=112",
+          "pages": [
+            112,
+            113
+          ],
+          "similarity": 0.8123
+        }
+      ],
+      "lisp_recommendations": [],
+      "question_log_id": "b21e4c07-9f3a-4d16-8c52-77ae1b0d4e93"
+    }
+  }
+}

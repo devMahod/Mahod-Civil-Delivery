@@ -1,0 +1,27 @@
+{
+  "$contract": {
+    "protocol_version": "1.18",
+    "direction": "server_to_client",
+    "type": "warning",
+    "audience": [
+      "plugin"
+    ],
+    "description": "Informational warning; DATA_STALE is the common one.",
+    "required_payload_fields": [
+      "code",
+      "message"
+    ],
+    "optional_payload_fields": []
+  },
+  "message": {
+    "id": "0f1e2d3c4b5a69788796a5b4c3d2e1f0",
+    "type": "warning",
+    "timestamp": "2026-08-03T09:15:42.123456Z",
+    "session_id": "3f7c1b9e-2d4a-4c8e-9b1f-5a6d7e8f9012",
+    "correlation_id": null,
+    "payload": {
+      "code": "DATA_STALE",
+      "message": "נתוני השרטוט השתנו מאז הניתוח האחרון"
+    }
+  }
+}

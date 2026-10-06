@@ -1,0 +1,114 @@
+<Window x:Class="MahodAI.Civil3D.Plugin.CivilDelivery.UI.SectionDecisionDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="הכרעת רשומת חתך" Width="650" Height="520"
+        MinWidth="560" MinHeight="440" WindowStartupLocation="CenterOwner"
+        FlowDirection="RightToLeft" ShowInTaskbar="False"
+        Background="#FF141821" Foreground="#FFE6E9EF"
+        FontFamily="Segoe UI" FontSize="12">
+  <Window.Resources>
+    <SolidColorBrush x:Key="Panel" Color="#FF1C2230"/>
+    <SolidColorBrush x:Key="Line" Color="#FF2C3444"/>
+    <SolidColorBrush x:Key="Accent" Color="#FF3B82F6"/>
+    <SolidColorBrush x:Key="Muted" Color="#FF9AA4B2"/>
+    <Style TargetType="TextBox">
+      <Setter Property="Background" Value="{StaticResource Panel}"/>
+      <Setter Property="Foreground" Value="#FFE6E9EF"/>
+      <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+      <Setter Property="Padding" Value="7,5"/>
+    </Style>
+    <Style TargetType="ComboBox">
+      <Setter Property="Background" Value="{StaticResource Panel}"/>
+      <Setter Property="Foreground" Value="#FFE6E9EF"/>
+      <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+      <Setter Property="Padding" Value="7,4"/>
+    </Style>
+    <Style TargetType="Button">
+      <Setter Property="Padding" Value="14,7"/>
+      <Setter Property="Margin" Value="6,0,0,0"/>
+      <Setter Property="Background" Value="{StaticResource Panel}"/>
+      <Setter Property="Foreground" Value="#FFE6E9EF"/>
+      <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+    </Style>
+    <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+      <Setter Property="Background" Value="{StaticResource Accent}"/>
+      <Setter Property="Foreground" Value="White"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <Style TargetType="DataGrid">
+      <Setter Property="Background" Value="{StaticResource Panel}"/>
+      <Setter Property="Foreground" Value="#FFE6E9EF"/>
+      <Setter Property="RowBackground" Value="{StaticResource Panel}"/>
+      <Setter Property="AlternatingRowBackground" Value="#FF202736"/>
+      <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+      <Setter Property="AutoGenerateColumns" Value="False"/>
+      <Setter Property="IsReadOnly" Value="True"/>
+      <Setter Property="SelectionMode" Value="Single"/>
+      <Setter Property="CanUserAddRows" Value="False"/>
+      <Setter Property="HeadersVisibility" Value="Column"/>
+    </Style>
+  </Window.Resources>
+
+  <DockPanel Margin="14">
+    <Border DockPanel.Dock="Top" Background="{StaticResource Panel}" Padding="10"
+            BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4"
+            Margin="0,0,0,9">
+      <StackPanel>
+        <TextBlock x:Name="SubjectTitle" FontSize="14" FontWeight="SemiBold"/>
+        <TextBlock x:Name="SubjectDetail" Foreground="{StaticResource Muted}"
+                   Margin="0,3,0,0" TextWrapping="Wrap"/>
+      </StackPanel>
+    </Border>
+
+    <StackPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+      <DockPanel Margin="0,0,0,8">
+        <TextBlock Text="מאשר:" VerticalAlignment="Center" Margin="0,0,0,0"/>
+        <TextBox x:Name="ApproverBox" Margin="8,0,0,0" MinWidth="190"
+                 TextChanged="OnInputChanged"/>
+      </DockPanel>
+      <DockPanel LastChildFill="False">
+        <TextBlock x:Name="ValidationText" DockPanel.Dock="Left"
+                   Foreground="#FFE0A44C" VerticalAlignment="Center" TextWrapping="Wrap"/>
+        <Button DockPanel.Dock="Right" Content="ביטול" Click="OnCancel" IsCancel="True"/>
+        <Button x:Name="BtnSave" DockPanel.Dock="Right" Content="שמור הכרעה"
+                Click="OnSave" IsDefault="True" Style="{StaticResource PrimaryButton}"/>
+      </DockPanel>
+    </StackPanel>
+
+    <TabControl x:Name="ModeTabs" SelectionChanged="OnModeChanged"
+                Background="{StaticResource Panel}" BorderBrush="{StaticResource Line}">
+      <TabItem x:Name="ResolveTab" Header="בחירת חצייה מדויקת">
+        <DockPanel Margin="8">
+          <TextBlock DockPanel.Dock="Top" Foreground="{StaticResource Muted}"
+                     Margin="0,0,0,7" TextWrapping="Wrap"
+                     Text="בחר תוואי ותחנה מתוך החציות שנמדדו בפועל. הבחירה נשמרת לפי hash+handle ותיפסל אם הגאומטריה תשתנה."/>
+          <DataGrid x:Name="CandidatesGrid" SelectionChanged="OnCandidateChanged">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="תוואי" Binding="{Binding Alignment}" Width="*"/>
+              <DataGridTextColumn Header="תחנה" Binding="{Binding Station}" Width="100"/>
+              <DataGridTextColumn Header="X / Y" Binding="{Binding Point}" Width="170"/>
+              <DataGridTextColumn Header="פער" Binding="{Binding Gap}" Width="75"/>
+            </DataGrid.Columns>
+          </DataGrid>
+        </DockPanel>
+      </TabItem>
+      <TabItem Header="החרגה מפורשת">
+        <StackPanel Margin="10">
+          <TextBlock Text="קוד הממצא שעל בסיסו מאושרת ההחרגה:" Margin="0,0,0,4"/>
+          <ComboBox x:Name="FindingCodeBox" DisplayMemberPath="Label"
+                    SelectionChanged="OnFindingChanged"/>
+          <CheckBox x:Name="BatchCheck" Margin="0,10,0,8" Checked="OnInputChanged"
+                    Unchecked="OnInputChanged"
+                    Content="להחיל על כל הרשומות הלא-פתורות עם אותו קוד ממצא"/>
+          <TextBlock x:Name="BatchHint" Foreground="{StaticResource Muted}" Margin="0,0,0,10"/>
+          <TextBlock Text="סיבת החרגה הנדסית (חובה):" Margin="0,0,0,4"/>
+          <TextBox x:Name="ReasonBox" MinHeight="92" AcceptsReturn="True"
+                   TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                   TextChanged="OnInputChanged"/>
+          <TextBlock Foreground="#FFE0A44C" Margin="0,10,0,0" TextWrapping="Wrap"
+                     Text="החרגה אינה מוחקת דבר. היא נשמרת בפרופיל ומופיעה ב-PLAN/VERIFY עם מאשר, סיבה וזמן."/>
+        </StackPanel>
+      </TabItem>
+    </TabControl>
+  </DockPanel>
+</Window>

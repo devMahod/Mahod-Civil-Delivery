@@ -1,0 +1,25 @@
+{
+  "$contract": {
+    "protocol_version": "1.18",
+    "direction": "server_to_client",
+    "type": "await_input",
+    "audience": [
+      "plugin"
+    ],
+    "description": "Design-flow approval prompt. v1.2 added design_params/assembly_build_pending/assembly_clarify.",
+    "required_payload_fields": [
+      "step"
+    ],
+    "optional_payload_fields": []
+  },
+  "message": {
+    "id": "0f1e2d3c4b5a69788796a5b4c3d2e1f0",
+    "type": "await_input",
+    "timestamp": "2026-08-03T09:15:42.123456Z",
+    "session_id": "3f7c1b9e-2d4a-4c8e-9b1f-5a6d7e8f9012",
+    "correlation_id": null,
+    "payload": {
+      "step": "assembly_select"
+    }
+  }
+}

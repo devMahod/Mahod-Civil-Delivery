@@ -1,0 +1,104 @@
+{
+    "schema_version": 1,
+    "record_id": "q-disc-336457-22540-count",
+    "project_profile_id": "TEST-ONLY-NATIVE75-20260912",
+    "run_id": "estimate-extract-20260912-170748-af9cdebd",
+    "source": {
+      "drawing": "6422-SP-MEDVA-ALL-2026-MHD.dwg",
+      "drawing_path": "C:\\Users\\arthurf\\MahodCivilDelivery_Work\\6422-local-mirror\\Civil3d\\PD\\6422-SP-MEDVA-ALL-2026-MHD.dwg",
+      "drawing_hash": "e8c396b44342fd594124880c8e6528e7e954f94c168f1f698cb8dd0433236b9a",
+      "handle": "336457/22540",
+      "entity_type": "BLOCKREFERENCE",
+      "layer": "6422-SP-MEDVA-ALL-2026-MHD|S_CURB",
+      "xref": "6422-SP-MEDVA-ALL-2026-MHD",
+      "civil_identity": null,
+      "station_from": null,
+      "station_to": null
+    },
+    "measurement": {
+      "kind": "count",
+      "method": "block-count+xref-transform",
+      "raw_value": 1,
+      "unit": "יח'",
+      "geometry_evidence": [
+        204677.36807452128,
+        647955.9951741778,
+        204677.93915071723,
+        647958.336
+      ],
+      "parameters": {
+        "block_name": "6422-SP-MEDVA-ALL-2026-MHD|S_POINT_E",
+        "cad_evidence_role": "raw-properties-only; not used for grouping or pricing",
+        "cad_geometry_space": "untransformed entity geometry",
+        "cad_entity_color_method": "ByLayer",
+        "cad_entity_color_index": "256",
+        "cad_entity_color_status": "raw; effective inheritance unresolved",
+        "cad_entity_linetype": "ByLayer",
+        "cad_entity_linetype_scale": "1",
+        "cad_entity_lineweight": "ByLayer",
+        "cad_entity_database_insunits": "Undefined",
+        "cad_layer_color_method": "ByAci",
+        "cad_layer_color_index": "8",
+        "cad_layer_linetype": "Continuous",
+        "cad_layer_status": "raw layer properties; layer 0 and ByBlock inheritance unresolved",
+        "cad_block_name_raw": "6422-SP-MEDVA-ALL-2026-MHD|S_POINT_E",
+        "cad_block_name_effective": "6422-SP-MEDVA-ALL-2026-MHD|S_POINT_E"
+      }
+    },
+    "classification": {
+      "source_class": "BLOCKREFERENCE",
+      "rule_key": "layer:S_CURB|count|block:6422-SP-MEDVA-ALL-2026-MHD%7CS_POINT_E",
+      "candidate_catalog_code": null,
+      "approved_catalog_id": null,
+      "approved_catalog_hash": null,
+      "approved_catalog_item_fingerprint": null,
+      "mapping_approved_by": null,
+      "mapping_approved_at_utc": null,
+      "tags": [
+        "discovered"
+      ]
+    },
+    "status": "ReviewRequired",
+    "findings": [
+      {
+        "finding_id": "c0d2e876c83248ce85fa1b09fdda6b07",
+        "code": "EST-UNMAPPED",
+        "domain": "estimate",
+        "severity": "ReviewRequired",
+        "title": "נמדדו 1.00 יח' בשכבה '‎6422-SP-MEDVA-ALL-2026-MHD|S_CURB‎' ללא שיוך לסעיף מחירון",
+        "message": "",
+        "project_profile_id": "TEST-ONLY-NATIVE75-20260912",
+        "run_id": null,
+        "source_refs": [],
+        "affected_record_ids": [
+          "q-disc-336457-22540-count"
+        ],
+        "projection_role": null,
+        "source_bounds_wcs": null,
+        "evidence_refs": [],
+        "recommended_action": "יש לאשר שיוך לשכבה (חוק 'layer:S_CURB|count|block:6422-SP-MEDVA-ALL-2026-MHD%7CS_POINT_E') דרך 'אשר מיפוי'.",
+        "created_at_utc": "2026-09-12T17:07:50.4189051Z",
+        "resolved_at_utc": null,
+        "resolution": null,
+        "resolved_by": null
+      }
+    ],
+    "provenance": {
+      "source_kind": "xref",
+      "source_path_or_uri": "C:\\Users\\arthurf\\MahodCivilDelivery_Work\\6422-local-mirror\\Civil3d\\PD\\6422-SP-MEDVA-ALL-2026-MHD.dwg",
+      "drawing_checksum": "e8c396b44342fd594124880c8e6528e7e954f94c168f1f698cb8dd0433236b9a",
+      "source_handle": "336457/22540",
+      "source_subentity_path": null,
+      "xref_path": "6422-SP-MEDVA-ALL-2026-MHD",
+      "xref_transform": null,
+      "entity_type": "BlockReference",
+      "layer": "6422-SP-MEDVA-ALL-2026-MHD|S_CURB",
+      "station_from": null,
+      "station_to": null,
+      "measurement_method": "block-count+xref-transform",
+      "input_hash": null,
+      "tool_version": "civil-delivery/1.2.75",
+      "project_profile_version": null,
+      "run_id": "estimate-extract-20260912-170748-af9cdebd"
+    }
+  }

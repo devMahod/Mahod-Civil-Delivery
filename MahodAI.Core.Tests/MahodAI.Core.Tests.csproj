@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- P0-06: pure-logic test project. Contains ONLY tests that exercise Autodesk-free code
+       (routing/geometry math, the result contract, the vertical evaluator). It does NOT
+       reference the AutoCAD/Civil DLLs, so reflecting over its types at discovery can never
+       throw ReflectionTypeLoadException — which is what was truncating discovery of the mixed
+       MahodAI.Civil3D.Plugin.Tests assembly non-deterministically. This project must stay
+       green on every CI commit with no host. -->
+  <PropertyGroup>
+    <TargetFramework>$(AutoCADTargetFramework)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <!-- Deliberately NO <RuntimeIdentifier> / <Platforms> pin: the RID subfolder + x64 combo
+         is what triggered the "Could not find VS test case" discover/execute path mismatch. -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageReference Include="FluentAssertions" Version="6.12.1" />
+  </ItemGroup>
+
+  <!-- References the plugin for its pure types (ToolResult, ContainmentSampler, CurveAttacher,
+       VerticalConstraintEvaluator, Pt2, …). The plugin's own AutoCAD references are Private=false
+       and are only resolved lazily when AutoCAD-touching code is JIT'd — the pure tests here
+       never do, so no AutoCAD runtime is required. -->
+  <ItemGroup>
+    <ProjectReference Include="..\MahodAI.Civil3D.Plugin\MahodAI.Civil3D.Plugin.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Real road-73 survey extract (blue corridor loop + KAV-ASFALT/EVEN-SAFA chains) —
+         the field data the evidence extractor was validated against. Synthetic fixtures
+         alone missed a crash the real flares triggered (2026-07-28). -->
+    <None Include="Fixtures\road73_linework.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- BoQ rules v2 golden acceptance fixtures (frozen by natali-boq-2809/export_golden.py). -->
+    <None Include="Fixtures\boq_v2\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

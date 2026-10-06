@@ -1,0 +1,58 @@
+{
+  "$contract": {
+    "protocol_version": "1.18",
+    "direction": "server_to_client",
+    "type": "fix_result",
+    "audience": [
+      "plugin"
+    ],
+    "description": "v1.2: applied_count is the SOLE source for the plugin's _UNDO n. top-level success = (failed==0 AND manual_required==0).",
+    "required_payload_fields": [
+      "plan_id",
+      "success",
+      "applied_count",
+      "failed_count",
+      "manual_required_count",
+      "results"
+    ],
+    "optional_payload_fields": []
+  },
+  "message": {
+    "id": "0f1e2d3c4b5a69788796a5b4c3d2e1f0",
+    "type": "fix_result",
+    "timestamp": "2026-08-03T09:15:42.123456Z",
+    "session_id": "3f7c1b9e-2d4a-4c8e-9b1f-5a6d7e8f9012",
+    "correlation_id": null,
+    "payload": {
+      "plan_id": "plan-4b81f2c6",
+      "success": false,
+      "applied_count": 1,
+      "failed_count": 0,
+      "manual_required_count": 1,
+      "results": [
+        {
+          "item_id": "item-1",
+          "success": true,
+          "status": "applied",
+          "description": "רדיוס אופקי קטן מהמינימום",
+          "object_name": "ציר 73",
+          "location": "ציר 73 — תחנה 0+420.00 עד 0+600.00",
+          "previous_value": "240",
+          "new_value": "300"
+        },
+        {
+          "item_id": "item-4",
+          "success": false,
+          "status": "manual_required",
+          "error_message": "הערך המדויק אינו בר-השגה",
+          "description": "אורך עקום אנכי",
+          "object_name": "פרופיל FG",
+          "location": "ציר 73 — תחנה 0+980.00",
+          "previous_value": "60",
+          "new_value": null,
+          "achieved_value": "72"
+        }
+      ]
+    }
+  }
+}

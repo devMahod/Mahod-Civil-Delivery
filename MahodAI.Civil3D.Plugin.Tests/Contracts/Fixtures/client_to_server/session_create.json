@@ -1,0 +1,44 @@
+{
+  "$contract": {
+    "protocol_version": "1.18",
+    "direction": "client_to_server",
+    "type": "session_create",
+    "audience": [
+      "plugin"
+    ],
+    "description": "Plugin creates one session per drawing/tab; answered with session_created.",
+    "required_payload_fields": [
+      "drawing_id",
+      "summary"
+    ],
+    "optional_payload_fields": [
+      "drawing_name"
+    ]
+  },
+  "message": {
+    "id": "0f1e2d3c4b5a69788796a5b4c3d2e1f0",
+    "type": "session_create",
+    "timestamp": "2026-08-03T09:15:42.123456Z",
+    "session_id": null,
+    "correlation_id": "corr-session-1",
+    "payload": {
+      "drawing_id": "C:\\\\Projects\\\\Road73\\\\R73-2021.dwg",
+      "drawing_name": "R73-2021.dwg",
+      "summary": {
+        "alignments": [
+          {
+            "name": "ציר 73",
+            "length": 1842.5,
+            "start_station": 0.0
+          }
+        ],
+        "surfaces": [
+          {
+            "name": "EG"
+          }
+        ],
+        "profiles": []
+      }
+    }
+  }
+}

@@ -1,0 +1,135 @@
+{
+  "$contract": {
+    "protocol_version": "1.18",
+    "direction": "client_to_server",
+    "type": "tool_result",
+    "audience": [
+      "plugin"
+    ],
+    "description": "v1.16 visual sheet scan of ONE layout. totals_by_category carries the TRUE counts before max_findings_per_check truncates the list, and truncated_categories names what was capped -- a partial scan must never read as a clean sheet. Every finding id is also drawn in the DWG beside its circle.",
+    "required_payload_fields": [
+      "tool_call_id",
+      "success"
+    ],
+    "optional_payload_fields": [
+      "result",
+      "error",
+      "outcome",
+      "hard_gates_passed",
+      "requires_engineer_approval",
+      "violations"
+    ]
+  },
+  "message": {
+    "id": "0f1e2d3c4b5a69788796a5b4c3d2e1f0",
+    "type": "tool_result",
+    "timestamp": "2026-08-03T09:15:42.123456Z",
+    "session_id": "3f7c1b9e-2d4a-4c8e-9b1f-5a6d7e8f9012",
+    "correlation_id": "tc-5e8a13c7",
+    "payload": {
+      "tool_call_id": "tc-5e8a13c7",
+      "success": true,
+      "outcome": "succeeded",
+      "hard_gates_passed": true,
+      "result": {
+        "layout": "3001-01",
+        "findings": [
+          {
+            "id": "VS-3001-01-001",
+            "category": "text_overlap",
+            "severity": "high",
+            "layout": "3001-01",
+            "space": "Model",
+            "center_x": 180499.23,
+            "center_y": 629576.03,
+            "radius": 12.4,
+            "has_location": true,
+            "title": "Text on text",
+            "detail": "\"חיבור לתכנון מאושר\" overlaps \"57.56\" (94% of the smaller label)",
+            "handles": [
+              "A8D1E3",
+              "A8D1E4"
+            ],
+            "layer": "383-HW-TX-M44-MINHUR-ALL|text-halufa1",
+            "source_xref": "383-HW-TX-M44-MINHUR-ALL",
+            "marker_handle": "A8D200"
+          },
+          {
+            "id": "VS-3001-01-002",
+            "category": "rotated_text",
+            "severity": "medium",
+            "layout": "3001-01",
+            "space": "Model",
+            "center_x": 180612.77,
+            "center_y": 629480.11,
+            "radius": 8.0,
+            "has_location": true,
+            "title": "Upside-down text",
+            "detail": "\"עמוד תאורה\" is rotated 217° on the sheet",
+            "handles": [
+              "A8D1F0"
+            ],
+            "layer": "6327-SR--383-1000ALL|4402",
+            "source_xref": "6327-SR--383-1000ALL",
+            "marker_handle": "A8D201"
+          }
+        ],
+        "declutter_candidates": [
+          {
+            "layer": "6327-EV-MINHUR-2500|CL_Elev_Ditch",
+            "source_xref": "6327-EV-MINHUR-2500",
+            "text_count": 138,
+            "numeric_text_count": 138,
+            "numeric_share": 1.0
+          }
+        ],
+        "legend": {
+          "block_name": "mikraut",
+          "identified_by_name": true,
+          "row_count": 71,
+          "rows": [
+            {
+              "color_index": 102,
+              "linetype": "bk",
+              "label": "קו בזק-קיים"
+            }
+          ],
+          "plan_style_count": 108,
+          "matched_style_count": 13,
+          "missing_from_legend_count": 12,
+          "orphan_row_count": 23
+        },
+        "stats": {
+          "visible_texts": 1305,
+          "paper_texts": 40,
+          "model_texts": 1265,
+          "visible_curves": 6291,
+          "xrefs_walked": 72,
+          "legend_rows": 71,
+          "hidden_layer_skipped": 50152,
+          "outside_viewport_skipped": 14790,
+          "unreadable_entities": 0
+        },
+        "totals_by_category": {
+          "text_overlap": 567,
+          "rotated_text": 39,
+          "declutter_candidate": 12,
+          "legend_missing_row": 12,
+          "legend_orphan_row": 23
+        },
+        "truncated_categories": [
+          "text_overlap"
+        ],
+        "approximations": [
+          "Text collisions are measured on bounding boxes, and text against symbols or dimensions is not yet checked.",
+          "Blocks nested inside an xref were not descended into."
+        ],
+        "warnings": [],
+        "markup_drawn": 60,
+        "markup_erased": 0,
+        "markup_layer": "MAHOD_VISUAL_SCAN",
+        "max_findings_per_check": 60
+      }
+    }
+  }
+}

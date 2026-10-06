@@ -1,0 +1,5867 @@
+{
+  "schema_version": 1,
+  "purpose": "diagnostic-only measured-layout input capture; not a VERIFY PASS and not layout acceptance",
+  "capture_status": "captured",
+  "capture_reason": null,
+  "identity": {
+    "host_path": "C:\\Users\\arthurf\\MahodCivilDelivery_Work\\6422-local-mirror\\Civil3d\\PD\\6422-CIVIL-WEST.claude-live-20260929.dwg",
+    "host_sha256": "73f14bf4a00b9925b5e1aa7386b03c3b58174f2d4b456842b82699c3339b2ba9",
+    "host_hash_error": null,
+    "post_apply_database_revision": "{902B4691-C7C3-4646-9BC5-EA6E92E07944}:1686",
+    "verified_database_revision": "{902B4691-C7C3-4646-9BC5-EA6E92E07944}:0",
+    "plugin_assembly_path": "C:\\Users\\arthurf\\AppData\\Roaming\\Autodesk\\ApplicationPlugins\\Mahod.CivilDelivery.bundle\\Contents\\2027\\Mahod.CivilDelivery.dll",
+    "plugin_assembly_sha256": "42e857e7ee278053ae68dd3f94edfab2e306a4b58e141e038fd484b9214a37f7",
+    "plugin_build_version": "1.4.0.0",
+    "plugin_git_sha": null,
+    "plugin_package_revision": "1.4.0",
+    "core_assembly_path": "C:\\Users\\arthurf\\AppData\\Roaming\\Autodesk\\ApplicationPlugins\\Mahod.CivilDelivery.bundle\\Contents\\2027\\Mahod.CivilDelivery.Core.dll",
+    "core_assembly_sha256": "c740773fad29f332674300014265fd9a378606c7814b3e72e995de84486edc0e",
+    "core_build_version": "1.4.0.0",
+    "project_profile_id": "6422",
+    "project_profile_sha256": "e371285474e8d4a29686472048ecea47107b90b4104c9643b1d198fdf11e5198",
+    "plan_run_id": "sections-plan-20261003-165244-9c8fd786",
+    "apply_run_id": "sections-apply-selected-20261003-124837-fba87e11",
+    "verify_run_id": "sections-verify-20261003-165353-61a41854",
+    "selected_record_id": "cl-7C8F"
+  },
+  "verify": {
+    "scope": "selected-record",
+    "verify_status": "Verified",
+    "record_status": "Verified",
+    "failed_checks": [],
+    "error_findings": []
+  },
+  "record": {
+    "record_id": "cl-7C8F",
+    "logical_key": "MCD:28781f15e727a6bf",
+    "section_view_handle": "BDA744",
+    "layout_stage": "layout-exact",
+    "layout_check_pass": true,
+    "layout_error": null,
+    "annotation_registry_error": null,
+    "inputs": {
+      "top_labels": [
+        {
+          "id": "BDA748",
+          "band": 4,
+          "anchor": {
+            "x": 217401.84610914206,
+            "y": 655166.4515057263
+          },
+          "ink": {
+            "min_x": 217401.02700955133,
+            "min_y": 655166.4515057263,
+            "max_x": 217402.66520873277,
+            "max_y": 655167.1468331479
+          }
+        },
+        {
+          "id": "BDA749",
+          "band": 7,
+          "anchor": {
+            "x": 217401.8461091421,
+            "y": 655168.4515057263
+          },
+          "ink": {
+            "min_x": 217389.22639563595,
+            "min_y": 655168.1731974044,
+            "max_x": 217414.46582264823,
+            "max_y": 655169.4685589323
+          }
+        },
+        {
+          "id": "BDA78C",
+          "band": 6,
+          "anchor": {
+            "x": 217401.8461091421,
+            "y": 655167.4515057263
+          },
+          "ink": {
+            "min_x": 217391.52708458548,
+            "min_y": 655167.2789545667,
+            "max_x": 217412.16513369873,
+            "max_y": 655167.9095275544
+          }
+        },
+        {
+          "id": "BDA78D",
+          "band": 5,
+          "anchor": {
+            "x": 217401.8461091421,
+            "y": 655167.4515057263
+          },
+          "ink": {
+            "min_x": 217389.79797817348,
+            "min_y": 655167.2789545667,
+            "max_x": 217413.89424011073,
+            "max_y": 655168.0715057263
+          }
+        },
+        {
+          "id": "BDA784",
+          "band": 1,
+          "anchor": {
+            "x": 217390.95950060314,
+            "y": 655163.1515057264
+          },
+          "ink": {
+            "min_x": 217389.93988941624,
+            "min_y": 655163.1382042257,
+            "max_x": 217391.97911179005,
+            "max_y": 655163.9045753034
+          }
+        },
+        {
+          "id": "BDA79E",
+          "band": 2,
+          "anchor": {
+            "x": 217390.95950060314,
+            "y": 655164.7515057264
+          },
+          "ink": {
+            "min_x": 217389.46100128526,
+            "min_y": 655164.7427744849,
+            "max_x": 217392.457999921,
+            "max_y": 655165.3403188232
+          }
+        },
+        {
+          "id": "BDA785",
+          "band": 1,
+          "anchor": {
+            "x": 217394.49536293768,
+            "y": 655163.1515057264
+          },
+          "ink": {
+            "min_x": 217393.47575175078,
+            "min_y": 655163.1382042257,
+            "max_x": 217395.51497412458,
+            "max_y": 655163.9045753034
+          }
+        },
+        {
+          "id": "BDA79F",
+          "band": 2,
+          "anchor": {
+            "x": 217394.49536293768,
+            "y": 655164.7515057264
+          },
+          "ink": {
+            "min_x": 217392.05552664847,
+            "min_y": 655164.6980268724,
+            "max_x": 217396.93519922692,
+            "max_y": 655165.3463215517
+          }
+        },
+        {
+          "id": "BDA786",
+          "band": 1,
+          "anchor": {
+            "x": 217397.83623360365,
+            "y": 655163.1515057264
+          },
+          "ink": {
+            "min_x": 217396.81662241675,
+            "min_y": 655163.1387158219,
+            "max_x": 217398.85584479055,
+            "max_y": 655163.9045753034
+          }
+        },
+        {
+          "id": "BDA7A2",
+          "band": 2,
+          "anchor": {
+            "x": 217397.83623360365,
+            "y": 655164.7515057264
+          },
+          "ink": {
+            "min_x": 217395.39639731444,
+            "min_y": 655164.6980268724,
+            "max_x": 217400.2760698929,
+            "max_y": 655165.3463215517
+          }
+        },
+        {
+          "id": "BDA787",
+          "band": 1,
+          "anchor": {
+            "x": 217400.47438099628,
+            "y": 655163.1515057264
+          },
+          "ink": {
+            "min_x": 217399.45476980938,
+            "min_y": 655163.1387158219,
+            "max_x": 217401.49399218318,
+            "max_y": 655163.9045753034
+          }
+        },
+        {
+          "id": "BDA7A5",
+          "band": 2,
+          "anchor": {
+            "x": 217400.47438099628,
+            "y": 655164.7515057264
+          },
+          "ink": {
+            "min_x": 217398.5406838612,
+            "min_y": 655164.6980268724,
+            "max_x": 217402.40807813132,
+            "max_y": 655165.3370446077
+          }
+        },
+        {
+          "id": "BDA788",
+          "band": 1,
+          "anchor": {
+            "x": 217402.92001868782,
+            "y": 655163.1515057264
+          },
+          "ink": {
+            "min_x": 217401.9004075009,
+            "min_y": 655163.1382042257,
+            "max_x": 217403.93962987472,
+            "max_y": 655163.9045753034
+          }
+        },
+        {
+          "id": "BDA7A6",
+          "band": 2,
+          "anchor": {
+            "x": 217402.92001868782,
+            "y": 655164.7515057264
+          },
+          "ink": {
+            "min_x": 217400.4801823986,
+            "min_y": 655164.6980268724,
+            "max_x": 217405.35985497705,
+            "max_y": 655165.3463215517
+          }
+        },
+        {
+          "id": "BDA789",
+          "band": 1,
+          "anchor": {
+            "x": 217406.10122011456,
+            "y": 655163.1515057264
+          },
+          "ink": {
+            "min_x": 217405.08160892766,
+            "min_y": 655163.1382042257,
+            "max_x": 217407.12083130146,
+            "max_y": 655163.9045753034
+          }
+        },
+        {
+          "id": "BDA7A9",
+          "band": 2,
+          "anchor": {
+            "x": 217406.10122011456,
+            "y": 655164.7515057264
+          },
+          "ink": {
+            "min_x": 217403.66138382535,
+            "min_y": 655164.6980268724,
+            "max_x": 217408.5410564038,
+            "max_y": 655165.3463215517
+          }
+        },
+        {
+          "id": "BDA78A",
+          "band": 1,
+          "anchor": {
+            "x": 217409.55582301453,
+            "y": 655163.1515057264
+          },
+          "ink": {
+            "min_x": 217408.53621182762,
+            "min_y": 655163.1382042257,
+            "max_x": 217410.57543420143,
+            "max_y": 655163.9045753034
+          }
+        },
+        {
+          "id": "BDA7AC",
+          "band": 2,
+          "anchor": {
+            "x": 217409.55582301453,
+            "y": 655164.7515057264
+          },
+          "ink": {
+            "min_x": 217407.11598672532,
+            "min_y": 655164.6980268724,
+            "max_x": 217411.99565930376,
+            "max_y": 655165.3463215517
+          }
+        },
+        {
+          "id": "BDA78B",
+          "band": 1,
+          "anchor": {
+            "x": 217412.89359875856,
+            "y": 655163.1515057264
+          },
+          "ink": {
+            "min_x": 217411.87398757166,
+            "min_y": 655163.1387158219,
+            "max_x": 217413.91320994546,
+            "max_y": 655163.9045753034
+          }
+        },
+        {
+          "id": "BDA7AF",
+          "band": 2,
+          "anchor": {
+            "x": 217412.89359875856,
+            "y": 655164.7515057264
+          },
+          "ink": {
+            "min_x": 217411.39509944068,
+            "min_y": 655164.7427744849,
+            "max_x": 217414.3920980764,
+            "max_y": 655165.3403188232
+          }
+        },
+        {
+          "id": "BDA78E",
+          "band": 1,
+          "anchor": {
+            "x": 217392.73478038335,
+            "y": 655163.1515057264
+          },
+          "ink": {
+            "min_x": 217391.89190180218,
+            "min_y": 655163.1405098191,
+            "max_x": 217393.57765896452,
+            "max_y": 655163.7740432435
+          }
+        },
+        {
+          "id": "BDA78F",
+          "band": 1,
+          "anchor": {
+            "x": 217396.24722681454,
+            "y": 655163.1515057264
+          },
+          "ink": {
+            "min_x": 217395.40434823337,
+            "min_y": 655163.1405098191,
+            "max_x": 217397.0901053957,
+            "max_y": 655163.7740432435
+          }
+        },
+        {
+          "id": "BDA790",
+          "band": 1,
+          "anchor": {
+            "x": 217399.62620817803,
+            "y": 655163.1515057264
+          },
+          "ink": {
+            "min_x": 217398.78332959686,
+            "min_y": 655163.1409327387,
+            "max_x": 217400.4690867592,
+            "max_y": 655163.7740432435
+          }
+        },
+        {
+          "id": "BDA791",
+          "band": 1,
+          "anchor": {
+            "x": 217401.13127527482,
+            "y": 655163.1515057264
+          },
+          "ink": {
+            "min_x": 217400.28839669365,
+            "min_y": 655163.1405098191,
+            "max_x": 217401.974153856,
+            "max_y": 655163.7740432435
+          }
+        },
+        {
+          "id": "BDA792",
+          "band": 1,
+          "anchor": {
+            "x": 217407.80243899458,
+            "y": 655163.1515057264
+          },
+          "ink": {
+            "min_x": 217406.9595604134,
+            "min_y": 655163.1405098191,
+            "max_x": 217408.64531757575,
+            "max_y": 655163.7740432435
+          }
+        },
+        {
+          "id": "BDA793",
+          "band": 1,
+          "anchor": {
+            "x": 217411.39852040051,
+            "y": 655163.1515057264
+          },
+          "ink": {
+            "min_x": 217410.55564181934,
+            "min_y": 655163.1409327387,
+            "max_x": 217412.24139898169,
+            "max_y": 655163.7740432435
+          }
+        },
+        {
+          "id": "BDA795",
+          "band": 3,
+          "anchor": {
+            "x": 217401.74665951173,
+            "y": 655165.6515057264
+          },
+          "ink": {
+            "min_x": 217398.2954316809,
+            "min_y": 655165.6387158219,
+            "max_x": 217405.19788734257,
+            "max_y": 655166.4045753034
+          }
+        },
+        {
+          "id": "BDA796",
+          "band": 0,
+          "anchor": {
+            "x": 217390.95950060314,
+            "y": 655158.0092646247
+          },
+          "ink": {
+            "min_x": 217389.58733825662,
+            "min_y": 655157.9864269712,
+            "max_x": 217392.33166294967,
+            "max_y": 655158.6398376124
+          }
+        },
+        {
+          "id": "BDA797",
+          "band": 0,
+          "anchor": {
+            "x": 217394.49536293768,
+            "y": 655157.8925398547
+          },
+          "ink": {
+            "min_x": 217393.12320059116,
+            "min_y": 655157.8697022012,
+            "max_x": 217395.8675252842,
+            "max_y": 655158.5231128425
+          }
+        },
+        {
+          "id": "BDA798",
+          "band": 0,
+          "anchor": {
+            "x": 217397.83623360365,
+            "y": 655157.788429928
+          },
+          "ink": {
+            "min_x": 217396.46407125713,
+            "min_y": 655157.7655922745,
+            "max_x": 217399.20839595018,
+            "max_y": 655158.4190029157
+          }
+        },
+        {
+          "id": "BDA799",
+          "band": 0,
+          "anchor": {
+            "x": 217400.47438099628,
+            "y": 655157.6794408037
+          },
+          "ink": {
+            "min_x": 217399.10221864976,
+            "min_y": 655157.6566031502,
+            "max_x": 217401.8465433428,
+            "max_y": 655158.3100137914
+          }
+        },
+        {
+          "id": "BDA79A",
+          "band": 0,
+          "anchor": {
+            "x": 217402.92001868782,
+            "y": 655157.5847227226
+          },
+          "ink": {
+            "min_x": 217401.5478563413,
+            "min_y": 655157.5618850691,
+            "max_x": 217404.29218103434,
+            "max_y": 655158.2152957104
+          }
+        },
+        {
+          "id": "BDA79B",
+          "band": 0,
+          "anchor": {
+            "x": 217406.10122011456,
+            "y": 655157.4726276513
+          },
+          "ink": {
+            "min_x": 217404.72905776804,
+            "min_y": 655157.4497899978,
+            "max_x": 217407.4733824611,
+            "max_y": 655158.103200639
+          }
+        },
+        {
+          "id": "BDA79C",
+          "band": 0,
+          "anchor": {
+            "x": 217409.55582301453,
+            "y": 655157.3499211376
+          },
+          "ink": {
+            "min_x": 217408.183660668,
+            "min_y": 655157.327083484,
+            "max_x": 217410.92798536105,
+            "max_y": 655157.9804941253
+          }
+        },
+        {
+          "id": "BDA79D",
+          "band": 0,
+          "anchor": {
+            "x": 217412.89359875856,
+            "y": 655157.2313642913
+          },
+          "ink": {
+            "min_x": 217411.52143641203,
+            "min_y": 655157.2085266378,
+            "max_x": 217414.26576110508,
+            "max_y": 655157.861937279
+          }
+        }
+      ],
+      "bottom_labels": [
+        {
+          "id": "BDA7B6",
+          "band": 0,
+          "anchor": {
+            "x": 217388.12991514208,
+            "y": 655153.6515057264
+          },
+          "ink": {
+            "min_x": 217388.11934215436,
+            "min_y": 655151.1956121384,
+            "max_x": 217388.75245265913,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "id": "BDA7B7",
+          "band": 0,
+          "anchor": {
+            "x": 217390.26591514208,
+            "y": 655153.6515057264
+          },
+          "ink": {
+            "min_x": 217390.25534215436,
+            "min_y": 655151.677317459,
+            "max_x": 217390.88845265913,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "id": "BDA7B8",
+          "band": 0,
+          "anchor": {
+            "x": 217391.28191514208,
+            "y": 655153.6515057264
+          },
+          "ink": {
+            "min_x": 217391.27134215436,
+            "min_y": 655151.677317459,
+            "max_x": 217391.90445265913,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "id": "BDA7B9",
+          "band": 0,
+          "anchor": {
+            "x": 217392.2979151421,
+            "y": 655153.6515057264
+          },
+          "ink": {
+            "min_x": 217392.28734215436,
+            "min_y": 655151.677317459,
+            "max_x": 217392.92045265913,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "id": "BDA7BA",
+          "band": 0,
+          "anchor": {
+            "x": 217393.31391514206,
+            "y": 655153.6515057264
+          },
+          "ink": {
+            "min_x": 217393.30334215434,
+            "min_y": 655151.677317459,
+            "max_x": 217393.9364526591,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "id": "BDA7BB",
+          "band": 0,
+          "anchor": {
+            "x": 217394.32991514207,
+            "y": 655153.6515057264
+          },
+          "ink": {
+            "min_x": 217394.31934215434,
+            "min_y": 655151.677317459,
+            "max_x": 217394.9418796714,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "id": "BDA7BC",
+          "band": 0,
+          "anchor": {
+            "x": 217395.34591514207,
+            "y": 655153.6515057264
+          },
+          "ink": {
+            "min_x": 217395.33534215434,
+            "min_y": 655151.677317459,
+            "max_x": 217395.96591514206,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "id": "BDA7BD",
+          "band": 0,
+          "anchor": {
+            "x": 217397.48191514207,
+            "y": 655153.6515057264
+          },
+          "ink": {
+            "min_x": 217397.47134215434,
+            "min_y": 655151.677317459,
+            "max_x": 217398.1044526591,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "id": "BDA7BE",
+          "band": 0,
+          "anchor": {
+            "x": 217398.49791514207,
+            "y": 655153.6515057264
+          },
+          "ink": {
+            "min_x": 217398.48734215435,
+            "min_y": 655151.677317459,
+            "max_x": 217399.12045265912,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "id": "BDA7BF",
+          "band": 0,
+          "anchor": {
+            "x": 217399.51391514207,
+            "y": 655153.6515057264
+          },
+          "ink": {
+            "min_x": 217399.50334215435,
+            "min_y": 655151.677317459,
+            "max_x": 217400.13645265912,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "id": "BDA7C0",
+          "band": 0,
+          "anchor": {
+            "x": 217400.52991514208,
+            "y": 655153.6515057264
+          },
+          "ink": {
+            "min_x": 217400.51934215435,
+            "min_y": 655151.677317459,
+            "max_x": 217401.15245265912,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "id": "BDA7C1",
+          "band": 0,
+          "anchor": {
+            "x": 217401.54591514208,
+            "y": 655153.6515057264
+          },
+          "ink": {
+            "min_x": 217401.53534215436,
+            "min_y": 655151.677317459,
+            "max_x": 217402.16845265913,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "id": "BDA7C2",
+          "band": 0,
+          "anchor": {
+            "x": 217402.56191514208,
+            "y": 655153.6515057264
+          },
+          "ink": {
+            "min_x": 217402.55134215436,
+            "min_y": 655151.677317459,
+            "max_x": 217403.18445265913,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "id": "BDA7C3",
+          "band": 0,
+          "anchor": {
+            "x": 217403.5779151421,
+            "y": 655153.6515057264
+          },
+          "ink": {
+            "min_x": 217403.56734215436,
+            "min_y": 655151.677317459,
+            "max_x": 217404.20045265913,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "id": "BDA7C4",
+          "band": 0,
+          "anchor": {
+            "x": 217405.71391514209,
+            "y": 655153.6515057264
+          },
+          "ink": {
+            "min_x": 217405.70334215436,
+            "min_y": 655151.677317459,
+            "max_x": 217406.33645265913,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "id": "BDA7C5",
+          "band": 0,
+          "anchor": {
+            "x": 217406.7299151421,
+            "y": 655153.6515057264
+          },
+          "ink": {
+            "min_x": 217406.71934215436,
+            "min_y": 655151.965748564,
+            "max_x": 217407.35245265914,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "id": "BDA7C6",
+          "band": 0,
+          "anchor": {
+            "x": 217407.74591514206,
+            "y": 655153.6515057264
+          },
+          "ink": {
+            "min_x": 217407.73534215434,
+            "min_y": 655151.965748564,
+            "max_x": 217408.3684526591,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "id": "BDA7C7",
+          "band": 0,
+          "anchor": {
+            "x": 217408.76191514207,
+            "y": 655153.6515057264
+          },
+          "ink": {
+            "min_x": 217408.75134215434,
+            "min_y": 655151.965748564,
+            "max_x": 217409.3844526591,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "id": "BDA7C8",
+          "band": 0,
+          "anchor": {
+            "x": 217409.77791514207,
+            "y": 655153.6515057264
+          },
+          "ink": {
+            "min_x": 217409.76691923483,
+            "min_y": 655151.965748564,
+            "max_x": 217410.40045265912,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "id": "BDA7C9",
+          "band": 0,
+          "anchor": {
+            "x": 217410.79391514207,
+            "y": 655153.6515057264
+          },
+          "ink": {
+            "min_x": 217410.78334215435,
+            "min_y": 655151.965748564,
+            "max_x": 217411.41645265912,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "id": "BDA7CA",
+          "band": 0,
+          "anchor": {
+            "x": 217411.80991514208,
+            "y": 655153.6515057264
+          },
+          "ink": {
+            "min_x": 217411.79934215435,
+            "min_y": 655151.965748564,
+            "max_x": 217412.43245265912,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "id": "BDA7CB",
+          "band": 0,
+          "anchor": {
+            "x": 217412.82591514208,
+            "y": 655153.6515057264
+          },
+          "ink": {
+            "min_x": 217412.81534215435,
+            "min_y": 655151.965748564,
+            "max_x": 217413.44845265913,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "id": "BDA7CC",
+          "band": 0,
+          "anchor": {
+            "x": 217417.20191514207,
+            "y": 655153.6515057264
+          },
+          "ink": {
+            "min_x": 217417.19091923482,
+            "min_y": 655151.4840432435,
+            "max_x": 217417.82445265912,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "id": "BDA7CD",
+          "band": 1,
+          "anchor": {
+            "x": 217370.8461091421,
+            "y": 655153.1515057264
+          },
+          "ink": {
+            "min_x": 217370.8461091421,
+            "min_y": 655152.9427744849,
+            "max_x": 217383.42267803705,
+            "max_y": 655153.9045753034
+          }
+        }
+      ],
+      "fixed_obstacles": [
+        {
+          "min_x": 217390.96790033078,
+          "min_y": 655157.0139909501,
+          "max_x": 217391.26790033077,
+          "max_y": 655157.3139909501
+        },
+        {
+          "min_x": 217398.0151165277,
+          "min_y": 655155.2211224785,
+          "max_x": 217398.3151165277,
+          "max_y": 655155.5211224785
+        },
+        {
+          "min_x": 217401.08357262512,
+          "min_y": 655156.2553931536,
+          "max_x": 217401.3835726251,
+          "max_y": 655156.5553931537
+        },
+        {
+          "min_x": 217412.14654371067,
+          "min_y": 655155.8938690925,
+          "max_x": 217412.44654371066,
+          "max_y": 655156.1938690925
+        },
+        {
+          "min_x": 217412.66583169694,
+          "min_y": 655155.5577686094,
+          "max_x": 217412.96583169693,
+          "max_y": 655155.8577686094
+        },
+        {
+          "min_x": 217412.99268120463,
+          "min_y": 655155.1586726613,
+          "max_x": 217413.29268120462,
+          "max_y": 655155.4586726613
+        },
+        {
+          "min_x": 217394.24928189206,
+          "min_y": 655159.2903315567,
+          "max_x": 217394.7414439833,
+          "max_y": 655160.6903315567
+        },
+        {
+          "min_x": 217393.59536293766,
+          "min_y": 655157.1903315567,
+          "max_x": 217395.39536293768,
+          "max_y": 655158.7704274916
+        },
+        {
+          "min_x": 217397.59015255803,
+          "min_y": 655159.1908443896,
+          "max_x": 217398.08231464928,
+          "max_y": 655160.5908443896
+        },
+        {
+          "min_x": 217396.93623360363,
+          "min_y": 655157.0908443896,
+          "max_x": 217398.73623360365,
+          "max_y": 655158.6709403245
+        },
+        {
+          "min_x": 217402.67393764222,
+          "min_y": 655158.983954853,
+          "max_x": 217403.1660997334,
+          "max_y": 655160.3839548529
+        },
+        {
+          "min_x": 217402.02001868782,
+          "min_y": 655156.8839548529,
+          "max_x": 217403.8200186878,
+          "max_y": 655158.7803290365
+        },
+        {
+          "min_x": 217405.85513906894,
+          "min_y": 655158.8726276513,
+          "max_x": 217406.3473011602,
+          "max_y": 655160.2726276513
+        },
+        {
+          "min_x": 217405.20122011457,
+          "min_y": 655156.7726276513,
+          "max_x": 217407.00122011456,
+          "max_y": 655158.6690018349
+        },
+        {
+          "min_x": 217409.3097419689,
+          "min_y": 655158.7499211376,
+          "max_x": 217409.80190406015,
+          "max_y": 655160.1499211376
+        },
+        {
+          "min_x": 217408.65582301453,
+          "min_y": 655156.6499211376,
+          "max_x": 217410.45582301455,
+          "max_y": 655158.5462953213
+        },
+        {
+          "min_x": 217389.1560683273,
+          "min_y": 655146.4877267359,
+          "max_x": 217389.87278046922,
+          "max_y": 655153.6515057264
+        },
+        {
+          "min_x": 217396.37350079662,
+          "min_y": 655147.2502778956,
+          "max_x": 217397.0887804692,
+          "max_y": 655153.6515057264
+        },
+        {
+          "min_x": 217404.60550079664,
+          "min_y": 655146.285748564,
+          "max_x": 217405.32078046922,
+          "max_y": 655153.6515057264
+        },
+        {
+          "min_x": 217413.6710997052,
+          "min_y": 655147.3510282367,
+          "max_x": 217414.5687804692,
+          "max_y": 655153.6515057264
+        },
+        {
+          "min_x": 217414.97397828638,
+          "min_y": 655147.3782451533,
+          "max_x": 217415.6887804692,
+          "max_y": 655153.6515057264
+        },
+        {
+          "min_x": 217416.0920683273,
+          "min_y": 655146.4877267359,
+          "max_x": 217416.8087804692,
+          "max_y": 655153.6515057264
+        }
+      ],
+      "median_text_height": 0.62,
+      "clearance": 0.186,
+      "maximum_rise": 37.2
+    },
+    "counts": {
+      "top_labels": 35,
+      "bottom_labels": 24,
+      "movable_labels": 59,
+      "unique_label_ids": 59,
+      "duplicate_label_ids": [],
+      "fixed_obstacles": 22,
+      "registered_annotations": 163,
+      "label_ids_with_single_metadata": 59,
+      "label_ids_without_metadata": [],
+      "label_ids_with_duplicate_metadata": []
+    },
+    "label_metadata": [
+      {
+        "handle": "BDA747",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "axis-line",
+            "semantic_key": "axis-line"
+          }
+        ]
+      },
+      {
+        "handle": "BDA748",
+        "entity_type": "DBText",
+        "text": "ציר",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.95,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217401.02700955133,
+          655169.0643571124,
+          0
+        ],
+        "text_alignment_point": [
+          217401.84610914206,
+          655169.0643571124,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": [
+          {
+            "kind": "axis-label",
+            "semantic_key": "axis-label|ציר"
+          }
+        ]
+      },
+      {
+        "handle": "BDA749",
+        "entity_type": "DBText",
+        "text": "חתך STA-42676 · תוואי 2000 · 42+675.85",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 1,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217389.22639563595,
+          655172.0191170332,
+          0
+        ],
+        "text_alignment_point": [
+          217401.8461091421,
+          655172.0191170332,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": [
+          {
+            "kind": "title",
+            "semantic_key": "title|חתך STA-42676 · תוואי 2000 · 42+675.85"
+          }
+        ]
+      },
+      {
+        "handle": "BDA74A",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA74B",
+        "entity_type": "Circle",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA74C",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA74D",
+        "entity_type": "Circle",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA74E",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA74F",
+        "entity_type": "Circle",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA750",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA751",
+        "entity_type": "Circle",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA752",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA753",
+        "entity_type": "Circle",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA754",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA755",
+        "entity_type": "Circle",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA756",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-top-tick",
+            "semantic_key": "dimension-top-tick|-12.503125945108508|sidewalk|7"
+          }
+        ]
+      },
+      {
+        "handle": "BDA757",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-bottom-tick",
+            "semantic_key": "dimension-bottom-tick|-12.503125945108508|sidewalk|8"
+          }
+        ]
+      },
+      {
+        "handle": "BDA758",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-top-tick",
+            "semantic_key": "dimension-top-tick|-9.270091132754155|curb|7"
+          }
+        ]
+      },
+      {
+        "handle": "BDA759",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-bottom-tick",
+            "semantic_key": "dimension-bottom-tick|-9.270091132754155|curb|8"
+          }
+        ]
+      },
+      {
+        "handle": "BDA75A",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-top-tick",
+            "semantic_key": "dimension-top-tick|-9.185262414344113|curb|7"
+          }
+        ]
+      },
+      {
+        "handle": "BDA75B",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-bottom-tick",
+            "semantic_key": "dimension-bottom-tick|-9.185262414344113|curb|8"
+          }
+        ]
+      },
+      {
+        "handle": "BDA75C",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-top-tick",
+            "semantic_key": "dimension-top-tick|-9.100033562975721|curb|7"
+          }
+        ]
+      },
+      {
+        "handle": "BDA75D",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-bottom-tick",
+            "semantic_key": "dimension-bottom-tick|-9.100033562975721|curb|8"
+          }
+        ]
+      },
+      {
+        "handle": "BDA75E",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-top-tick",
+            "semantic_key": "dimension-top-tick|-8.95256638464856|curb|7"
+          }
+        ]
+      },
+      {
+        "handle": "BDA75F",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-bottom-tick",
+            "semantic_key": "dimension-bottom-tick|-8.95256638464856|curb|8"
+          }
+        ]
+      },
+      {
+        "handle": "BDA760",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-top-tick",
+            "semantic_key": "dimension-top-tick|-5.748926024149073|lane|7"
+          }
+        ]
+      },
+      {
+        "handle": "BDA761",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-bottom-tick",
+            "semantic_key": "dimension-bottom-tick|-5.748926024149073|lane|8"
+          }
+        ]
+      },
+      {
+        "handle": "BDA762",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-top-tick",
+            "semantic_key": "dimension-top-tick|-5.448838630902403|lane|7"
+          }
+        ]
+      },
+      {
+        "handle": "BDA763",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-bottom-tick",
+            "semantic_key": "dimension-bottom-tick|-5.448838630902403|lane|8"
+          }
+        ]
+      },
+      {
+        "handle": "BDA764",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-top-tick",
+            "semantic_key": "dimension-top-tick|-2.570912445959134|curb|7"
+          }
+        ]
+      },
+      {
+        "handle": "BDA765",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-bottom-tick",
+            "semantic_key": "dimension-bottom-tick|-2.570912445959134|curb|8"
+          }
+        ]
+      },
+      {
+        "handle": "BDA766",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-top-tick",
+            "semantic_key": "dimension-top-tick|-2.09905210036086|island|7"
+          }
+        ]
+      },
+      {
+        "handle": "BDA767",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-bottom-tick",
+            "semantic_key": "dimension-bottom-tick|-2.09905210036086|island|8"
+          }
+        ]
+      },
+      {
+        "handle": "BDA768",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-top-tick",
+            "semantic_key": "dimension-top-tick|-1.9839707854511648|curb|7"
+          }
+        ]
+      },
+      {
+        "handle": "BDA769",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-bottom-tick",
+            "semantic_key": "dimension-bottom-tick|-1.9839707854511648|curb|8"
+          }
+        ]
+      },
+      {
+        "handle": "BDA76A",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-top-tick",
+            "semantic_key": "dimension-top-tick|-1.8688894820921147|curb|7"
+          }
+        ]
+      },
+      {
+        "handle": "BDA76B",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-bottom-tick",
+            "semantic_key": "dimension-bottom-tick|-1.8688894820921147|curb|8"
+          }
+        ]
+      },
+      {
+        "handle": "BDA76C",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-top-tick",
+            "semantic_key": "dimension-top-tick|-0.8745668094604736|curb|7"
+          }
+        ]
+      },
+      {
+        "handle": "BDA76D",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-bottom-tick",
+            "semantic_key": "dimension-bottom-tick|-0.8745668094604736|curb|8"
+          }
+        ]
+      },
+      {
+        "handle": "BDA76E",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-top-tick",
+            "semantic_key": "dimension-top-tick|-0.7595031309300455|curb|7"
+          }
+        ]
+      },
+      {
+        "handle": "BDA76F",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-bottom-tick",
+            "semantic_key": "dimension-bottom-tick|-0.7595031309300455|curb|8"
+          }
+        ]
+      },
+      {
+        "handle": "BDA770",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-top-tick",
+            "semantic_key": "dimension-top-tick|-0.6444394570903852|island|7"
+          }
+        ]
+      },
+      {
+        "handle": "BDA771",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-bottom-tick",
+            "semantic_key": "dimension-bottom-tick|-0.6444394570903852|island|8"
+          }
+        ]
+      },
+      {
+        "handle": "BDA772",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-top-tick",
+            "semantic_key": "dimension-top-tick|-0.5551009250613087|curb|7"
+          }
+        ]
+      },
+      {
+        "handle": "BDA773",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-bottom-tick",
+            "semantic_key": "dimension-bottom-tick|-0.5551009250613087|curb|8"
+          }
+        ]
+      },
+      {
+        "handle": "BDA774",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-top-tick",
+            "semantic_key": "dimension-top-tick|2.7029200165662393|lane|7"
+          }
+        ]
+      },
+      {
+        "handle": "BDA775",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-bottom-tick",
+            "semantic_key": "dimension-bottom-tick|2.7029200165662393|lane|8"
+          }
+        ]
+      },
+      {
+        "handle": "BDA776",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-top-tick",
+            "semantic_key": "dimension-top-tick|5.807301928418964|lane|7"
+          }
+        ]
+      },
+      {
+        "handle": "BDA777",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-bottom-tick",
+            "semantic_key": "dimension-bottom-tick|5.807301928418964|lane|8"
+          }
+        ]
+      },
+      {
+        "handle": "BDA778",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-top-tick",
+            "semantic_key": "dimension-top-tick|6.1053577766257545|lane|7"
+          }
+        ]
+      },
+      {
+        "handle": "BDA779",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-bottom-tick",
+            "semantic_key": "dimension-bottom-tick|6.1053577766257545|lane|8"
+          }
+        ]
+      },
+      {
+        "handle": "BDA77A",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-top-tick",
+            "semantic_key": "dimension-top-tick|9.314069968312523|curb|7"
+          }
+        ]
+      },
+      {
+        "handle": "BDA77B",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-bottom-tick",
+            "semantic_key": "dimension-bottom-tick|9.314069968312523|curb|8"
+          }
+        ]
+      },
+      {
+        "handle": "BDA77C",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-top-tick",
+            "semantic_key": "dimension-top-tick|9.620445372706563|lane|7"
+          }
+        ]
+      },
+      {
+        "handle": "BDA77D",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-bottom-tick",
+            "semantic_key": "dimension-bottom-tick|9.620445372706563|lane|8"
+          }
+        ]
+      },
+      {
+        "handle": "BDA77E",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-top-tick",
+            "semantic_key": "dimension-top-tick|9.705598959232251|curb|7"
+          }
+        ]
+      },
+      {
+        "handle": "BDA77F",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-bottom-tick",
+            "semantic_key": "dimension-bottom-tick|9.705598959232251|curb|8"
+          }
+        ]
+      },
+      {
+        "handle": "BDA780",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-top-tick",
+            "semantic_key": "dimension-top-tick|9.790752548551836|curb|7"
+          }
+        ]
+      },
+      {
+        "handle": "BDA781",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-bottom-tick",
+            "semantic_key": "dimension-bottom-tick|9.790752548551836|curb|8"
+          }
+        ]
+      },
+      {
+        "handle": "BDA782",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-top-tick",
+            "semantic_key": "dimension-top-tick|12.304226684406675|sidewalk|7"
+          }
+        ]
+      },
+      {
+        "handle": "BDA783",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-bottom-tick",
+            "semantic_key": "dimension-bottom-tick|12.304226684406675|sidewalk|8"
+          }
+        ]
+      },
+      {
+        "handle": "BDA784",
+        "entity_type": "DBText",
+        "text": "3.23",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.75,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217389.93988941624,
+          655163.7306285396,
+          0
+        ],
+        "text_alignment_point": [
+          217390.95950060314,
+          655163.7306285396,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": [
+          {
+            "kind": "width-label",
+            "semantic_key": "width-label|-12.503125945108508|-9.270091132754155|3.23"
+          }
+        ]
+      },
+      {
+        "handle": "BDA785",
+        "entity_type": "DBText",
+        "text": "3.20",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.75,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217393.47575175078,
+          655163.7306285396,
+          0
+        ],
+        "text_alignment_point": [
+          217394.49536293768,
+          655163.7306285396,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": [
+          {
+            "kind": "width-label",
+            "semantic_key": "width-label|-8.95256638464856|-5.748926024149073|3.20"
+          }
+        ]
+      },
+      {
+        "handle": "BDA786",
+        "entity_type": "DBText",
+        "text": "2.88",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.75,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217396.81662241675,
+          655163.7306285396,
+          0
+        ],
+        "text_alignment_point": [
+          217397.83623360365,
+          655163.7306285396,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": [
+          {
+            "kind": "width-label",
+            "semantic_key": "width-label|-5.448838630902403|-2.570912445959134|2.88"
+          }
+        ]
+      },
+      {
+        "handle": "BDA787",
+        "entity_type": "DBText",
+        "text": "0.99",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.75,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217399.45476980938,
+          655163.7306285396,
+          0
+        ],
+        "text_alignment_point": [
+          217400.47438099628,
+          655163.7306285396,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": [
+          {
+            "kind": "width-label",
+            "semantic_key": "width-label|-1.8688894820921147|-0.8745668094604736|0.99"
+          }
+        ]
+      },
+      {
+        "handle": "BDA788",
+        "entity_type": "DBText",
+        "text": "3.26",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.75,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217401.9004075009,
+          655163.7306285396,
+          0
+        ],
+        "text_alignment_point": [
+          217402.92001868782,
+          655163.7306285396,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": [
+          {
+            "kind": "width-label",
+            "semantic_key": "width-label|-0.5551009250613087|2.7029200165662393|3.26"
+          }
+        ]
+      },
+      {
+        "handle": "BDA789",
+        "entity_type": "DBText",
+        "text": "3.10",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.75,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217405.08160892766,
+          655163.7306285396,
+          0
+        ],
+        "text_alignment_point": [
+          217406.10122011456,
+          655163.7306285396,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": [
+          {
+            "kind": "width-label",
+            "semantic_key": "width-label|2.7029200165662393|5.807301928418964|3.10"
+          }
+        ]
+      },
+      {
+        "handle": "BDA78A",
+        "entity_type": "DBText",
+        "text": "3.21",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.75,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217408.53621182762,
+          655163.7306285396,
+          0
+        ],
+        "text_alignment_point": [
+          217409.55582301453,
+          655163.7306285396,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": [
+          {
+            "kind": "width-label",
+            "semantic_key": "width-label|6.1053577766257545|9.314069968312523|3.21"
+          }
+        ]
+      },
+      {
+        "handle": "BDA78B",
+        "entity_type": "DBText",
+        "text": "2.51",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.75,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217411.87398757166,
+          655163.7306285396,
+          0
+        ],
+        "text_alignment_point": [
+          217412.89359875856,
+          655163.7306285396,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": [
+          {
+            "kind": "width-label",
+            "semantic_key": "width-label|9.790752548551836|12.304226684406675|2.51"
+          }
+        ]
+      },
+      {
+        "handle": "BDA78C",
+        "entity_type": "DBText",
+        "text": "קו ירוק מקווקו — קרקע קיימת · קו אדום רציף — משטח תכנון",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217391.52708458548,
+          655171.0967868732,
+          0
+        ],
+        "text_alignment_point": [
+          217401.8461091421,
+          655171.0967868732,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": [
+          {
+            "kind": "legend-surfaces",
+            "semantic_key": "legend-surfaces|קו ירוק מקווקו — קרקע קיימת · קו אדום רציף — משטח תכנון"
+          }
+        ]
+      },
+      {
+        "handle": "BDA78D",
+        "entity_type": "DBText",
+        "text": "עיגול מערכת = מיקום בלבד, לא קוטר · הרום מקובץ המקור, סוגו לא ידוע",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217389.79797817348,
+          655170.1182357036,
+          0
+        ],
+        "text_alignment_point": [
+          217401.8461091421,
+          655170.1182357036,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": [
+          {
+            "kind": "legend-utilities",
+            "semantic_key": "legend-utilities|עיגול מערכת = מיקום בלבד, לא קוטר · הרום מקובץ המקור, סוגו לא ידוע"
+          }
+        ]
+      },
+      {
+        "handle": "BDA78E",
+        "entity_type": "DBText",
+        "text": "0.32",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217391.89190180218,
+          655164.6829996273,
+          0
+        ],
+        "text_alignment_point": [
+          217392.73478038335,
+          655164.6829996273,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": [
+          {
+            "kind": "gap-width-label",
+            "semantic_key": "gap-width-label|-9.270091132754155|-8.95256638464856|0.32"
+          }
+        ]
+      },
+      {
+        "handle": "BDA78F",
+        "entity_type": "DBText",
+        "text": "0.30",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217395.40434823337,
+          655164.6829996273,
+          0
+        ],
+        "text_alignment_point": [
+          217396.24722681454,
+          655164.6829996273,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": [
+          {
+            "kind": "gap-width-label",
+            "semantic_key": "gap-width-label|-5.748926024149073|-5.448838630902403|0.30"
+          }
+        ]
+      },
+      {
+        "handle": "BDA790",
+        "entity_type": "DBText",
+        "text": "0.70",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217398.78332959686,
+          655164.6829996273,
+          0
+        ],
+        "text_alignment_point": [
+          217399.62620817803,
+          655164.6829996273,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": [
+          {
+            "kind": "gap-width-label",
+            "semantic_key": "gap-width-label|-2.570912445959134|-1.8688894820921147|0.70"
+          }
+        ]
+      },
+      {
+        "handle": "BDA791",
+        "entity_type": "DBText",
+        "text": "0.32",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217400.28839669365,
+          655165.635370715,
+          0
+        ],
+        "text_alignment_point": [
+          217401.13127527482,
+          655165.635370715,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": [
+          {
+            "kind": "gap-width-label",
+            "semantic_key": "gap-width-label|-0.8745668094604736|-0.5551009250613087|0.32"
+          }
+        ]
+      },
+      {
+        "handle": "BDA792",
+        "entity_type": "DBText",
+        "text": "0.30",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217406.9595604134,
+          655164.6829996273,
+          0
+        ],
+        "text_alignment_point": [
+          217407.80243899458,
+          655164.6829996273,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": [
+          {
+            "kind": "gap-width-label",
+            "semantic_key": "gap-width-label|5.807301928418964|6.1053577766257545|0.30"
+          }
+        ]
+      },
+      {
+        "handle": "BDA793",
+        "entity_type": "DBText",
+        "text": "0.48",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217410.55564181934,
+          655164.6829996273,
+          0
+        ],
+        "text_alignment_point": [
+          217411.39852040051,
+          655164.6829996273,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": [
+          {
+            "kind": "gap-width-label",
+            "semantic_key": "gap-width-label|9.314069968312523|9.790752548551836|0.48"
+          }
+        ]
+      },
+      {
+        "handle": "BDA794",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": [
+          {
+            "kind": "dimension-chain-line",
+            "semantic_key": "dimension-chain-line|-12.503125945108508|12.304226684406675"
+          }
+        ]
+      },
+      {
+        "handle": "BDA795",
+        "entity_type": "DBText",
+        "text": "רוחב כולל 24.81",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.75,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217398.2954316809,
+          655168.1252875254,
+          0
+        ],
+        "text_alignment_point": [
+          217401.74665951173,
+          655168.1252875254,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": [
+          {
+            "kind": "overall-width-label",
+            "semantic_key": "overall-width-label|-12.503125945108508|12.304226684406675|רוחב כולל 24.81"
+          }
+        ]
+      },
+      {
+        "handle": "BDA796",
+        "entity_type": "DBText",
+        "text": "-3.57%",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217389.58733825662,
+          655160.8991692202,
+          0
+        ],
+        "text_alignment_point": [
+          217390.95950060314,
+          655160.8991692202,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA797",
+        "entity_type": "DBText",
+        "text": "-2.98%",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217393.12320059116,
+          655160.8991692202,
+          0
+        ],
+        "text_alignment_point": [
+          217394.49536293768,
+          655160.8991692202,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA798",
+        "entity_type": "DBText",
+        "text": "-3.33%",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217396.46407125713,
+          655160.8991692202,
+          0
+        ],
+        "text_alignment_point": [
+          217397.83623360365,
+          655160.8991692202,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA799",
+        "entity_type": "DBText",
+        "text": "-5.15%",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217399.10221864976,
+          655162.0613433899,
+          0
+        ],
+        "text_alignment_point": [
+          217400.47438099628,
+          655162.0613433899,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA79A",
+        "entity_type": "DBText",
+        "text": "-3.50%",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217401.5478563413,
+          655162.9007540412,
+          0
+        ],
+        "text_alignment_point": [
+          217402.92001868782,
+          655162.9007540412,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA79B",
+        "entity_type": "DBText",
+        "text": "-3.55%",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217404.72905776804,
+          655160.8991692202,
+          0
+        ],
+        "text_alignment_point": [
+          217406.10122011456,
+          655160.8991692202,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA79C",
+        "entity_type": "DBText",
+        "text": "-3.55%",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217408.183660668,
+          655160.8991692202,
+          0
+        ],
+        "text_alignment_point": [
+          217409.55582301453,
+          655160.8991692202,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA79D",
+        "entity_type": "DBText",
+        "text": "-3.55%",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217411.52143641203,
+          655162.0613433899,
+          0
+        ],
+        "text_alignment_point": [
+          217412.89359875856,
+          655162.0613433899,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA79E",
+        "entity_type": "DBText",
+        "text": "מדרכה",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.8,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217389.46100128526,
+          655166.4973870962,
+          0
+        ],
+        "text_alignment_point": [
+          217390.95950060314,
+          655166.4973870962,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": [
+          {
+            "kind": "strip-label",
+            "semantic_key": "strip-label|-12.503125945108508|-9.270091132754155|מדרכה"
+          }
+        ]
+      },
+      {
+        "handle": "BDA79F",
+        "entity_type": "DBText",
+        "text": "נתיב נסיעה",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.8,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217392.05552664847,
+          655167.3316817855,
+          0
+        ],
+        "text_alignment_point": [
+          217394.49536293768,
+          655167.3316817855,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": [
+          {
+            "kind": "strip-label",
+            "semantic_key": "strip-label|-8.95256638464856|-5.748926024149073|נתיב נסיעה"
+          }
+        ]
+      },
+      {
+        "handle": "BDA7A0",
+        "entity_type": "BlockReference",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7A1",
+        "entity_type": "BlockReference",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7A2",
+        "entity_type": "DBText",
+        "text": "נתיב נסיעה",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.8,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217395.39639731444,
+          655166.4973870962,
+          0
+        ],
+        "text_alignment_point": [
+          217397.83623360365,
+          655166.4973870962,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": [
+          {
+            "kind": "strip-label",
+            "semantic_key": "strip-label|-5.448838630902403|-2.570912445959134|נתיב נסיעה"
+          }
+        ]
+      },
+      {
+        "handle": "BDA7A3",
+        "entity_type": "BlockReference",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7A4",
+        "entity_type": "BlockReference",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7A5",
+        "entity_type": "DBText",
+        "text": "אי תנועה",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.8,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217398.5406838612,
+          655167.3316817855,
+          0
+        ],
+        "text_alignment_point": [
+          217400.47438099628,
+          655167.3316817855,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": [
+          {
+            "kind": "strip-label",
+            "semantic_key": "strip-label|-1.8688894820921147|-0.8745668094604736|אי תנועה"
+          }
+        ]
+      },
+      {
+        "handle": "BDA7A6",
+        "entity_type": "DBText",
+        "text": "נתיב נסיעה",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.8,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217400.4801823986,
+          655166.4973870962,
+          0
+        ],
+        "text_alignment_point": [
+          217402.92001868782,
+          655166.4973870962,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": [
+          {
+            "kind": "strip-label",
+            "semantic_key": "strip-label|-0.5551009250613087|2.7029200165662393|נתיב נסיעה"
+          }
+        ]
+      },
+      {
+        "handle": "BDA7A7",
+        "entity_type": "BlockReference",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7A8",
+        "entity_type": "BlockReference",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7A9",
+        "entity_type": "DBText",
+        "text": "נתיב נסיעה",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.8,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217403.66138382535,
+          655167.3316817855,
+          0
+        ],
+        "text_alignment_point": [
+          217406.10122011456,
+          655167.3316817855,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": [
+          {
+            "kind": "strip-label",
+            "semantic_key": "strip-label|2.7029200165662393|5.807301928418964|נתיב נסיעה"
+          }
+        ]
+      },
+      {
+        "handle": "BDA7AA",
+        "entity_type": "BlockReference",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7AB",
+        "entity_type": "BlockReference",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7AC",
+        "entity_type": "DBText",
+        "text": "נתיב נסיעה",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.8,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217407.11598672532,
+          655166.4973870962,
+          0
+        ],
+        "text_alignment_point": [
+          217409.55582301453,
+          655166.4973870962,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": [
+          {
+            "kind": "strip-label",
+            "semantic_key": "strip-label|6.1053577766257545|9.314069968312523|נתיב נסיעה"
+          }
+        ]
+      },
+      {
+        "handle": "BDA7AD",
+        "entity_type": "BlockReference",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7AE",
+        "entity_type": "BlockReference",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7AF",
+        "entity_type": "DBText",
+        "text": "מדרכה",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.8,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217411.39509944068,
+          655167.3316817855,
+          0
+        ],
+        "text_alignment_point": [
+          217412.89359875856,
+          655167.3316817855,
+          0
+        ],
+        "text_horizontal_mode": 1,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": [
+          {
+            "kind": "strip-label",
+            "semantic_key": "strip-label|9.790752548551836|12.304226684406675|מדרכה"
+          }
+        ]
+      },
+      {
+        "handle": "BDA7B0",
+        "entity_type": "DBText",
+        "text": "חשמל רום 292.11",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.7,
+        "text_rotation": 4.71238898038469,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217389.1699155306,
+          655153.6515057264,
+          0
+        ],
+        "text_alignment_point": [
+          217389.1699155306,
+          655153.6515057264,
+          0
+        ],
+        "text_horizontal_mode": 0,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7B1",
+        "entity_type": "DBText",
+        "text": "ביוב רום 290.32",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.7,
+        "text_rotation": 4.71238898038469,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217396.38591553058,
+          655153.6515057264,
+          0
+        ],
+        "text_alignment_point": [
+          217396.38591553058,
+          655153.6515057264,
+          0
+        ],
+        "text_horizontal_mode": 0,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7B2",
+        "entity_type": "DBText",
+        "text": "תאורה רום 291.35",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.7,
+        "text_rotation": 4.71238898038469,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217404.6179155306,
+          655153.6515057264,
+          0
+        ],
+        "text_alignment_point": [
+          217404.6179155306,
+          655153.6515057264,
+          0
+        ],
+        "text_horizontal_mode": 0,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7B3",
+        "entity_type": "DBText",
+        "text": "בזק רום 290.99",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.7,
+        "text_rotation": 4.71238898038469,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217413.8659155306,
+          655153.6515057264,
+          0
+        ],
+        "text_alignment_point": [
+          217413.8659155306,
+          655153.6515057264,
+          0
+        ],
+        "text_horizontal_mode": 0,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7B4",
+        "entity_type": "DBText",
+        "text": "מים רום 290.66",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.7,
+        "text_rotation": 4.71238898038469,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217414.9859155306,
+          655153.6515057264,
+          0
+        ],
+        "text_alignment_point": [
+          217414.9859155306,
+          655153.6515057264,
+          0
+        ],
+        "text_horizontal_mode": 0,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7B5",
+        "entity_type": "DBText",
+        "text": "חשמל רום 290.26",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.7,
+        "text_rotation": 4.71238898038469,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217416.10591553058,
+          655153.6515057264,
+          0
+        ],
+        "text_alignment_point": [
+          217416.10591553058,
+          655153.6515057264,
+          0
+        ],
+        "text_horizontal_mode": 0,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7B6",
+        "entity_type": "DBText",
+        "text": "-12.50",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 4.71238898038469,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217388.12991514208,
+          655153.6515057264,
+          0
+        ],
+        "text_alignment_point": [
+          217388.12991514208,
+          655153.6515057264,
+          0
+        ],
+        "text_horizontal_mode": 0,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7B7",
+        "entity_type": "DBText",
+        "text": "-9.27",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 4.71238898038469,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217390.26591514208,
+          655153.6515057264,
+          0
+        ],
+        "text_alignment_point": [
+          217390.26591514208,
+          655153.6515057264,
+          0
+        ],
+        "text_horizontal_mode": 0,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7B8",
+        "entity_type": "DBText",
+        "text": "-9.19",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 4.71238898038469,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217391.28191514208,
+          655153.6515057264,
+          0
+        ],
+        "text_alignment_point": [
+          217391.28191514208,
+          655153.6515057264,
+          0
+        ],
+        "text_horizontal_mode": 0,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7B9",
+        "entity_type": "DBText",
+        "text": "-9.10",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 4.71238898038469,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217392.2979151421,
+          655153.6515057264,
+          0
+        ],
+        "text_alignment_point": [
+          217392.2979151421,
+          655153.6515057264,
+          0
+        ],
+        "text_horizontal_mode": 0,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7BA",
+        "entity_type": "DBText",
+        "text": "-8.95",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 4.71238898038469,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217393.31391514206,
+          655153.6515057264,
+          0
+        ],
+        "text_alignment_point": [
+          217393.31391514206,
+          655153.6515057264,
+          0
+        ],
+        "text_horizontal_mode": 0,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7BB",
+        "entity_type": "DBText",
+        "text": "-5.75",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 4.71238898038469,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217394.32991514207,
+          655153.6515057264,
+          0
+        ],
+        "text_alignment_point": [
+          217394.32991514207,
+          655153.6515057264,
+          0
+        ],
+        "text_horizontal_mode": 0,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7BC",
+        "entity_type": "DBText",
+        "text": "-5.45",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 4.71238898038469,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217395.34591514207,
+          655153.6515057264,
+          0
+        ],
+        "text_alignment_point": [
+          217395.34591514207,
+          655153.6515057264,
+          0
+        ],
+        "text_horizontal_mode": 0,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7BD",
+        "entity_type": "DBText",
+        "text": "-2.57",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 4.71238898038469,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217397.48191514207,
+          655153.6515057264,
+          0
+        ],
+        "text_alignment_point": [
+          217397.48191514207,
+          655153.6515057264,
+          0
+        ],
+        "text_horizontal_mode": 0,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7BE",
+        "entity_type": "DBText",
+        "text": "-2.10",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 4.71238898038469,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217398.49791514207,
+          655153.6515057264,
+          0
+        ],
+        "text_alignment_point": [
+          217398.49791514207,
+          655153.6515057264,
+          0
+        ],
+        "text_horizontal_mode": 0,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7BF",
+        "entity_type": "DBText",
+        "text": "-1.98",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 4.71238898038469,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217399.51391514207,
+          655153.6515057264,
+          0
+        ],
+        "text_alignment_point": [
+          217399.51391514207,
+          655153.6515057264,
+          0
+        ],
+        "text_horizontal_mode": 0,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7C0",
+        "entity_type": "DBText",
+        "text": "-1.87",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 4.71238898038469,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217400.52991514208,
+          655153.6515057264,
+          0
+        ],
+        "text_alignment_point": [
+          217400.52991514208,
+          655153.6515057264,
+          0
+        ],
+        "text_horizontal_mode": 0,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7C1",
+        "entity_type": "DBText",
+        "text": "-0.87",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 4.71238898038469,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217401.54591514208,
+          655153.6515057264,
+          0
+        ],
+        "text_alignment_point": [
+          217401.54591514208,
+          655153.6515057264,
+          0
+        ],
+        "text_horizontal_mode": 0,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7C2",
+        "entity_type": "DBText",
+        "text": "-0.76",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 4.71238898038469,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217402.56191514208,
+          655153.6515057264,
+          0
+        ],
+        "text_alignment_point": [
+          217402.56191514208,
+          655153.6515057264,
+          0
+        ],
+        "text_horizontal_mode": 0,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7C3",
+        "entity_type": "DBText",
+        "text": "-0.64",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 4.71238898038469,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217403.5779151421,
+          655153.6515057264,
+          0
+        ],
+        "text_alignment_point": [
+          217403.5779151421,
+          655153.6515057264,
+          0
+        ],
+        "text_horizontal_mode": 0,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7C4",
+        "entity_type": "DBText",
+        "text": "-0.56",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 4.71238898038469,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217405.71391514209,
+          655153.6515057264,
+          0
+        ],
+        "text_alignment_point": [
+          217405.71391514209,
+          655153.6515057264,
+          0
+        ],
+        "text_horizontal_mode": 0,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7C5",
+        "entity_type": "DBText",
+        "text": "2.70",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 4.71238898038469,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217406.7299151421,
+          655153.6515057264,
+          0
+        ],
+        "text_alignment_point": [
+          217406.7299151421,
+          655153.6515057264,
+          0
+        ],
+        "text_horizontal_mode": 0,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7C6",
+        "entity_type": "DBText",
+        "text": "5.81",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 4.71238898038469,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217407.74591514206,
+          655153.6515057264,
+          0
+        ],
+        "text_alignment_point": [
+          217407.74591514206,
+          655153.6515057264,
+          0
+        ],
+        "text_horizontal_mode": 0,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7C7",
+        "entity_type": "DBText",
+        "text": "6.11",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 4.71238898038469,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217408.76191514207,
+          655153.6515057264,
+          0
+        ],
+        "text_alignment_point": [
+          217408.76191514207,
+          655153.6515057264,
+          0
+        ],
+        "text_horizontal_mode": 0,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7C8",
+        "entity_type": "DBText",
+        "text": "9.31",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 4.71238898038469,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217409.77791514207,
+          655153.6515057264,
+          0
+        ],
+        "text_alignment_point": [
+          217409.77791514207,
+          655153.6515057264,
+          0
+        ],
+        "text_horizontal_mode": 0,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7C9",
+        "entity_type": "DBText",
+        "text": "9.62",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 4.71238898038469,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217410.79391514207,
+          655153.6515057264,
+          0
+        ],
+        "text_alignment_point": [
+          217410.79391514207,
+          655153.6515057264,
+          0
+        ],
+        "text_horizontal_mode": 0,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7CA",
+        "entity_type": "DBText",
+        "text": "9.71",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 4.71238898038469,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217411.80991514208,
+          655153.6515057264,
+          0
+        ],
+        "text_alignment_point": [
+          217411.80991514208,
+          655153.6515057264,
+          0
+        ],
+        "text_horizontal_mode": 0,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7CB",
+        "entity_type": "DBText",
+        "text": "9.79",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 4.71238898038469,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217412.82591514208,
+          655153.6515057264,
+          0
+        ],
+        "text_alignment_point": [
+          217412.82591514208,
+          655153.6515057264,
+          0
+        ],
+        "text_horizontal_mode": 0,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7CC",
+        "entity_type": "DBText",
+        "text": "12.30",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.62,
+        "text_rotation": 4.71238898038469,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217417.20191514207,
+          655153.6515057264,
+          0
+        ],
+        "text_alignment_point": [
+          217417.20191514207,
+          655153.6515057264,
+          0
+        ],
+        "text_horizontal_mode": 0,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7CD",
+        "entity_type": "DBText",
+        "text": "רום קרקע קיימת בציר: 291.87",
+        "text_style_name": "MHD-ANNO-V6",
+        "text_height": 0.75,
+        "text_rotation": 0,
+        "text_width_factor": 1,
+        "text_oblique": 0,
+        "text_position": [
+          217370.8461091421,
+          655150.2565425513,
+          0
+        ],
+        "text_alignment_point": [
+          217370.8461091421,
+          655150.2565425513,
+          0
+        ],
+        "text_horizontal_mode": 0,
+        "text_vertical_mode": 0,
+        "text_mirrored_in_x": false,
+        "text_mirrored_in_y": false,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7CE",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7CF",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7D0",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7D1",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7D2",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7D3",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7D4",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7D5",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7D6",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7D7",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7D8",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7D9",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7DA",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7DB",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7DC",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7DD",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7DE",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7DF",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7E0",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7E1",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7E2",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7E3",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7E4",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7E5",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7E6",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7E7",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7E8",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      },
+      {
+        "handle": "BDA7E9",
+        "entity_type": "Line",
+        "text": null,
+        "text_style_name": null,
+        "text_height": null,
+        "text_rotation": null,
+        "text_width_factor": null,
+        "text_oblique": null,
+        "text_position": null,
+        "text_alignment_point": null,
+        "text_horizontal_mode": null,
+        "text_vertical_mode": null,
+        "text_mirrored_in_x": null,
+        "text_mirrored_in_y": null,
+        "core_semantics": []
+      }
+    ],
+    "layout_output": {
+      "placed_labels": [
+        {
+          "handle": "BDA796",
+          "expected_position": [
+            217390.95950060314,
+            655160.8991692202,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217389.58733825662,
+            "min_y": 655160.8763315667,
+            "max_x": 217392.33166294967,
+            "max_y": 655161.529742208
+          }
+        },
+        {
+          "handle": "BDA797",
+          "expected_position": [
+            217394.49536293768,
+            655160.8991692202,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217393.12320059116,
+            "min_y": 655160.8763315667,
+            "max_x": 217395.8675252842,
+            "max_y": 655161.529742208
+          }
+        },
+        {
+          "handle": "BDA798",
+          "expected_position": [
+            217397.83623360365,
+            655160.8991692202,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217396.46407125713,
+            "min_y": 655160.8763315667,
+            "max_x": 217399.20839595018,
+            "max_y": 655161.529742208
+          }
+        },
+        {
+          "handle": "BDA79B",
+          "expected_position": [
+            217406.10122011456,
+            655160.8991692202,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217404.72905776804,
+            "min_y": 655160.8763315667,
+            "max_x": 217407.4733824611,
+            "max_y": 655161.529742208
+          }
+        },
+        {
+          "handle": "BDA79C",
+          "expected_position": [
+            217409.55582301453,
+            655160.8991692202,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217408.183660668,
+            "min_y": 655160.8763315667,
+            "max_x": 217410.92798536105,
+            "max_y": 655161.529742208
+          }
+        },
+        {
+          "handle": "BDA799",
+          "expected_position": [
+            217400.47438099628,
+            655162.0613433899,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217399.10221864976,
+            "min_y": 655162.0385057364,
+            "max_x": 217401.8465433428,
+            "max_y": 655162.6919163776
+          }
+        },
+        {
+          "handle": "BDA79A",
+          "expected_position": [
+            217402.92001868782,
+            655162.9007540412,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217401.5478563413,
+            "min_y": 655162.8779163876,
+            "max_x": 217404.29218103434,
+            "max_y": 655163.5313270289
+          }
+        },
+        {
+          "handle": "BDA79D",
+          "expected_position": [
+            217412.89359875856,
+            655162.0613433899,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217411.52143641203,
+            "min_y": 655162.0385057364,
+            "max_x": 217414.26576110508,
+            "max_y": 655162.6919163776
+          }
+        },
+        {
+          "handle": "BDA784",
+          "expected_position": [
+            217390.95950060314,
+            655163.7306285396,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217389.93988941624,
+            "min_y": 655163.7173270389,
+            "max_x": 217391.97911179005,
+            "max_y": 655164.4836981166
+          }
+        },
+        {
+          "handle": "BDA78E",
+          "expected_position": [
+            217392.73478038335,
+            655164.6829996273,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217391.89190180218,
+            "min_y": 655164.6720037201,
+            "max_x": 217393.57765896452,
+            "max_y": 655165.3055371444
+          }
+        },
+        {
+          "handle": "BDA785",
+          "expected_position": [
+            217394.49536293768,
+            655163.7306285396,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217393.47575175078,
+            "min_y": 655163.7173270389,
+            "max_x": 217395.51497412458,
+            "max_y": 655164.4836981166
+          }
+        },
+        {
+          "handle": "BDA78F",
+          "expected_position": [
+            217396.24722681454,
+            655164.6829996273,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217395.40434823337,
+            "min_y": 655164.6720037201,
+            "max_x": 217397.0901053957,
+            "max_y": 655165.3055371444
+          }
+        },
+        {
+          "handle": "BDA786",
+          "expected_position": [
+            217397.83623360365,
+            655163.7306285396,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217396.81662241675,
+            "min_y": 655163.7178386351,
+            "max_x": 217398.85584479055,
+            "max_y": 655164.4836981166
+          }
+        },
+        {
+          "handle": "BDA790",
+          "expected_position": [
+            217399.62620817803,
+            655164.6829996273,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217398.78332959686,
+            "min_y": 655164.6724266396,
+            "max_x": 217400.4690867592,
+            "max_y": 655165.3055371444
+          }
+        },
+        {
+          "handle": "BDA787",
+          "expected_position": [
+            217400.47438099628,
+            655163.7306285396,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217399.45476980938,
+            "min_y": 655163.7178386351,
+            "max_x": 217401.49399218318,
+            "max_y": 655164.4836981166
+          }
+        },
+        {
+          "handle": "BDA791",
+          "expected_position": [
+            217401.13127527482,
+            655165.635370715,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217400.28839669365,
+            "min_y": 655165.6243748078,
+            "max_x": 217401.974153856,
+            "max_y": 655166.2579082322
+          }
+        },
+        {
+          "handle": "BDA788",
+          "expected_position": [
+            217402.92001868782,
+            655163.7306285396,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217401.9004075009,
+            "min_y": 655163.7173270389,
+            "max_x": 217403.93962987472,
+            "max_y": 655164.4836981166
+          }
+        },
+        {
+          "handle": "BDA789",
+          "expected_position": [
+            217406.10122011456,
+            655163.7306285396,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217405.08160892766,
+            "min_y": 655163.7173270389,
+            "max_x": 217407.12083130146,
+            "max_y": 655164.4836981166
+          }
+        },
+        {
+          "handle": "BDA792",
+          "expected_position": [
+            217407.80243899458,
+            655164.6829996273,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217406.9595604134,
+            "min_y": 655164.6720037201,
+            "max_x": 217408.64531757575,
+            "max_y": 655165.3055371444
+          }
+        },
+        {
+          "handle": "BDA78A",
+          "expected_position": [
+            217409.55582301453,
+            655163.7306285396,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217408.53621182762,
+            "min_y": 655163.7173270389,
+            "max_x": 217410.57543420143,
+            "max_y": 655164.4836981166
+          }
+        },
+        {
+          "handle": "BDA793",
+          "expected_position": [
+            217411.39852040051,
+            655164.6829996273,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217410.55564181934,
+            "min_y": 655164.6724266396,
+            "max_x": 217412.24139898169,
+            "max_y": 655165.3055371444
+          }
+        },
+        {
+          "handle": "BDA78B",
+          "expected_position": [
+            217412.89359875856,
+            655163.7306285396,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217411.87398757166,
+            "min_y": 655163.7178386351,
+            "max_x": 217413.91320994546,
+            "max_y": 655164.4836981166
+          }
+        },
+        {
+          "handle": "BDA79E",
+          "expected_position": [
+            217390.95950060314,
+            655166.4973870962,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217389.46100128526,
+            "min_y": 655166.4886558547,
+            "max_x": 217392.457999921,
+            "max_y": 655167.086200193
+          }
+        },
+        {
+          "handle": "BDA79F",
+          "expected_position": [
+            217394.49536293768,
+            655167.3316817855,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217392.05552664847,
+            "min_y": 655167.2782029315,
+            "max_x": 217396.93519922692,
+            "max_y": 655167.9264976109
+          }
+        },
+        {
+          "handle": "BDA7A2",
+          "expected_position": [
+            217397.83623360365,
+            655166.4973870962,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217395.39639731444,
+            "min_y": 655166.4439082422,
+            "max_x": 217400.2760698929,
+            "max_y": 655167.0922029215
+          }
+        },
+        {
+          "handle": "BDA7A5",
+          "expected_position": [
+            217400.47438099628,
+            655167.3316817855,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217398.5406838612,
+            "min_y": 655167.2782029315,
+            "max_x": 217402.40807813132,
+            "max_y": 655167.9172206669
+          }
+        },
+        {
+          "handle": "BDA7A6",
+          "expected_position": [
+            217402.92001868782,
+            655166.4973870962,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217400.4801823986,
+            "min_y": 655166.4439082422,
+            "max_x": 217405.35985497705,
+            "max_y": 655167.0922029215
+          }
+        },
+        {
+          "handle": "BDA7A9",
+          "expected_position": [
+            217406.10122011456,
+            655167.3316817855,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217403.66138382535,
+            "min_y": 655167.2782029315,
+            "max_x": 217408.5410564038,
+            "max_y": 655167.9264976109
+          }
+        },
+        {
+          "handle": "BDA7AC",
+          "expected_position": [
+            217409.55582301453,
+            655166.4973870962,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217407.11598672532,
+            "min_y": 655166.4439082422,
+            "max_x": 217411.99565930376,
+            "max_y": 655167.0922029215
+          }
+        },
+        {
+          "handle": "BDA7AF",
+          "expected_position": [
+            217412.89359875856,
+            655167.3316817855,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217411.39509944068,
+            "min_y": 655167.3229505441,
+            "max_x": 217414.3920980764,
+            "max_y": 655167.9204948824
+          }
+        },
+        {
+          "handle": "BDA795",
+          "expected_position": [
+            217401.74665951173,
+            655168.1252875254,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217398.2954316809,
+            "min_y": 655168.1124976209,
+            "max_x": 217405.19788734257,
+            "max_y": 655168.8783571024
+          }
+        },
+        {
+          "handle": "BDA748",
+          "expected_position": [
+            217401.84610914206,
+            655169.0643571124,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217401.02700955133,
+            "min_y": 655169.0643571124,
+            "max_x": 217402.66520873277,
+            "max_y": 655169.7596845339
+          }
+        },
+        {
+          "handle": "BDA78D",
+          "expected_position": [
+            217401.8461091421,
+            655170.1182357036,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217389.79797817348,
+            "min_y": 655169.9456845439,
+            "max_x": 217413.89424011073,
+            "max_y": 655170.7382357036
+          }
+        },
+        {
+          "handle": "BDA78C",
+          "expected_position": [
+            217401.8461091421,
+            655171.0967868732,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217391.52708458548,
+            "min_y": 655170.9242357136,
+            "max_x": 217412.16513369873,
+            "max_y": 655171.5548087013
+          }
+        },
+        {
+          "handle": "BDA749",
+          "expected_position": [
+            217401.8461091421,
+            655172.0191170332,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217389.22639563595,
+            "min_y": 655171.7408087113,
+            "max_x": 217414.46582264823,
+            "max_y": 655173.0361702392
+          }
+        },
+        {
+          "handle": "BDA7B6",
+          "expected_position": [
+            217388.12991514208,
+            655153.6515057264,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217388.11934215436,
+            "min_y": 655151.1956121384,
+            "max_x": 217388.75245265913,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "handle": "BDA7B7",
+          "expected_position": [
+            217390.26591514208,
+            655153.6515057264,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217390.25534215436,
+            "min_y": 655151.677317459,
+            "max_x": 217390.88845265913,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "handle": "BDA7B8",
+          "expected_position": [
+            217391.28191514208,
+            655153.6515057264,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217391.27134215436,
+            "min_y": 655151.677317459,
+            "max_x": 217391.90445265913,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "handle": "BDA7B9",
+          "expected_position": [
+            217392.2979151421,
+            655153.6515057264,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217392.28734215436,
+            "min_y": 655151.677317459,
+            "max_x": 217392.92045265913,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "handle": "BDA7BA",
+          "expected_position": [
+            217393.31391514206,
+            655153.6515057264,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217393.30334215434,
+            "min_y": 655151.677317459,
+            "max_x": 217393.9364526591,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "handle": "BDA7BB",
+          "expected_position": [
+            217394.32991514207,
+            655153.6515057264,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217394.31934215434,
+            "min_y": 655151.677317459,
+            "max_x": 217394.9418796714,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "handle": "BDA7BC",
+          "expected_position": [
+            217395.34591514207,
+            655153.6515057264,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217395.33534215434,
+            "min_y": 655151.677317459,
+            "max_x": 217395.96591514206,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "handle": "BDA7BD",
+          "expected_position": [
+            217397.48191514207,
+            655153.6515057264,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217397.47134215434,
+            "min_y": 655151.677317459,
+            "max_x": 217398.1044526591,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "handle": "BDA7BE",
+          "expected_position": [
+            217398.49791514207,
+            655153.6515057264,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217398.48734215435,
+            "min_y": 655151.677317459,
+            "max_x": 217399.12045265912,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "handle": "BDA7BF",
+          "expected_position": [
+            217399.51391514207,
+            655153.6515057264,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217399.50334215435,
+            "min_y": 655151.677317459,
+            "max_x": 217400.13645265912,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "handle": "BDA7C0",
+          "expected_position": [
+            217400.52991514208,
+            655153.6515057264,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217400.51934215435,
+            "min_y": 655151.677317459,
+            "max_x": 217401.15245265912,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "handle": "BDA7C1",
+          "expected_position": [
+            217401.54591514208,
+            655153.6515057264,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217401.53534215436,
+            "min_y": 655151.677317459,
+            "max_x": 217402.16845265913,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "handle": "BDA7C2",
+          "expected_position": [
+            217402.56191514208,
+            655153.6515057264,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217402.55134215436,
+            "min_y": 655151.677317459,
+            "max_x": 217403.18445265913,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "handle": "BDA7C3",
+          "expected_position": [
+            217403.5779151421,
+            655153.6515057264,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217403.56734215436,
+            "min_y": 655151.677317459,
+            "max_x": 217404.20045265913,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "handle": "BDA7C4",
+          "expected_position": [
+            217405.71391514209,
+            655153.6515057264,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217405.70334215436,
+            "min_y": 655151.677317459,
+            "max_x": 217406.33645265913,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "handle": "BDA7C5",
+          "expected_position": [
+            217406.7299151421,
+            655153.6515057264,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217406.71934215436,
+            "min_y": 655151.965748564,
+            "max_x": 217407.35245265914,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "handle": "BDA7C6",
+          "expected_position": [
+            217407.74591514206,
+            655153.6515057264,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217407.73534215434,
+            "min_y": 655151.965748564,
+            "max_x": 217408.3684526591,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "handle": "BDA7C7",
+          "expected_position": [
+            217408.76191514207,
+            655153.6515057264,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217408.75134215434,
+            "min_y": 655151.965748564,
+            "max_x": 217409.3844526591,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "handle": "BDA7C8",
+          "expected_position": [
+            217409.77791514207,
+            655153.6515057264,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217409.76691923483,
+            "min_y": 655151.965748564,
+            "max_x": 217410.40045265912,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "handle": "BDA7C9",
+          "expected_position": [
+            217410.79391514207,
+            655153.6515057264,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217410.78334215435,
+            "min_y": 655151.965748564,
+            "max_x": 217411.41645265912,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "handle": "BDA7CA",
+          "expected_position": [
+            217411.80991514208,
+            655153.6515057264,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217411.79934215435,
+            "min_y": 655151.965748564,
+            "max_x": 217412.43245265912,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "handle": "BDA7CB",
+          "expected_position": [
+            217412.82591514208,
+            655153.6515057264,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217412.81534215435,
+            "min_y": 655151.965748564,
+            "max_x": 217413.44845265913,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "handle": "BDA7CC",
+          "expected_position": [
+            217417.20191514207,
+            655153.6515057264,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217417.19091923482,
+            "min_y": 655151.4840432435,
+            "max_x": 217417.82445265912,
+            "max_y": 655153.6515057264
+          }
+        },
+        {
+          "handle": "BDA7CD",
+          "expected_position": [
+            217370.8461091421,
+            655150.2565425513,
+            0
+          ],
+          "final_bounds": {
+            "min_x": 217370.8461091421,
+            "min_y": 655150.0478113098,
+            "max_x": 217383.42267803705,
+            "max_y": 655151.0096121284
+          }
+        }
+      ],
+      "overall_bounds": {
+        "min_x": 217370.8461091421,
+        "min_y": 655146.285748564,
+        "max_x": 217417.82445265912,
+        "max_y": 655173.0361702392
+      },
+      "leaders": [
+        {
+          "start": [
+            217390.95950060314,
+            655158.0092646247,
+            0
+          ],
+          "end": [
+            217390.95950060314,
+            655160.6903315667,
+            0
+          ]
+        },
+        {
+          "start": [
+            217406.10122011456,
+            655160.4586276513,
+            0
+          ],
+          "end": [
+            217406.10122011456,
+            655160.6903315667,
+            0
+          ]
+        },
+        {
+          "start": [
+            217409.55582301453,
+            655160.3359211376,
+            0
+          ],
+          "end": [
+            217409.55582301453,
+            655160.6903315667,
+            0
+          ]
+        },
+        {
+          "start": [
+            217400.47438099628,
+            655157.6794408037,
+            0
+          ],
+          "end": [
+            217400.47438099628,
+            655161.8525057364,
+            0
+          ]
+        },
+        {
+          "start": [
+            217402.92001868782,
+            655160.5699548529,
+            0
+          ],
+          "end": [
+            217402.92001868782,
+            655162.6919163876,
+            0
+          ]
+        },
+        {
+          "start": [
+            217412.89359875856,
+            655157.2313642913,
+            0
+          ],
+          "end": [
+            217412.89359875856,
+            655161.8525057364,
+            0
+          ]
+        },
+        {
+          "start": [
+            217390.95950060314,
+            655163.1515057264,
+            0
+          ],
+          "end": [
+            217390.95950060314,
+            655163.5313270389,
+            0
+          ]
+        },
+        {
+          "start": [
+            217392.73478038335,
+            655163.1515057264,
+            0
+          ],
+          "end": [
+            217392.73478038335,
+            655164.4860037201,
+            0
+          ]
+        },
+        {
+          "start": [
+            217394.49536293768,
+            655163.1515057264,
+            0
+          ],
+          "end": [
+            217394.49536293768,
+            655163.5313270389,
+            0
+          ]
+        },
+        {
+          "start": [
+            217396.24722681454,
+            655163.1515057264,
+            0
+          ],
+          "end": [
+            217396.24722681454,
+            655164.4860037201,
+            0
+          ]
+        },
+        {
+          "start": [
+            217397.83623360365,
+            655163.1515057264,
+            0
+          ],
+          "end": [
+            217397.83623360365,
+            655163.5318386351,
+            0
+          ]
+        },
+        {
+          "start": [
+            217399.62620817803,
+            655163.1515057264,
+            0
+          ],
+          "end": [
+            217399.62620817803,
+            655163.5318386351,
+            0
+          ]
+        },
+        {
+          "start": [
+            217400.47438099628,
+            655163.1515057264,
+            0
+          ],
+          "end": [
+            217400.47438099628,
+            655163.5318386351,
+            0
+          ]
+        },
+        {
+          "start": [
+            217401.13127527482,
+            655163.1515057264,
+            0
+          ],
+          "end": [
+            217401.13127527482,
+            655163.5318386351,
+            0
+          ]
+        },
+        {
+          "start": [
+            217401.13127527482,
+            655164.6696981166,
+            0
+          ],
+          "end": [
+            217401.13127527482,
+            655165.4383748078,
+            0
+          ]
+        },
+        {
+          "start": [
+            217406.10122011456,
+            655163.1515057264,
+            0
+          ],
+          "end": [
+            217406.10122011456,
+            655163.5313270389,
+            0
+          ]
+        },
+        {
+          "start": [
+            217407.80243899458,
+            655163.1515057264,
+            0
+          ],
+          "end": [
+            217407.80243899458,
+            655164.4860037201,
+            0
+          ]
+        },
+        {
+          "start": [
+            217409.55582301453,
+            655163.1515057264,
+            0
+          ],
+          "end": [
+            217409.55582301453,
+            655163.5313270389,
+            0
+          ]
+        },
+        {
+          "start": [
+            217411.39852040051,
+            655163.1515057264,
+            0
+          ],
+          "end": [
+            217411.39852040051,
+            655164.4864266396,
+            0
+          ]
+        },
+        {
+          "start": [
+            217412.89359875856,
+            655163.1515057264,
+            0
+          ],
+          "end": [
+            217412.89359875856,
+            655163.5318386351,
+            0
+          ]
+        },
+        {
+          "start": [
+            217390.95950060314,
+            655164.7515057264,
+            0
+          ],
+          "end": [
+            217390.95950060314,
+            655166.3026558547,
+            0
+          ]
+        },
+        {
+          "start": [
+            217394.49536293768,
+            655164.7515057264,
+            0
+          ],
+          "end": [
+            217394.49536293768,
+            655167.0922029315,
+            0
+          ]
+        },
+        {
+          "start": [
+            217397.83623360365,
+            655164.7515057264,
+            0
+          ],
+          "end": [
+            217397.83623360365,
+            655166.2579082422,
+            0
+          ]
+        },
+        {
+          "start": [
+            217402.92001868782,
+            655164.7515057264,
+            0
+          ],
+          "end": [
+            217402.92001868782,
+            655166.2579082422,
+            0
+          ]
+        },
+        {
+          "start": [
+            217406.10122011456,
+            655164.7515057264,
+            0
+          ],
+          "end": [
+            217406.10122011456,
+            655167.0922029315,
+            0
+          ]
+        },
+        {
+          "start": [
+            217409.55582301453,
+            655164.7515057264,
+            0
+          ],
+          "end": [
+            217409.55582301453,
+            655166.2579082422,
+            0
+          ]
+        },
+        {
+          "start": [
+            217412.89359875856,
+            655164.7515057264,
+            0
+          ],
+          "end": [
+            217412.89359875856,
+            655167.1369505441,
+            0
+          ]
+        },
+        {
+          "start": [
+            217370.8461091421,
+            655153.1515057264,
+            0
+          ],
+          "end": [
+            217370.8461091421,
+            655151.1956121284,
+            0
+          ]
+        }
+      ],
+      "clearance": 0.186
+    }
+  }
+}

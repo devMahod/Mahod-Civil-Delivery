@@ -1,0 +1,48 @@
+{
+  "$contract": {
+    "protocol_version": "1.18",
+    "direction": "client_to_server",
+    "type": "tool_result",
+    "audience": [
+      "plugin"
+    ],
+    "description": "v1.18 finished click session: 4 vertices deleted in ONE call, which is also ONE undo step. The before/after counts are the report -- the agent builds its reply from them and makes no model call. notes[] carries what the plugin decided on its own (here: the engineer clicked a hatch, so its boundary polyline was edited and the fill re-evaluated).",
+    "required_payload_fields": [
+      "tool_call_id",
+      "success"
+    ],
+    "optional_payload_fields": [
+      "result",
+      "error",
+      "outcome",
+      "hard_gates_passed",
+      "requires_engineer_approval",
+      "violations"
+    ]
+  },
+  "message": {
+    "id": "0f1e2d3c4b5a69788796a5b4c3d2e1f0",
+    "type": "tool_result",
+    "timestamp": "2026-08-03T09:15:42.123456Z",
+    "session_id": "3f7c1b9e-2d4a-4c8e-9b1f-5a6d7e8f9012",
+    "correlation_id": "tc-7b41c9d5",
+    "payload": {
+      "tool_call_id": "tc-7b41c9d5",
+      "success": true,
+      "outcome": "succeeded",
+      "hard_gates_passed": true,
+      "result": {
+        "mode": "delete",
+        "edits": 4,
+        "entity_handle": "2A7",
+        "entity_type": "פוליליין",
+        "vertices_before": 27,
+        "vertices_after": 23,
+        "closed": false,
+        "notes": [
+          "Hatch אסוציאטיבי — נערך פוליליין הגבול וה-Hatch מתעדכן אחריו"
+        ]
+      }
+    }
+  }
+}

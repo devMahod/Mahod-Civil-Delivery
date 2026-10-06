@@ -1,0 +1,36 @@
+{
+  "$contract": {
+    "protocol_version": "1.18",
+    "direction": "client_to_server",
+    "type": "message_feedback",
+    "audience": [
+      "plugin"
+    ],
+    "description": "v1.14: written feedback on an answer the agent never logged as a question (an analyze report). No question_log_id -- the agent creates the row from question/answer. rating is null: text WITHOUT a reaction is a valid state.",
+    "required_payload_fields": [
+      "message_id"
+    ],
+    "optional_payload_fields": [
+      "question_log_id",
+      "rating",
+      "feedback",
+      "question",
+      "answer"
+    ]
+  },
+  "message": {
+    "id": "0f1e2d3c4b5a69788796a5b4c3d2e1f0",
+    "type": "message_feedback",
+    "timestamp": "2026-08-03T09:15:42.123456Z",
+    "session_id": "3f7c1b9e-2d4a-4c8e-9b1f-5a6d7e8f9012",
+    "correlation_id": null,
+    "payload": {
+      "message_id": "m4d9c1b0e7f2a48d3",
+      "question_log_id": null,
+      "rating": null,
+      "feedback": "הבדיקה של רדיוס אופקי לא כללה את ציר 73",
+      "question": "🔍 בקשת ניתוח שרטוט",
+      "answer": "נמצאו 4 חריגות..."
+    }
+  }
+}

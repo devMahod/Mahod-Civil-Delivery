@@ -1,0 +1,89 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Mahod Civil Delivery — its OWN AutoCAD plugin, separate from MahodAI (the AI assistant).
+
+    Why separate: MahodAI is updated from its own feed. Shipping Civil Delivery inside the MahodAI
+    bundle meant every MahodAI update replaced it (and a machine-wide fork shadowed MahodAI). This
+    project compiles the SAME Civil Delivery sources (..\..\MahodAI.Civil3D.Plugin\CivilDelivery) into
+    its own assembly and bundle (MahodCivilDelivery.bundle): nothing it ships has a name MahodAI uses,
+    its commands are MCD_* (MahodAI still carries an old Civil Delivery under MHD_*), and it puts its
+    button on the Mahod ribbon tab beside MahodAI's. MAHOD_CD_STANDALONE (Directory.Build.props)
+    selects the standalone names in shared source.
+  -->
+  <PropertyGroup>
+    <TargetFramework>$(AutoCADTargetFramework)</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>Mahod.CivilDelivery</AssemblyName>
+    <RootNamespace>MahodAI.Civil3D.Plugin</RootNamespace>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <Version>$(MahodCivilDeliveryVersion)</Version>
+    <Product>Mahod Civil Delivery</Product>
+  </PropertyGroup>
+
+  <!-- Explicit opt-in from the guide-bound standalone builder; preserve Autodesk and standalone symbols. -->
+  <PropertyGroup Condition="'$(MahodCivilDeliveryGuideEnabled)' == 'true'">
+    <DefineConstants>$(DefineConstants);MAHOD_CD_GUIDE</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Mahod.CivilDelivery.Tests" />
+    <InternalsVisibleTo Include="Mahod.CivilDelivery.Core.Tests" />
+  </ItemGroup>
+
+  <Import Project="CoreIdentity.targets" />
+
+  <!-- The shared Civil Delivery sources, linked (never copied): one implementation. -->
+  <ItemGroup>
+    <Compile Include="..\..\MahodAI.Civil3D.Plugin\CivilDelivery\**\*.cs" Link="CivilDelivery\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Page Include="..\..\MahodAI.Civil3D.Plugin\CivilDelivery\**\*.xaml" Link="CivilDelivery\%(RecursiveDir)%(Filename)%(Extension)" />
+    <!-- The only platform files Civil Delivery uses; each is self-contained (no chat, WebSocket or agent layer). -->
+    <Compile Include="..\..\MahodAI.Civil3D.Plugin\Tools\CivilDelivery\CivilDeliverySession.cs" Link="Shared\CivilDeliverySession.cs" />
+    <Compile Include="..\..\MahodAI.Civil3D.Plugin\Services\SheetQA\**\*.cs" Link="Shared\SheetQA\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\..\MahodAI.Civil3D.Plugin\Utilities\MahodLogger.cs" Link="Shared\MahodLogger.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(AutoCADVersion)' != '2026'">
+    <Reference Include="accoremgd"><HintPath>$(AutoCADPath)\accoremgd.dll</HintPath><Private>False</Private></Reference>
+    <Reference Include="acdbmgd"><HintPath>$(AutoCADPath)\acdbmgd.dll</HintPath><Private>False</Private></Reference>
+    <Reference Include="acmgd"><HintPath>$(AutoCADPath)\acmgd.dll</HintPath><Private>False</Private></Reference>
+    <Reference Include="AdWindows"><HintPath>$(AutoCADPath)\AdWindows.dll</HintPath><Private>False</Private></Reference>
+    <Reference Include="AeccDbMgd"><HintPath>$(AutoCADPath)\C3D\AeccDbMgd.dll</HintPath><Private>False</Private></Reference>
+    <Reference Include="AeccPressurePipesMgd"><HintPath>$(AutoCADPath)\C3D\AeccPressurePipesMgd.dll</HintPath><Private>False</Private></Reference>
+    <Reference Include="AecBaseMgd"><HintPath>$(AutoCADPath)\ACA\AecBaseMgd.dll</HintPath><Private>False</Private></Reference>
+    <Reference Include="AecPropDataMgd"><HintPath>$(AutoCADPath)\ACA\AecPropDataMgd.dll</HintPath><Private>False</Private></Reference>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(AutoCADVersion)' == '2026'">
+    <PackageReference Include="AutoCAD.NET" Version="[25.1.0]" ExcludeAssets="runtime" />
+    <PackageReference Include="Civil3D.NET" Version="13.8.280" ExcludeAssets="runtime" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Mahod.CivilDelivery.Core\Mahod.CivilDelivery.Core.csproj" />
+    <!-- Hatch/area geometry (StrictHatchLinearAreaRecovery, SectionHatchSpanLabelService). -->
+    <PackageReference Include="NetTopologySuite" Version="2.6.0" />
+  </ItemGroup>
+
+  <!-- Resource names are what the readers ask for (and what the release verifier pins): unchanged. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\MahodAI.Civil3D.Plugin\assets\mahod_logo_white.png" LogicalName="MahodAI.Civil3D.Plugin.assets.mahod_logo_white.png" />
+    <EmbeddedResource Include="..\..\MahodAI.Civil3D.Plugin\assets\HW-CARFRBK-01.dwg" LogicalName="MahodAI.Civil3D.Plugin.assets.sections.HW-CARFRBK-01.dwg" />
+    <EmbeddedResource Include="..\..\MahodAI.Civil3D.Plugin\assets\HW-CARFRFRW-01.dwg" LogicalName="MahodAI.Civil3D.Plugin.assets.sections.HW-CARFRFRW-01.dwg" />
+    <EmbeddedResource Include="..\..\MahodAI.Civil3D.Plugin\assets\HW-ARRW-01.dwg" LogicalName="MahodAI.Civil3D.Plugin.assets.sections.HW-ARRW-01.dwg" />
+  </ItemGroup>
+
+  <!-- The ribbon button's own icon (large 32 px, small 16 px). -->
+  <ItemGroup>
+    <EmbeddedResource Include="assets\civil_delivery_32.png" LogicalName="Mahod.CivilDelivery.assets.civil_delivery_32.png" />
+    <EmbeddedResource Include="assets\civil_delivery_16.png" LogicalName="Mahod.CivilDelivery.assets.civil_delivery_16.png" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,35 @@
+{
+  "$contract": {
+    "protocol_version": "1.18",
+    "direction": "client_to_server",
+    "type": "connect",
+    "audience": [
+      "plugin"
+    ],
+    "description": "Plugin handshake. Pre-auth allowed; answered with a correlated connect_ack.",
+    "required_payload_fields": [
+      "api_key",
+      "client_type",
+      "client_version",
+      "capabilities"
+    ],
+    "optional_payload_fields": []
+  },
+  "message": {
+    "id": "0f1e2d3c4b5a69788796a5b4c3d2e1f0",
+    "type": "connect",
+    "timestamp": "2026-08-03T09:15:42.123456Z",
+    "session_id": null,
+    "correlation_id": "corr-connect-1",
+    "payload": {
+      "api_key": "<redacted>",
+      "client_type": "civil3d_plugin",
+      "client_version": "2026.8.3",
+      "capabilities": [
+        "tools",
+        "streaming",
+        "fix_flow"
+      ]
+    }
+  }
+}

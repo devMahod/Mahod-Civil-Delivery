@@ -1,0 +1,774 @@
+<UserControl x:Class="MahodAI.Civil3D.Plugin.CivilDelivery.UI.CivilDeliveryControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:prim="clr-namespace:System.Windows.Controls.Primitives;assembly=PresentationFramework"
+             FlowDirection="RightToLeft"
+             FontFamily="Segoe UI"
+             Background="#FF1B1F27">
+
+  <UserControl.Resources>
+    <!-- Mahod product palette: dark chrome, white brand, restrained accents. -->
+    <SolidColorBrush x:Key="Bg"        Color="#FF1B1F27"/>
+    <SolidColorBrush x:Key="Panel"     Color="#FF232833"/>
+    <SolidColorBrush x:Key="PanelAlt"  Color="#FF2A303C"/>
+    <SolidColorBrush x:Key="Line"      Color="#FF3A4150"/>
+    <SolidColorBrush x:Key="Text"      Color="#FFEDEFF3"/>
+    <SolidColorBrush x:Key="TextDim"   Color="#FF98A0B0"/>
+    <SolidColorBrush x:Key="Accent"    Color="#FF4A9EFF"/>
+    <SolidColorBrush x:Key="Ok"        Color="#FF4CAF7D"/>
+    <SolidColorBrush x:Key="Review"    Color="#FFE0A44C"/>
+    <SolidColorBrush x:Key="Blocked"   Color="#FFE05C5C"/>
+
+    <Style TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{StaticResource Text}"/>
+      <Setter Property="FontSize" Value="12"/>
+    </Style>
+
+    <Style x:Key="Muted" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{StaticResource TextDim}"/>
+      <Setter Property="FontSize" Value="11"/>
+    </Style>
+
+    <!-- Table cells: never cut a value silently - trim with an ellipsis and show the
+         full text on hover (CURB-EXST was displayed as "KST" in a narrow column). -->
+    <Style x:Key="Cell" TargetType="TextBlock">
+      <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+      <Setter Property="ToolTip" Value="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+      <Setter Property="Margin" Value="4,0"/>
+    </Style>
+
+    <Style x:Key="SectionTitle" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{StaticResource Text}"/>
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Margin" Value="0,10,0,6"/>
+    </Style>
+
+    <Style TargetType="Button">
+      <Setter Property="Background" Value="{StaticResource PanelAlt}"/>
+      <Setter Property="Foreground" Value="{StaticResource Text}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Padding" Value="12,7"/>
+      <Setter Property="Margin" Value="0,0,6,6"/>
+      <Setter Property="MinWidth" Value="86"/>
+      <Setter Property="MinHeight" Value="34"/>
+      <Setter Property="MaxWidth" Value="260"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="ToolTipService.ShowOnDisabled" Value="True"/>
+      <Setter Property="ContentTemplate">
+        <Setter.Value>
+          <DataTemplate>
+            <TextBlock Text="{Binding}" TextWrapping="Wrap" TextAlignment="Center"
+                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                       FontWeight="{Binding FontWeight, RelativeSource={RelativeSource AncestorType=Button}}"/>
+          </DataTemplate>
+        </Setter.Value>
+      </Setter>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="b" Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="4">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Margin="{TemplateBinding Padding}"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="b" Property="Background" Value="#FF364E69"/>
+                <Setter Property="Foreground" Value="White"/>
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="b" Property="Background" Value="#FF1F5E9E"/>
+                <Setter Property="Foreground" Value="White"/>
+              </Trigger>
+              <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="b" Property="BorderBrush" Value="{StaticResource Accent}"/>
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="b" Property="Background" Value="#FF252C37"/>
+                <Setter TargetName="b" Property="BorderBrush" Value="#FF444E60"/>
+                <Setter Property="Foreground" Value="#FF9AA6B7"/>
+                <Setter Property="Cursor" Value="Arrow"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- The palette's toggle ("הגדל רשימה"): same look as its buttons; pressed = accent. -->
+    <Style TargetType="ToggleButton">
+      <Setter Property="Background" Value="{StaticResource PanelAlt}"/>
+      <Setter Property="Foreground" Value="{StaticResource Text}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Padding" Value="12,7"/>
+      <Setter Property="MinHeight" Value="34"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ToggleButton">
+            <Border x:Name="b" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="b" Property="Background" Value="#FF364E69"/>
+              </Trigger>
+              <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="b" Property="Background" Value="#2F80C9"/>
+                <Setter TargetName="b" Property="BorderBrush" Value="#2F80C9"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+      <Setter Property="Background" Value="{StaticResource Accent}"/>
+      <Setter Property="Foreground" Value="#FF0E1320"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+
+    <Style TargetType="TabItem">
+      <Setter Property="Foreground" Value="{StaticResource TextDim}"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="TabItem">
+            <Border x:Name="b" Background="Transparent" Padding="14,8" Margin="0,0,2,0"
+                    BorderThickness="0,0,0,2" BorderBrush="Transparent">
+              <ContentPresenter ContentSource="Header"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsSelected" Value="True">
+                <Setter TargetName="b" Property="BorderBrush" Value="{StaticResource Accent}"/>
+                <Setter Property="Foreground" Value="{StaticResource Text}"/>
+              </Trigger>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Foreground" Value="{StaticResource Text}"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style TargetType="DataGrid">
+      <Setter Property="Background" Value="{StaticResource Panel}"/>
+      <Setter Property="Foreground" Value="{StaticResource Text}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+      <Setter Property="RowBackground" Value="{StaticResource Panel}"/>
+      <Setter Property="AlternatingRowBackground" Value="{StaticResource PanelAlt}"/>
+      <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+      <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource Line}"/>
+      <Setter Property="HeadersVisibility" Value="Column"/>
+      <Setter Property="AutoGenerateColumns" Value="False"/>
+      <Setter Property="IsReadOnly" Value="True"/>
+      <Setter Property="CanUserAddRows" Value="False"/>
+      <Setter Property="SelectionMode" Value="Single"/>
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="RowHeight" Value="30"/>
+    </Style>
+
+    <!-- Severity is visible while scanning a long table: a subtle tint and RTL-side
+         stripe distinguish usable, review, blocked and deliberately ignored rows. -->
+    <Style x:Key="SeverityRow" TargetType="DataGridRow">
+      <Setter Property="Background" Value="{StaticResource Panel}"/>
+      <Setter Property="Foreground" Value="{StaticResource Text}"/>
+      <Setter Property="BorderThickness" Value="0,0,3,0"/>
+      <Setter Property="BorderBrush" Value="Transparent"/>
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Severity}" Value="ok">
+          <Setter Property="Background" Value="#FF20342D"/>
+          <Setter Property="BorderBrush" Value="{StaticResource Ok}"/>
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Severity}" Value="review">
+          <Setter Property="Background" Value="#FF382F22"/>
+          <Setter Property="BorderBrush" Value="{StaticResource Review}"/>
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Severity}" Value="blocked">
+          <Setter Property="Background" Value="#FF3A2528"/>
+          <Setter Property="BorderBrush" Value="{StaticResource Blocked}"/>
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Severity}" Value="muted">
+          <Setter Property="Foreground" Value="{StaticResource TextDim}"/>
+          <Setter Property="Opacity" Value="0.68"/>
+        </DataTrigger>
+        <Trigger Property="IsSelected" Value="True">
+          <Setter Property="Background" Value="#FF315D89"/>
+          <Setter Property="Foreground" Value="White"/>
+          <Setter Property="Opacity" Value="1"/>
+          <Setter Property="BorderBrush" Value="{StaticResource Accent}"/>
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+
+    <Style TargetType="{x:Type prim:DataGridColumnHeader}">
+      <Setter Property="Background" Value="#FF2F3644"/>
+      <Setter Property="Foreground" Value="{StaticResource Text}"/>
+      <Setter Property="Padding" Value="6,5"/>
+      <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+      <Setter Property="BorderThickness" Value="0,0,1,1"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="FontSize" Value="11"/>
+    </Style>
+  </UserControl.Resources>
+
+  <Grid>
+  <Grid.RowDefinitions>
+    <RowDefinition Height="*"/>
+    <RowDefinition Height="Auto"/>
+  </Grid.RowDefinitions>
+  <!-- The native palette size is in screen pixels; at high DPI its WPF viewport
+       can be much smaller. Scroll below the usable minimum instead of clipping tabs
+       or actions. Explicit viewport dimensions keep DataGrid star columns measured
+       at finite width/height, including when either outer scrollbar is visible. -->
+  <ScrollViewer x:Name="PaletteViewport" VerticalScrollBarVisibility="Auto"
+                HorizontalScrollBarVisibility="Auto" CanContentScroll="False">
+  <DockPanel LastChildFill="True" MinWidth="440"
+             Width="{Binding ViewportWidth, RelativeSource={RelativeSource AncestorType=ScrollViewer}}"
+             Height="{Binding ViewportHeight, RelativeSource={RelativeSource AncestorType=ScrollViewer}}">
+    <!-- b22 (Codex 06:58, b21 live): opening "פירוט מקורות ובדיקות" on the estimate tab used to take its height from
+         the quantity list (about 120 px of a 900 px palette), leaving the list a few pixels high. While it is open
+         (and the list is not enlarged) the palette content is at least 1130 px and the palette scrolls, so the list keeps
+         a working height (about 200 px or more at any palette size), its search and its selection. Closing the section,
+         or "הגדל רשימה", restores the normal 900 px minimum.
+         b25: both minimums exclude the 45 px status strip, now a fixed row below this scrolling content
+         (900 → 855, 1130 → 1085), so the tab content keeps exactly the height it had. -->
+    <DockPanel.Style>
+      <Style TargetType="DockPanel">
+        <Setter Property="MinHeight" Value="855"/>
+        <Style.Triggers>
+          <MultiDataTrigger>
+            <MultiDataTrigger.Conditions>
+              <Condition Binding="{Binding SelectedIndex, ElementName=Tabs}" Value="1"/>
+              <Condition Binding="{Binding IsExpanded, ElementName=EstimateAdvancedActions}" Value="True"/>
+              <Condition Binding="{Binding IsChecked, ElementName=BtnExpandQuantityList}" Value="False"/>
+            </MultiDataTrigger.Conditions>
+            <Setter Property="MinHeight" Value="1085"/>
+          </MultiDataTrigger>
+        </Style.Triggers>
+      </Style>
+    </DockPanel.Style>
+
+    <!-- ============ BRAND HEADER ============ -->
+    <Border DockPanel.Dock="Top" Background="#FF141821" Padding="0,8,0,8">
+      <StackPanel>
+        <!-- Official white Mahod logo, centered, transparent, aspect preserved.
+             Source is an embedded resource - never a local file path. -->
+        <Image x:Name="LogoImage"
+               Height="24"
+               Stretch="Uniform"
+               HorizontalAlignment="Center"
+               Margin="0,0,0,6"
+               SnapsToDevicePixels="True"
+               RenderOptions.BitmapScalingMode="HighQuality"/>
+
+        <TextBlock Text="Mahod Civil Delivery"
+                   HorizontalAlignment="Center"
+                   FontSize="13.5" FontWeight="SemiBold"
+                   Foreground="{StaticResource Text}"/>
+        <TextBlock x:Name="ProjectLine"
+                   Text="הפרויקט הפעיל ייקבע לפי השרטוט הפתוח"
+                   HorizontalAlignment="Center"
+                   Margin="0,1,0,0"
+                   Style="{StaticResource Muted}"/>
+        <!-- Standalone tool only (made visible in code under MAHOD_CD_STANDALONE): opens a temporary copy of the
+             guide PDF of the running bundle. -->
+        <Button x:Name="BtnUserGuide" Content="מדריך למשתמש"
+                Click="OnOpenUserGuide" Visibility="Collapsed"
+                HorizontalAlignment="Center" Margin="0,6,0,0"
+                ToolTip="פתיחת מדריך ה-PDF המקומי של ההתקנה בקורא PDF של Windows"/>
+      </StackPanel>
+    </Border>
+
+    <TabControl x:Name="Tabs" Background="{StaticResource Bg}" BorderThickness="0" Padding="8">
+
+      <!-- ==================== SECTIONS ==================== -->
+      <TabItem Header="חתכים">
+        <DockPanel LastChildFill="True" Margin="4">
+
+          <StackPanel DockPanel.Dock="Top">
+            <TextBlock Text="חתכי רוחב — מהתכנית לתוצר" Style="{StaticResource SectionTitle}"/>
+
+            <!-- Project dashboard: what the tool already understands about THIS drawing,
+                 before a single click. Alignments, surfaces, networks, CL lines found in the
+                 configured CL drawing, and what already exists from previous runs. -->
+            <Border x:Name="DashboardBorder" Background="{StaticResource Panel}" Padding="10,8" Margin="0,0,0,8"
+                    CornerRadius="4" BorderBrush="{StaticResource Line}" BorderThickness="1">
+              <StackPanel>
+                <TextBlock x:Name="DashboardTitle" FontWeight="SemiBold" Text="השרטוט הזה"/>
+                <TextBlock x:Name="DashboardBody" Style="{StaticResource Muted}" TextWrapping="Wrap"
+                           Margin="0,3,0,0" Text="קורא את השרטוט…"/>
+              </StackPanel>
+            </Border>
+
+            <Border Background="{StaticResource Panel}" BorderBrush="{StaticResource Accent}" BorderThickness="0,0,3,0"
+                    Padding="10,8" Margin="0,0,0,8" CornerRadius="4">
+              <StackPanel>
+                <TextBlock Text="1 · תכנון   ←   2 · השלמות   ←   3 · יצירה   ←   4 · אימות" Style="{StaticResource Muted}"/>
+                <TextBlock x:Name="SectionStepTitle" Text="תחילה: איתור מיקומי החתכים" FontSize="14"
+                           FontWeight="SemiBold" Margin="0,6,0,3" TextWrapping="Wrap"/>
+                <TextBlock x:Name="SectionStepDetail" Text="תכנון מציג מה אפשר ליצור ומה עוד חסר; הוא אינו יוצר חתכים בשרטוט."
+                           TextWrapping="Wrap"/>
+                <WrapPanel Margin="0,8,0,0">
+                  <Button x:Name="BtnSectionNext" Content="התחל תכנון" Click="OnSectionNext" Style="{StaticResource PrimaryButton}"/>
+                  <Button x:Name="BtnShow" Content="הצג מיקום בתכנית" Click="OnShow"/>
+                  <Button x:Name="BtnNameAllSpans" Content="סקירת רצועות בכל החתכים…" Click="OnNameAllSectionSpans"
+                          ToolTip="סקור את הרצועות בכל התכנון בחלון אחד. נשמרים רק שמות שבחרת ואישרת במפורש; אין אישור אוטומטי של הצעות."/>
+                </WrapPanel>
+              </StackPanel>
+            </Border>
+            <Expander x:Name="SectionAdvanced" Header="פעולות נוספות · מקורות, אצווה ואבחון" Foreground="{StaticResource TextDim}" Margin="0,0,0,6">
+            <ScrollViewer MaxHeight="150" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="0,8,0,4">
+            <TextBlock Text="מקורות ותכנון" FontWeight="SemiBold" Margin="0,0,0,6"/>
+            <WrapPanel>
+              <Button x:Name="BtnPickCl"       Content="בחר קובץ CL…"  Click="OnPickCl"/>
+              <Button x:Name="BtnSetup"        Content="הגדרת פרויקט" Click="OnSetup"/>
+              <Button x:Name="BtnPlan"         Content="תכנון"        Click="OnPlan"/>
+              <Button x:Name="BtnApproveRow" Content="אשר מקור ROW" Click="OnApproveSectionRow"
+                      ToolTip="בחר מקור זכות דרך יחיד לפי SHA-256, נתיב ו-XREF; מקורות לא מאושרים נשארים מחוץ לחתך"/>
+            </WrapPanel>
+            <TextBlock Text="עריכת החתך הנבחר" FontWeight="SemiBold" Margin="0,8,0,6"/>
+            <WrapPanel>
+              <Button x:Name="BtnNextSectionIssue" Content="הבעיה הבאה" Click="OnNextSectionIssue"
+                      ToolTip="עבור לרשומה הבאה שיש בה פעולה אפשרית, בלי לאבד את מיקום העבודה"/>
+              <Button x:Name="BtnResolveSection" Content="בחר חצייה" Click="OnResolveSection"
+                      ToolTip="בחר תוואי+תחנה מדויקים עבור שורת בדיקה נבחרת"/>
+              <Button x:Name="BtnExcludeSection" Content="החרג CL" Click="OnExcludeSection"
+                      ToolTip="החרגה מפורשת עם קוד ממצא, סיבה, מאשר וזמן"/>
+              <Button x:Name="BtnResolveDirection" Content="הכרעת כיוון" Click="OnResolveTrafficDirection"
+                      ToolTip="אשר כיוון נסיעה רק בחתך המסומן; ההחלטה נשמרת לפי CL+תוואי+אמצע רצועה ומריצה תכנון מחדש"/>
+              <Button x:Name="BtnNameSpans" Content="שמות רצועות" Click="OnNameSectionSpans"
+                      ToolTip="בדוק רק את החתך המסומן; אשר שורות נבחרות או הצעות מבוססות־ראיות. כל שם נשמר לפי SHA+handle+תוואי+גבולות ומריץ תכנון מחדש"/>
+              <Button x:Name="BtnApplySelected" Content="החל חתך נבחר" Click="OnApplySelected"
+                      ToolTip="החל טרנזקציונית רק את החתך המסומן כשהוא READY ומלא. שאר רשומות התכנון אינן משתנות ואינן נחשבות כהצלחה"/>
+              <Button x:Name="BtnVerifySelected" Content="אמת חתך נבחר" Click="OnVerifySelected"
+                      ToolTip="אמת מול בסיס הנתונים רק את החתך שהוחל במסלול 'חתך נבחר'. התוצאה אינה אימות של יתר רשומות התכנון"/>
+            </WrapPanel>
+            <TextBlock Text="אצווה ואבחון" FontWeight="SemiBold" Margin="0,8,0,6"/>
+            <WrapPanel>
+              <Button x:Name="BtnApply"        Content="החל"          Click="OnApply"/>
+              <Button x:Name="BtnVerify"       Content="אמת"          Click="OnVerify"/>
+              <Button x:Name="BtnPreview"      Content="בדיקת גאומטריה" Click="OnPreview"
+                      ToolTip="בדיקה אבחונית זמנית מהמשטחים האמיתיים בלבד; אינה אישור ואינה תצוגת התוצר הסופי. רצועות, שיפועים ובלוקים משרדיים נבדקים אחרי החל+אמת"/>
+              <Button x:Name="BtnClearPreview" Content="נקה תצוגה"    Click="OnClearPreview"/>
+            </WrapPanel>
+            </StackPanel>
+            </ScrollViewer>
+            </Expander>
+            <TextBlock x:Name="GateReason" Style="{StaticResource Muted}" Margin="0,0,0,8"
+                       TextWrapping="Wrap"/>
+          </StackPanel>
+
+          <Grid>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="*"/>
+              <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <DataGrid x:Name="SectionsGrid" Grid.Row="0" MinHeight="160" SelectionChanged="OnSectionSelected"
+                      RowStyle="{StaticResource SeverityRow}">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="חתך" Binding="{Binding SectionId}" Width="96" MinWidth="96" ElementStyle="{StaticResource Cell}"/>
+                <DataGridTextColumn Header="מצב" Binding="{Binding Status}" Width="88" MinWidth="88" ElementStyle="{StaticResource Cell}"/>
+                <DataGridTextColumn Header="השלמה נדרשת" Binding="{Binding NextStep}" Width="150" MinWidth="150" ElementStyle="{StaticResource Cell}"/>
+                <DataGridTextColumn Header="תוואי" Binding="{Binding Alignment}" Width="62" MinWidth="62" ElementStyle="{StaticResource Cell}"/>
+                <DataGridTextColumn Header="תחנה" Binding="{Binding Station}" Width="80" MinWidth="80" ElementStyle="{StaticResource Cell}"/>
+                <DataGridTextColumn Header="מערכות בחתך" Binding="{Binding Utilities}" Width="150" MinWidth="150" ElementStyle="{StaticResource Cell}"/>
+                <DataGridTextColumn Header="הטיה" Binding="{Binding Skew}" Width="62" MinWidth="62" ElementStyle="{StaticResource Cell}"/>
+                <DataGridTextColumn Header="שמאל/ימין" Binding="{Binding Extents}" Width="92" MinWidth="92" ElementStyle="{StaticResource Cell}"/>
+                <DataGridTextColumn Header="מקורות" Binding="{Binding Sources}" Width="120" MinWidth="120" ElementStyle="{StaticResource Cell}"/>
+                <DataGridTextColumn Header="כיוונים" Binding="{Binding TrafficDirections}" Width="120" MinWidth="120" ElementStyle="{StaticResource Cell}"/>
+              </DataGrid.Columns>
+            </DataGrid>
+
+            <Border Grid.Row="1" Background="{StaticResource Panel}" Padding="8" Margin="0,8,0,0"
+                    BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4">
+              <StackPanel>
+              <TextBlock x:Name="SectionSurfaceLegend" TextWrapping="Wrap" Margin="0,0,0,6"
+                         Foreground="{StaticResource Text}"/>
+              <Expander x:Name="SectionDiagnostics" Header="פרטי החתך וסיבות החסימה" Foreground="{StaticResource Text}">
+                <ScrollViewer MaxHeight="150" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                  <TextBlock x:Name="SectionDetail" Style="{StaticResource Muted}"
+                             Focusable="True" TextWrapping="Wrap" Text="יש לבחור שורה בטבלה"/>
+                </ScrollViewer>
+              </Expander>
+              </StackPanel>
+            </Border>
+          </Grid>
+        </DockPanel>
+      </TabItem>
+
+      <!-- ==================== ESTIMATE ==================== -->
+      <TabItem Header="כתב כמויות / אומדן">
+        <DockPanel LastChildFill="True" Margin="4">
+
+          <StackPanel DockPanel.Dock="Top">
+            <DockPanel LastChildFill="True">
+              <!-- The fast path after a scan: an editable, priced BoQ draft from the design
+                   models with the Mahod roads library. No per-layer mapping, no approval.
+                   Kept on the title line so narrow palettes keep their table height. -->
+              <Button DockPanel.Dock="Left" x:Name="BtnExportEngineerDraft" Content="טיוטת כמויות להנדסה…"
+                      Click="OnExportEngineerDraft" Style="{StaticResource PrimaryButton}" IsEnabled="False"
+                      MinHeight="26" Padding="10,2" Margin="0,4,0,2" VerticalAlignment="Center"
+                      ToolTip="הדרך המהירה אחרי סריקה: טיוטת כתב כמויות ב-Excel ממודלי התכנון — מבני מיסעה, אבני שפה, סימון, שילוט ומחירים מהמחירון, עם נוסחאות לעריכה. כוללת שיוכים מאושרים בפרופיל שתקפים למחירון הפעיל, ומחילה החלטות &apos;לא כמות בנייה&apos; שנשמרו עם שם מאשר. מצב קיים, תשתיות ושכבות עזר מופיעים בגיליונות נפרדים. זו טיוטה לבדיקה הנדסית ולא אומדן; הקובץ אינו משנה את הפרופיל"/>
+              <Button DockPanel.Dock="Left" x:Name="BtnFamilyReview" Content="זיהוי שכבות…"
+                      Click="OnFamilyReview" IsEnabled="False"
+                      MinHeight="26" Padding="10,2" Margin="6,4,0,2" VerticalAlignment="Center"
+                      ToolTip="זיהוי קבוצות מדידה שלא שויכו לפי ראיות מהשרטוט (בלוק, תכונות, מקרא, PropertySet, טקסט סמוך, רוחב), ולא לפי שם השכבה. מאשרים משפחה פעם אחת לכל הקבוצות המתאימות; ההחלטה נשמרת בפרופיל ומוחלת בטיוטה הבאה. אישור משפחה אינו מאשר סעיפים או מחירים"/>
+              <Button DockPanel.Dock="Left" x:Name="BtnEditionLinks" Content="קישור מחירון…"
+                      Click="OnEditionLinks" IsEnabled="False"
+                      MinHeight="26" Padding="10,2" Margin="6,4,0,2" VerticalAlignment="Center"
+                      ToolTip="הספרייה נכתבה במחירון העירוני 08/2025. במהדורה אחרת (למשל נת&quot;י האחוד 07/2026) המספור והניסוח שונים. כאן בוחרים פעם אחת לכל מהדורה את הסעיף המקביל לכל סעיף ספרייה — עם ראיה (טקסט זהה, תיאור קטוע, פרמטר שונה). שום דבר לא נבחר אוטומטית; הקישור נשמר בפרופיל עם שם המאשר"/>
+              <TextBlock Text="כתב כמויות — מדידה, שיוך ותמחור" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" Margin="0,6,0,4"/>
+            </DockPanel>
+
+            <Border Background="#142438" Padding="8,2" Margin="0,0,0,4" CornerRadius="4"
+                    BorderBrush="#2F80C9" BorderThickness="1">
+              <DockPanel LastChildFill="True">
+                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,8,0">
+                  <Button x:Name="BtnStartEstimateGuided" Content="סרוק כמויות" Click="OnStartEstimateGuided"
+                          Style="{StaticResource PrimaryButton}"/>
+                  <!-- BoQ by project rules: one click after a scan, next to the scan itself (no extra palette row) -->
+                  <Button x:Name="BtnExportBoqRules" Content="כתב כמויות…" Click="OnExportBoqRules" IsEnabled="False"
+                          Margin="0,3,0,0" Padding="8,0" MinHeight="22"
+                          ToolTip="כתב כמויות בפורמט נתיבי ישראל לפי כללי הפרויקט: סעיף, תאור, יחידה, כמות אחת, מחיר וסה&quot;כ. נבנה מהסריקה הנוכחית ומהסריקות האחרונות של שאר קובצי הפרויקט באותה תיקייה; כל כמות היא נוסחה על גיליון פרמטרים. המחירים לפי המחירון שמוגדר בכללי הפרויקט (שמו רשום בראש הגיליון ובגיליון מקורות); «מחירון פעיל» שלמטה אינו משפיע על קובץ זה. קבצים שלא נסרקו ועצמים שלא נמדדו מוצגים בקובץ. טיוטה לבדיקה הנדסית — לא אומדן מאושר"/>
+                  <!-- Natali 30.09.2026: excavation, fill, base courses and asphalt measured by the tool from the corridors -->
+                  <Button x:Name="BtnExportCorridorBoq" Content="כמויות מקורידורים…" Click="OnExportCorridorBoq" IsEnabled="False"
+                          Visibility="Collapsed" Margin="0,3,0,0" Padding="8,0" MinHeight="22"
+                          ToolTip="חפירה, מילוי, חישוף, מצעים ואספלט — נמדדים בכלי מהקורידורים של השרטוט הפתוח מול משטח הקרקע הקיימת (לפי כללי הפרויקט), בשיטת טבלאות Road Volumes. נכתב כתב כמויות בפורמט נתיבי ישראל עם מחירי המחירון האחוד 07-2026; כל כמות נוסחה, הנחות מסומנות 'לאישור', ומדידה חלקית אינה נכנסת לסה&quot;כ. השרטוט אינו משתנה"/>
+                </StackPanel>
+                <StackPanel>
+                <TextBlock x:Name="EstimateFlowProgress" Foreground="#B9D9F5" FontWeight="SemiBold"
+                           TextWrapping="Wrap"/>
+                <TextBlock x:Name="EstimateNextAction" Foreground="White" Margin="0,2,0,0"
+                           TextWrapping="Wrap"/>
+                <!-- b24 (E4, la-038-ew): the units the scan will use, before anybody relies on SI or prices. One line, so the
+                     quantity table keeps its 480x600 height; the full sentence is the tooltip and the project tab. -->
+                <TextBlock x:Name="EstimateUnitsLine" Foreground="#B9D9F5" Margin="0" FontSize="11"
+                           TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+              </DockPanel>
+            </Border>
+
+            <!-- Codex 00:45: "הגדל רשימה" (next to the search) hides the price book, actions, summary and the sources/scope
+                 expander together so the quantity list becomes a working list in a normal palette; pressing it again brings them
+                 back. No row is added. The export group stays the sibling right before the advanced actions. -->
+            <StackPanel x:Name="EstimateToolsPanel">
+              <StackPanel.Style>
+                <Style TargetType="StackPanel">
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsChecked, ElementName=BtnExpandQuantityList}" Value="True">
+                      <Setter Property="Visibility" Value="Collapsed"/>
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </StackPanel.Style>
+            <!-- Price book: which edition prices this estimate. Any publisher - NTI,
+                 Dekel, the engineer's own sheet - registered by file, identified by hash. -->
+            <Border Background="{StaticResource Panel}" Padding="8,6" Margin="0,0,0,8" CornerRadius="4"
+                    BorderBrush="{StaticResource Line}" BorderThickness="1">
+              <DockPanel LastChildFill="True">
+                <TextBlock DockPanel.Dock="Right" Text="מחירון פעיל:" VerticalAlignment="Center" Margin="0,0,8,0"
+                           FontWeight="SemiBold"/>
+                <Button DockPanel.Dock="Left" x:Name="BtnLoadPriceBook" Content="טען מחירון…"
+                        Click="OnLoadPriceBook" ToolTip="בחר Excel ובדוק גיליון ועמודות: סעיף, תיאור, יחידה ומחיר. הרישום רק לאחר אישור הקריאה"/>
+                <Button DockPanel.Dock="Left" x:Name="BtnKnownPriceBooks" Content="מוכר…" Click="OnKnownPriceBooks"
+                        ToolTip="הצע מחירונים שנרשמו בעבר במחשב זה; בחירה מפורשת ובדיקת זהות, מהדורה וקריאה לפני רישום בפרויקט"/>
+                <ComboBox x:Name="PriceBookCombo" MinWidth="120" Margin="0,0,8,0"
+                          SelectionChanged="OnPriceBookChanged"
+                          DisplayMemberPath="Label"
+                          AutomationProperties.Name="מחירון פעיל"
+                          ToolTip="{Binding SelectedItem.Label, RelativeSource={RelativeSource Self}}"/>
+              </DockPanel>
+            </Border>
+
+            <WrapPanel Margin="0,0,0,6">
+              <Button x:Name="BtnReviewMappings" Content="בדיקת שיוכים מרוכזת…" Click="OnReviewMappings"
+                      ToolTip="בחר סעיפים לכמה קבוצות באותו מסך, כולל חיפוש ידני והצעות חלופיות; שמירה רק לאחר אישור מפורש"/>
+              <Button x:Name="BtnFilterDrawingNoise" Content="בדוק סימוני עזר יחד…" Click="OnFilterDrawingNoise"
+                      ToolTip="רשימת תחנות וסימוני עזר לאישור מרוכז; לא מוחרגות תשתיות או כמויות בלי החלטה מפורשת"/>
+              <Button x:Name="BtnApproveEstimateScope" Content="אשר מקורות" Click="OnApproveEstimateScope"
+                      ToolTip="אישור היקף המקורות; אינו מאשר את המדידה, השיוכים או המחירים"/>
+              <Button x:Name="BtnBuild" Content="חשב תמחור" Click="OnBuildEstimate"
+                      ToolTip="חשב שורות ששויכו ואושרו. חסרים נשארים גלויים; סכום חלקי אינו אומדן מלא"/>
+              <Button x:Name="BtnExportPricedDraft" Content="ייצא טיוטה מתומחרת…" Click="OnExportPricedDraft" IsEnabled="False"
+                      ToolTip="טיוטה חלקית בלבד: סכום השורות התקינות לצד כל החסרים והממצאים. אינה אומדן סופי"/>
+              <Button x:Name="BtnExport" Content="ייצוא אומדן ל-Excel…" Click="OnExportEstimate"/>
+              <Button x:Name="BtnExportMeasurementDraft" Content="ייצא מדידות לבדיקה…"
+                    Click="OnExportMeasurementDraft" HorizontalAlignment="Left" IsEnabled="False"
+                    ToolTip="ייצוא כל רשומות הסריקה וכל הממצאים שנשמרו, ללא סינון, תמחור או אישור אומדן"/>
+            </WrapPanel>
+
+            <TextBlock x:Name="EngineerDraftNotice" Style="{StaticResource Muted}" TextWrapping="Wrap"
+                       Margin="0,0,0,6" Visibility="Collapsed"/>
+            <TextBlock x:Name="PricedDraftSummary" Style="{StaticResource Muted}" TextWrapping="Wrap"
+                       Margin="0,0,0,6" Visibility="Collapsed"/>
+            <TextBlock x:Name="EstimateReviewOverview" Style="{StaticResource Muted}" TextWrapping="Wrap"
+                       Margin="0,0,0,4" Visibility="Collapsed"/>
+
+            <Expander x:Name="EstimateAdvancedActions" Header="מקורות, היקף וממצאים" Foreground="{StaticResource TextDim}" Margin="0,0,0,6"
+                      Expanded="OnEstimateSourcesExpanded">
+            <ScrollViewer MaxHeight="110" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel>
+            <WrapPanel Margin="0,8,0,4">
+              <Button x:Name="BtnEarthworksDecision" Content="היקף עבודות עפר…" Click="OnEarthworksDecision"
+                      ToolTip="החלטה לפני אומדן סופי: לכלול עבודות עפר או להחריג עם סיבה הנדסית. טיוטה חלקית אינה מכריעה את ההיקף"/>
+              <Button x:Name="BtnScan"    Content="סריקה"       Click="OnScan"
+                      ToolTip="אם ה-DWG השתנה, תוצע שמירה מפורשת והסריקה תמשיך רק לאחר שהקובץ נשמר ואומת"/>
+              <Button x:Name="BtnApproveProvenMappings" Content="אשר מיפויים חד־משמעיים…"
+                      Click="OnApproveProvenMappings"
+                      ToolTip="מציג טבלה מלאה ורק לאחר אישור מפורש שומר יחד הצעות בעלות חוזה מדויק, יחידה ומחיר נעוצים וללא ממצאי כפל/חפיפה/גאומטריה"/>
+              <Button x:Name="BtnTrace"   Content="מעקב"        Click="OnTrace"/>
+              <Button x:Name="BtnReviewEstimateEvidence" Content="כמויות וממצאים…" Click="OnReviewEstimateEvidence"
+                      ToolTip="כל ממצאי הסריקה, המחירון והבנייה; שטחי חומר בחתכים מוצגים בנפרד ואינם כמויות לתמחור"/>
+            </WrapPanel>
+            <TextBlock x:Name="EarthworksDecisionState" Style="{StaticResource Muted}"
+                       Text="עבודות עפר טרם נבדקו — לא אפס ולא הוחרגו. ניתן לסרוק כמויות כלליות."
+                       TextWrapping="Wrap" Margin="0,0,0,6"/>
+            <TextBlock x:Name="MeasurementDraftNotice" Style="{StaticResource Muted}" TextWrapping="Wrap"
+                       Margin="0,0,0,6" Text="טיוטת מדידות מלאה מתוך הסריקה, לא אומדן מאושר. מחירים שלא אושרו נשארים ריקים, לא אפס; ממצאים לא פתורים נשארים גלויים."/>
+            <TextBlock x:Name="MeasurementContext" Text="הטבלה מציגה כמויות שנמדדו; שיוך למחירון ותמחור הם שלב נפרד."
+                       Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,6"/>
+            <TextBlock x:Name="EstimateGateReason" Style="{StaticResource Muted}" Margin="0,0,0,8"
+                       TextWrapping="Wrap"/>
+            </StackPanel>
+            </ScrollViewer>
+            </Expander>
+            </StackPanel>
+          </StackPanel>
+
+          <Grid>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="*"/>
+              <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <DockPanel Grid.Row="0">
+              <StackPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="145"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                  </Grid.ColumnDefinitions>
+                  <TextBlock Grid.Column="0" Text="חיפוש:" ToolTip="חיפוש שכבה או תיאור סעיף" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                  <TextBox Grid.Column="1" x:Name="QuantitySearchBox" MinWidth="70" MinHeight="28" Margin="0,0,6,4"
+                           TextChanged="OnQuantityFilterChanged" ToolTip="חיפוש שכבה, תיאור, מספר סעיף או קוד ממצא; סינון תצוגה בלבד"
+                           AutomationProperties.Name="חיפוש בקבוצות הכמות"/>
+                  <ComboBox Grid.Column="2" x:Name="QuantityFilterBox" MinHeight="28" Margin="0,0,6,4" SelectedIndex="0"
+                            SelectionChanged="OnQuantityFilterChanged" AutomationProperties.Name="סינון תצוגת קבוצות">
+                    <ComboBoxItem Content="כל הקבוצות"/>
+                    <ComboBoxItem Content="ללא שיוך"/>
+                    <ComboBoxItem Content="עם שיוך"/>
+                    <ComboBoxItem Content="מוחרגות"/>
+                    <ComboBoxItem Content="היסטוריה"/>
+                    <ComboBoxItem Content="הצעות לשיוך"/>
+                    <ComboBoxItem Content="ללא הצעה"/>
+                    <ComboBoxItem Content="בדיקת מדידה"/>
+                    <ComboBoxItem Content="סימוני עזר לבדיקה"/>
+                  </ComboBox>
+                  <Button Grid.Column="3" Content="נקה" ToolTip="נקה חיפוש והצג את כל הקבוצות" MinWidth="40" Padding="8,7" Click="OnClearQuantityFilter"/>
+                  <ToggleButton Grid.Column="4" x:Name="BtnExpandQuantityList" Content="הגדל רשימה" MinWidth="40" Padding="8,7" Margin="6,0,0,4"
+                                ToolTip="מסתיר זמנית את המחירון, כפתורי הפעולה והסיכום כדי להגדיל את רשימת הקבוצות; לחיצה נוספת מחזירה אותם. דבר אינו נשמר או משתנה"
+                                AutomationProperties.Name="הגדל את רשימת הקבוצות"/>
+                </Grid>
+                <TextBlock x:Name="QuantityFilterCount" Style="{StaticResource Muted}" TextWrapping="Wrap"/>
+              </StackPanel>
+            <DataGrid x:Name="QuantitiesGrid" SelectionChanged="OnQuantitySelected" RowHeight="NaN" MinRowHeight="52"
+                      RowStyle="{StaticResource SeverityRow}">
+              <!-- Keep selected cells legible when focus moves to another palette control.
+                   The system inactive-selection fill otherwise hides the dark row tint. -->
+              <DataGrid.CellStyle>
+                <Style TargetType="DataGridCell">
+                  <Setter Property="Background" Value="Transparent"/>
+                  <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=DataGridRow}}"/>
+                  <Style.Triggers>
+                    <Trigger Property="IsSelected" Value="True">
+                      <Setter Property="Background" Value="#FF315D89"/>
+                      <Setter Property="Foreground" Value="White"/>
+                    </Trigger>
+                  </Style.Triggers>
+                </Style>
+              </DataGrid.CellStyle>
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="שכבה / מקור" Binding="{Binding Source}"         Width="*" MinWidth="150" ElementStyle="{StaticResource Cell}"/>
+                <DataGridTextColumn Header="קטגוריית מקור" Binding="{Binding SourceCategory}" Width="105" MinWidth="105">
+                  <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock" BasedOn="{StaticResource Cell}">
+                    <Setter Property="ToolTip" Value="{Binding SourceCategory}"/>
+                  </Style></DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="מדידה"   Binding="{Binding MethodDisplay}"      Width="62" MinWidth="62" ElementStyle="{StaticResource Cell}"/>
+                <DataGridTextColumn Header="כמות"    Binding="{Binding QuantityDisplay}"    Width="104" MinWidth="104" ElementStyle="{StaticResource Cell}"/>
+                <DataGridTemplateColumn Header="סעיף ותיאור / הצעה" Width="220" MinWidth="160">
+                  <DataGridTemplateColumn.CellTemplate><DataTemplate>
+                    <StackPanel Margin="6,4" ToolTip="{Binding CatalogCodeDetail}">
+                      <TextBlock Text="{Binding CatalogCodeDisplay}" Style="{StaticResource Cell}"/>
+                      <TextBlock Text="{Binding CatalogDescriptionDisplay}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="12"
+                                 Foreground="#B9D9F5" Margin="0,4,0,0"/>
+                    </StackPanel>
+                  </DataTemplate></DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="מצב" Binding="{Binding StatusDisplay}" Width="118" MinWidth="118">
+                  <DataGridTextColumn.ElementStyle>
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource Cell}">
+                      <Setter Property="ToolTip" Value="{Binding StatusDetail}"/>
+                    </Style>
+                  </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn x:Name="QuantityPriceColumn" Header="מחירון" Binding="{Binding PriceDisplay}" Width="66" MinWidth="66">
+                  <DataGridTextColumn.ElementStyle>
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource Cell}">
+                      <Setter Property="ToolTip" Value="{Binding StatusDetail}"/>
+                    </Style>
+                  </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+              </DataGrid.Columns>
+            </DataGrid>
+            </DockPanel>
+
+            <Border Grid.Row="1" Background="{StaticResource Panel}" Padding="8" Margin="0,8,0,0"
+                    BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4">
+              <StackPanel>
+                <TextBlock x:Name="EstimateRowTitle" FontWeight="SemiBold" TextWrapping="Wrap"
+                           Text="בחר שורה לשיוך סעיף או לעריכת מחיר"/>
+                <TextBlock x:Name="EstimateRowActionHint" TextWrapping="Wrap" Margin="0,4,0,6"
+                           Foreground="#B9D9F5" Text="הצעת סעיף אינה אישור. ניתן לחפש ולבחור כל סעיף בעל יחידה תואמת במחירון."/>
+                <WrapPanel Margin="0,0,0,6">
+                  <Button x:Name="BtnApprove" Content="בחר / שנה סעיף…" Click="OnApproveMapping"
+                          ToolTip="חפש לפי תיאור או מספר סעיף במחירון; ניתן גם לשנות שיוך קיים"/>
+                  <Button x:Name="BtnProjectPrice" Content="מחיר פרויקט…" Click="OnEditSelectedProjectPrice"
+                          ToolTip="לאחר אישור הסעיף ניתן להזין או לערוך מחיר פרויקט עם מקור ואישור, גם לפני בניית אומדן"/>
+                  <Button x:Name="BtnQuantityAdjustment" Content="מקדם כמות…" Click="OnEditQuantityAdjustment"
+                          ToolTip="עריכת מקדם לקבוצה שנבחרה בלבד; המדידה המקורית והחסמים נשמרים"/>
+                  <Button x:Name="BtnShowQuantity" Content="הצג בשרטוט" Click="OnShowQuantity"
+                          ToolTip="בוחר ומתמקד בעצמים שמהם נמדדה השורה"/>
+                  <Button x:Name="BtnRelevance" Content="לא רלוונטי" Click="OnToggleRelevance"
+                          ToolTip="החלטה שהקבוצה אינה פריט בנייה, עם סיבה; נשמרת במעקב וניתנת להחזרה"/>
+                </WrapPanel>
+              <Expander x:Name="EstimateQuantityDetails" Header="מקור המדידה, פרטים והשלמות" Foreground="{StaticResource Text}"
+                        Expanded="OnEstimateDetailsExpanded">
+                <ScrollViewer MaxHeight="110" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                  <TextBlock x:Name="QuantityDetail" Style="{StaticResource Muted}"
+                             TextWrapping="Wrap" Text="יש לבחור שורה בטבלה"/>
+                </ScrollViewer>
+              </Expander>
+              </StackPanel>
+            </Border>
+          </Grid>
+        </DockPanel>
+      </TabItem>
+
+      <!-- ==================== PROJECT ==================== -->
+      <TabItem Header="פרויקט">
+        <ScrollViewer Margin="4" VerticalScrollBarVisibility="Auto">
+          <StackPanel>
+            <TextBlock Text="פרופיל הפרויקט" Style="{StaticResource SectionTitle}"/>
+            <Border Background="{StaticResource Panel}" Padding="10" CornerRadius="4"
+                    BorderBrush="{StaticResource Line}" BorderThickness="1">
+              <TextBlock x:Name="ProfileSummary" Style="{StaticResource Muted}" TextWrapping="Wrap"/>
+            </Border>
+
+            <TextBlock Text="פעולות" Style="{StaticResource SectionTitle}"/>
+            <WrapPanel>
+              <Button x:Name="BtnReloadProfile" Content="טען מחדש" Click="OnReloadProfile"/>
+              <Button x:Name="BtnSelectProjectProfile" Content="בחר פרופיל פרויקט קיים…" Click="OnSelectProjectProfile"
+                      ToolTip="בחירה מפורשת לשרטוט הפעיל בלבד; אינה מעתיקה החלטות או מאשרת מקורות חדשים"/>
+              <Button x:Name="BtnOpenProfile"   Content="פתח תיקייה" Click="OnOpenProfileFolder"/>
+              <Button x:Name="BtnPickClProfile" Content="בחר קובץ CL…" Click="OnPickCl"/>
+              <Button x:Name="BtnRunSetup"      Content="הגדרת פרויקט" Click="OnSetup"/>
+              <Button x:Name="BtnDrawingUnits" Content="יחידות פיזיות…" Click="OnDrawingUnits"
+                      ToolTip="בדיקה והכרעה של יחידות השרטוט הפיזיות — גם כשמוגדרת יחידה ב-INSUNITS, מול יחידות Civil — ללא שינוי DWG וללא אישור XREF"/>
+            </WrapPanel>
+
+            <TextBlock Text="יחידות השרטוט" Style="{StaticResource SectionTitle}"/>
+            <Border Background="{StaticResource Panel}" Padding="10" CornerRadius="4"
+                    BorderBrush="{StaticResource Line}" BorderThickness="1">
+              <TextBlock x:Name="DrawingUnitsSummary" Style="{StaticResource Muted}" TextWrapping="Wrap"
+                         Text="בדוק את היחידה הפיזית אם השרטוט מוגדר Unitless. אין הנחת מטרים אוטומטית."/>
+            </Border>
+
+            <TextBlock Text="מקורות ומחירון" Style="{StaticResource SectionTitle}"/>
+            <Border Background="{StaticResource Panel}" Padding="10" CornerRadius="4"
+                    BorderBrush="{StaticResource Line}" BorderThickness="1">
+              <TextBlock x:Name="CatalogSummary" Style="{StaticResource Muted}" TextWrapping="Wrap"/>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <!-- ==================== SUPPORT ==================== -->
+      <TabItem Header="תמיכה">
+        <DockPanel Margin="4" LastChildFill="True">
+          <StackPanel DockPanel.Dock="Top">
+            <TextBlock Text="תמיכה ומעקב" Style="{StaticResource SectionTitle}"/>
+            <WrapPanel Margin="0,0,0,8">
+              <Button x:Name="BtnOpenRuns" Content="תוצרי ריצה" Click="OnOpenRuns"/>
+              <Button x:Name="BtnOpenLogs" Content="יומני שלבים" Click="OnOpenLogs"/>
+              <Button x:Name="BtnExportSupport" Content="ייצוא לתמיכה" Click="OnExportSupport"/>
+              <Button x:Name="BtnCheckUpdates" Content="בדוק עדכונים" Click="OnCheckUpdates"
+                      ToolTip="בודק מול ערוץ העדכונים של מהוד אם יצאה גרסה חדשה"/>
+            </WrapPanel>
+            <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap"
+                       Text="אם פעולה נתקעת — יומן השלבים מציין את הקריאה המדויקת שלא הסתיימה."/>
+          </StackPanel>
+          <Border Background="{StaticResource Panel}" Padding="8" Margin="0,8,0,0"
+                  BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+              <TextBlock x:Name="ActivityLog" Style="{StaticResource Muted}"
+                         TextWrapping="Wrap" FontFamily="Consolas" FontSize="10"/>
+            </ScrollViewer>
+          </Border>
+        </DockPanel>
+      </TabItem>
+
+    </TabControl>
+  </DockPanel>
+  </ScrollViewer>
+    <!-- ============ STATUS STRIP ============ -->
+    <!-- b25 (Codex 15:12, b24 live smoke): a fixed bottom row outside the scrolling content, so the status and
+         the session approver stay fully visible at any palette height (at 888 px the scrolling minimum hid
+         half of the approver line). The scrolling minimum below no longer counts the strip. -->
+    <Border x:Name="StatusStrip" Grid.Row="1" Background="#FF141821" Padding="10,6"
+            BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0">
+      <StackPanel>
+        <TextBlock x:Name="StatusLabel" Style="{StaticResource Muted}" Text="מוכן" TextWrapping="Wrap"/>
+        <!-- b24 (Codex 11:18): the session approver, on the drawing line so no height is added -->
+        <DockPanel Margin="0,3,0,0">
+          <!-- b25 (Codex 16:10): a long approver name wraps inside the fixed strip instead of being cut, so "שנה…" stays reachable -->
+          <TextBlock DockPanel.Dock="Right" Style="{StaticResource Muted}" Margin="8,0,0,0" TextWrapping="Wrap">
+            <Run x:Name="ApproverRun" Text="מאשר נוכחי: לא נקבע"/><Run Text=" · "/><Hyperlink x:Name="ApproverLink" Click="OnChangeApprover">שנה…</Hyperlink>
+          </TextBlock>
+          <TextBlock x:Name="DrawingLabel" Style="{StaticResource Muted}" Text="שרטוט: —"
+                     TextTrimming="CharacterEllipsis"/>
+        </DockPanel>
+      </StackPanel>
+    </Border>
+    <!-- Busy overlay: Civil work runs synchronously on the UI thread. Mutating paths
+         own a document lock; read-only query scans use read transactions. Render this
+         explicitly before work starts and update text between coarse steps. -->
+    <Grid x:Name="BusyOverlay" Grid.RowSpan="2" Visibility="Collapsed" Background="#B0101418" Panel.ZIndex="999">
+      <!-- A solid card: over the translucent dim alone the white text landed on the search
+           row and table headers and read as garbage (live 30.09.2026). -->
+      <Border VerticalAlignment="Center" HorizontalAlignment="Center" Background="{StaticResource Panel}"
+              BorderBrush="{StaticResource Accent}" BorderThickness="1" CornerRadius="6" Padding="24,18" MaxWidth="480">
+        <StackPanel>
+          <ProgressBar IsIndeterminate="True" Width="240" Height="12" Margin="0,0,0,10"/>
+          <TextBlock x:Name="BusyText" Foreground="{StaticResource Text}" FontSize="14" TextAlignment="Center" Text="עובד…"
+                     MaxWidth="430" TextWrapping="Wrap"/>
+        </StackPanel>
+      </Border>
+    </Grid>
+  
+  
+</Grid>
+</UserControl>

@@ -1,0 +1,52 @@
+<Project>
+
+  <!--
+    Auto-detect AutoCAD version so the plugin builds on any developer machine
+    without csproj edits.
+
+    - Prefers 2027 if installed (Daniel's machine), falls back to 2026 (Arthur's),
+      and defaults to 2027 if neither is detected.
+    - TargetFramework follows the AutoCAD host runtime: 2027 uses .NET 10, 2026 uses .NET 8.
+    - All AutoCAD / Civil 3D <HintPath> entries in the .csproj files should use
+      $(AutoCADPath) (e.g. <HintPath>$(AutoCADPath)\accoremgd.dll</HintPath>).
+    - Override with MSBuild property:  dotnet build /p:AutoCADVersion=2026
+  -->
+
+  <PropertyGroup>
+    <AutoCADVersion Condition="'$(AutoCADVersion)' == '' AND Exists('C:\Program Files\Autodesk\AutoCAD 2027\acmgd.dll')">2027</AutoCADVersion>
+    <AutoCADVersion Condition="'$(AutoCADVersion)' == '' AND Exists('C:\Program Files\Autodesk\AutoCAD 2026\acmgd.dll')">2026</AutoCADVersion>
+    <AutoCADVersion Condition="'$(AutoCADVersion)' == ''">2027</AutoCADVersion>
+
+    <AutoCADTargetFramework Condition="'$(AutoCADVersion)' == '2027'">net10.0-windows</AutoCADTargetFramework>
+    <AutoCADTargetFramework Condition="'$(AutoCADVersion)' == '2026'">net8.0-windows</AutoCADTargetFramework>
+
+    <AutoCADPath>C:\Program Files\Autodesk\AutoCAD $(AutoCADVersion)</AutoCADPath>
+
+    <!-- Map 3D / FDO assemblies ship with the Civil vertical. The 2026 component is
+         compiled against Autodesk's Civil3D.NET package, which does not include them,
+         so the optional FDO layer analysis is compiled out of that build only. -->
+    <DefineConstants Condition="'$(AutoCADVersion)' != '2026'">$(DefineConstants);MAHOD_MAP3D</DefineConstants>
+  </PropertyGroup>
+
+  <!--
+    Which agent the built DLL talks to when MAHOD_AGENT_API_URL is not set.
+
+    Default stays DEV, deliberately: a coworker who unzips a build and runs it
+    with no configuration should land on the dev server. A production build is
+    an explicit act:
+
+        dotnet build ... /p:AgentEnvironment=prod
+
+    Do NOT ship setup-server.bat to set this instead — a `setx` env var shadows
+    the DLL default and goes stale, which is the recurring "still uses localhost"
+    bug. The URL is baked in at compile time on purpose.
+
+    Note the inverted host naming (workspace CLAUDE.md): the "dev.mahodeng.co.il"
+    host fronts PRODUCTION, and "ai.mahodeng.co.il:8088" is the dev server.
+  -->
+  <PropertyGroup>
+    <AgentEnvironment Condition="'$(AgentEnvironment)' == ''">dev</AgentEnvironment>
+    <DefineConstants Condition="'$(AgentEnvironment)' == 'prod'">$(DefineConstants);MAHOD_AGENT_PROD</DefineConstants>
+  </PropertyGroup>
+
+</Project>

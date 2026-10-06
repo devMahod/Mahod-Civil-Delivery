@@ -1,0 +1,831 @@
+{
+  "purpose": "Partial ACadSharp3.7.1 source diagnostic ONLY; not native geometry or quantities. No XREF resolution or source writes.",
+  "original_report_sha256": "9F688BE39C1E31B59E1112BEFE693BB430FDC112CEFF0334471D3E6DEACB3D68",
+  "run": "estimate-extract-20260912-080550-7979b8d4",
+  "reports": [
+    {
+      "path": "C:\\Users\\arthurf\\MahodCivilDelivery_Work\\6422-local-mirror\\Civil3d\\PD\\6422-SP-MEDVA-ALL-2026-MHD.dwg",
+      "sha_before": "E8C396B44342FD594124880C8E6528E7E954F94C168F1F698CB8DD0433236B9A",
+      "sha_after": "E8C396B44342FD594124880C8E6528E7E954F94C168F1F698CB8DD0433236B9A",
+      "parser_notice_count": 581,
+      "xref_prefix": "336457",
+      "records": [
+        {
+          "handle": "92207E8",
+          "type": "Polyline2D",
+          "layer": "1506",
+          "owner": "70",
+          "flags": "Default",
+          "closed": false,
+          "vertices": [
+            {
+              "handle": "92207E9",
+              "xyz": [
+                203744.050003,
+                648371.5599979999,
+                196.25
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            },
+            {
+              "handle": "92207EA",
+              "xyz": [
+                203744.050003,
+                648371.5599979999,
+                196.25
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            }
+          ],
+          "diagnostic_chord_sum": 0
+        },
+        {
+          "handle": "922199A",
+          "type": "Polyline2D",
+          "layer": "1506",
+          "owner": "70",
+          "flags": "Default",
+          "closed": false,
+          "vertices": [
+            {
+              "handle": "922199B",
+              "xyz": [
+                204406.309967,
+                647965.440063,
+                231.75
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            },
+            {
+              "handle": "922199C",
+              "xyz": [
+                204406.309967,
+                647965.440063,
+                231.75
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            }
+          ],
+          "diagnostic_chord_sum": 0
+        },
+        {
+          "handle": "9223DD9",
+          "type": "Polyline2D",
+          "layer": "1507",
+          "owner": "70",
+          "flags": "Default",
+          "closed": false,
+          "vertices": [
+            {
+              "handle": "9223DDA",
+              "xyz": [
+                204335.699982,
+                647952.400024,
+                237
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            },
+            {
+              "handle": "9223DDB",
+              "xyz": [
+                204335.699982,
+                647952.400024,
+                237
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            }
+          ],
+          "diagnostic_chord_sum": 0
+        },
+        {
+          "handle": "922463C",
+          "type": "Polyline2D",
+          "layer": "1506",
+          "owner": "70",
+          "flags": "Default",
+          "closed": false,
+          "vertices": [
+            {
+              "handle": "922463D",
+              "xyz": [
+                204579.289978,
+                647957.219971,
+                239.25
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            },
+            {
+              "handle": "922463E",
+              "xyz": [
+                204579.289978,
+                647957.219971,
+                239.25
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            }
+          ],
+          "diagnostic_chord_sum": 0
+        },
+        {
+          "handle": "9224640",
+          "type": "Polyline2D",
+          "layer": "1506",
+          "owner": "70",
+          "flags": "Default",
+          "closed": false,
+          "vertices": [
+            {
+              "handle": "9224641",
+              "xyz": [
+                204579.289978,
+                647957.219971,
+                239.25
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            },
+            {
+              "handle": "9224642",
+              "xyz": [
+                204579.289978,
+                647957.219971,
+                239.25
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            }
+          ],
+          "diagnostic_chord_sum": 0
+        },
+        {
+          "handle": "9224644",
+          "type": "Polyline2D",
+          "layer": "1506",
+          "owner": "70",
+          "flags": "Default",
+          "closed": false,
+          "vertices": [
+            {
+              "handle": "9224645",
+              "xyz": [
+                204579.48999,
+                647957.190063,
+                239.25
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            },
+            {
+              "handle": "9224646",
+              "xyz": [
+                204579.48999,
+                647957.190063,
+                239.25
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            }
+          ],
+          "diagnostic_chord_sum": 0
+        },
+        {
+          "handle": "9224D18",
+          "type": "Polyline2D",
+          "layer": "1507",
+          "owner": "70",
+          "flags": "Default",
+          "closed": false,
+          "vertices": [
+            {
+              "handle": "9224D19",
+              "xyz": [
+                204263.169983,
+                647891.0899659999,
+                241
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            },
+            {
+              "handle": "9224D1A",
+              "xyz": [
+                204263.169983,
+                647891.0899659999,
+                241
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            }
+          ],
+          "diagnostic_chord_sum": 0
+        },
+        {
+          "handle": "922ABD0",
+          "type": "Polyline2D",
+          "layer": "1507",
+          "owner": "70",
+          "flags": "Default",
+          "closed": false,
+          "vertices": [
+            {
+              "handle": "922ABD1",
+              "xyz": [
+                203649.600006,
+                649033.2599909999,
+                260
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            },
+            {
+              "handle": "922ABD2",
+              "xyz": [
+                203649.600006,
+                649033.2599909999,
+                260
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            }
+          ],
+          "diagnostic_chord_sum": 0
+        },
+        {
+          "handle": "922B14C",
+          "type": "Polyline2D",
+          "layer": "1507",
+          "owner": "70",
+          "flags": "Default",
+          "closed": false,
+          "vertices": [
+            {
+              "handle": "922B14D",
+              "xyz": [
+                203894.329994,
+                648022.470032,
+                261
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            },
+            {
+              "handle": "922B14E",
+              "xyz": [
+                203894.329994,
+                648022.470032,
+                261
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            }
+          ],
+          "diagnostic_chord_sum": 0
+        },
+        {
+          "handle": "9236C95",
+          "type": "Polyline2D",
+          "layer": "1506",
+          "owner": "70",
+          "flags": "Default",
+          "closed": false,
+          "vertices": [
+            {
+              "handle": "9236C96",
+              "xyz": [
+                203766.690002,
+                648245.630005,
+                281.25
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            },
+            {
+              "handle": "9236C97",
+              "xyz": [
+                203766.690002,
+                648245.630005,
+                281.25
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            }
+          ],
+          "diagnostic_chord_sum": 0
+        },
+        {
+          "handle": "9238535",
+          "type": "Polyline2D",
+          "layer": "1507",
+          "owner": "70",
+          "flags": "Default",
+          "closed": false,
+          "vertices": [
+            {
+              "handle": "9238536",
+              "xyz": [
+                203764.289993,
+                648281.2700199999,
+                285
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            },
+            {
+              "handle": "9238537",
+              "xyz": [
+                203764.289993,
+                648281.2700199999,
+                285
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            }
+          ],
+          "diagnostic_chord_sum": 0
+        },
+        {
+          "handle": "9238B90",
+          "type": "Polyline2D",
+          "layer": "1507",
+          "owner": "70",
+          "flags": "Default",
+          "closed": false,
+          "vertices": [
+            {
+              "handle": "9238B91",
+              "xyz": [
+                203584.75,
+                649448.169983,
+                286
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            },
+            {
+              "handle": "9238B92",
+              "xyz": [
+                203584.75,
+                649448.169983,
+                286
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            }
+          ],
+          "diagnostic_chord_sum": 0
+        },
+        {
+          "handle": "923A963",
+          "type": "Polyline2D",
+          "layer": "1506",
+          "owner": "70",
+          "flags": "Default",
+          "closed": false,
+          "vertices": [
+            {
+              "handle": "923A964",
+              "xyz": [
+                203632.200012,
+                648656.040009,
+                290.75
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            },
+            {
+              "handle": "923A965",
+              "xyz": [
+                203632.200012,
+                648656.040009,
+                290.75
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            }
+          ],
+          "diagnostic_chord_sum": 0
+        },
+        {
+          "handle": "923D40B",
+          "type": "Polyline2D",
+          "layer": "1506",
+          "owner": "70",
+          "flags": "Default",
+          "closed": false,
+          "vertices": [
+            {
+              "handle": "923D40C",
+              "xyz": [
+                203725.51998900002,
+                648485.200012,
+                295.25
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            },
+            {
+              "handle": "923D40D",
+              "xyz": [
+                203725.51998900002,
+                648485.200012,
+                295.25
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            }
+          ],
+          "diagnostic_chord_sum": 0
+        },
+        {
+          "handle": "923D450",
+          "type": "Polyline2D",
+          "layer": "1506",
+          "owner": "70",
+          "flags": "Default",
+          "closed": false,
+          "vertices": [
+            {
+              "handle": "923D451",
+              "xyz": [
+                203799,
+                648504.2700199999,
+                295.25
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            },
+            {
+              "handle": "923D452",
+              "xyz": [
+                203799,
+                648504.2700199999,
+                295.25
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            }
+          ],
+          "diagnostic_chord_sum": 0
+        },
+        {
+          "handle": "923E443",
+          "type": "Polyline2D",
+          "layer": "1506",
+          "owner": "70",
+          "flags": "Default",
+          "closed": false,
+          "vertices": [
+            {
+              "handle": "923E444",
+              "xyz": [
+                203848.5,
+                648493.209991,
+                299.25
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            },
+            {
+              "handle": "923E445",
+              "xyz": [
+                203848.5,
+                648493.209991,
+                299.25
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            }
+          ],
+          "diagnostic_chord_sum": 0
+        },
+        {
+          "handle": "923E451",
+          "type": "Polyline2D",
+          "layer": "1506",
+          "owner": "70",
+          "flags": "Default",
+          "closed": false,
+          "vertices": [
+            {
+              "handle": "923E452",
+              "xyz": [
+                203712.98999,
+                649528.3399659999,
+                299.25
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            },
+            {
+              "handle": "923E453",
+              "xyz": [
+                203712.98999,
+                649528.3399659999,
+                299.25
+              ],
+              "bulge": 0,
+              "flags": "Default"
+            }
+          ],
+          "diagnostic_chord_sum": 0
+        }
+      ]
+    },
+    {
+      "path": "C:\\Users\\arthurf\\MahodCivilDelivery_Work\\6422-local-mirror\\Civil3d\\PD\\UT-3D\\UT-3D.dwg",
+      "sha_before": "41479AE7089D21FD9E4767F90B0C4DA7A9AA8629A170B4ED4C909AB6C4F03FEB",
+      "sha_after": "41479AE7089D21FD9E4767F90B0C4DA7A9AA8629A170B4ED4C909AB6C4F03FEB",
+      "parser_notice_count": 558,
+      "xref_prefix": "8776AD",
+      "records": [
+        {
+          "handle": "4538",
+          "type": "Polyline3D",
+          "layer": "BEZEQ",
+          "owner": "1F",
+          "flags": "Polyline3D",
+          "closed": false,
+          "vertices": [
+            {
+              "handle": "4539",
+              "xyz": [
+                203703.575,
+                649501.4,
+                305.33
+              ],
+              "bulge": 0,
+              "flags": "PolylineVertex3D"
+            },
+            {
+              "handle": "453A",
+              "xyz": [
+                203703.575,
+                649501.4,
+                305.33
+              ],
+              "bulge": 0,
+              "flags": "PolylineVertex3D"
+            }
+          ],
+          "diagnostic_chord_sum": 0
+        },
+        {
+          "handle": "4817",
+          "type": "Polyline3D",
+          "layer": "TEURA",
+          "owner": "1F",
+          "flags": "Polyline3D",
+          "closed": false,
+          "vertices": [
+            {
+              "handle": "4818",
+              "xyz": [
+                203416.524,
+                649335.215,
+                259.36
+              ],
+              "bulge": 0,
+              "flags": "PolylineVertex3D"
+            },
+            {
+              "handle": "4819",
+              "xyz": [
+                203416.524,
+                649335.215,
+                259.36
+              ],
+              "bulge": 0,
+              "flags": "PolylineVertex3D"
+            }
+          ],
+          "diagnostic_chord_sum": 0
+        },
+        {
+          "handle": "4D55",
+          "type": "Polyline3D",
+          "layer": "HASHMAL",
+          "owner": "1F",
+          "flags": "Polyline3D",
+          "closed": false,
+          "vertices": [
+            {
+              "handle": "4D56",
+              "xyz": [
+                203676.638,
+                648986.56,
+                261.207
+              ],
+              "bulge": 0,
+              "flags": "PolylineVertex3D"
+            },
+            {
+              "handle": "4D57",
+              "xyz": [
+                203676.638,
+                648986.56,
+                261.207
+              ],
+              "bulge": 0,
+              "flags": "PolylineVertex3D"
+            }
+          ],
+          "diagnostic_chord_sum": 0
+        },
+        {
+          "handle": "50C2",
+          "type": "Polyline3D",
+          "layer": "HASHMAL",
+          "owner": "1F",
+          "flags": "Polyline3D",
+          "closed": false,
+          "vertices": [
+            {
+              "handle": "50C3",
+              "xyz": [
+                203674.259,
+                649097.595,
+                259.44
+              ],
+              "bulge": 0,
+              "flags": "PolylineVertex3D"
+            },
+            {
+              "handle": "50C4",
+              "xyz": [
+                203674.259,
+                649097.595,
+                259.44
+              ],
+              "bulge": 0,
+              "flags": "PolylineVertex3D"
+            }
+          ],
+          "diagnostic_chord_sum": 0
+        },
+        {
+          "handle": "6D79",
+          "type": "Polyline3D",
+          "layer": "BIUV",
+          "owner": "1F",
+          "flags": "Polyline3D",
+          "closed": false,
+          "vertices": [
+            {
+              "handle": "6D7A",
+              "xyz": [
+                203641.568,
+                649321.608,
+                270.369
+              ],
+              "bulge": 0,
+              "flags": "PolylineVertex3D"
+            },
+            {
+              "handle": "6D7B",
+              "xyz": [
+                203641.568,
+                649321.608,
+                270.369
+              ],
+              "bulge": 0,
+              "flags": "PolylineVertex3D"
+            }
+          ],
+          "diagnostic_chord_sum": 0
+        },
+        {
+          "handle": "6EFA",
+          "type": "Polyline3D",
+          "layer": "BIUV",
+          "owner": "1F",
+          "flags": "Polyline3D",
+          "closed": false,
+          "vertices": [
+            {
+              "handle": "6EFB",
+              "xyz": [
+                203781.412,
+                649311.974,
+                271.7
+              ],
+              "bulge": 0,
+              "flags": "PolylineVertex3D"
+            },
+            {
+              "handle": "6EFC",
+              "xyz": [
+                203781.412,
+                649311.974,
+                271.7
+              ],
+              "bulge": 0,
+              "flags": "PolylineVertex3D"
+            }
+          ],
+          "diagnostic_chord_sum": 0
+        },
+        {
+          "handle": "6EFF",
+          "type": "Polyline3D",
+          "layer": "BIUV",
+          "owner": "1F",
+          "flags": "Polyline3D",
+          "closed": false,
+          "vertices": [
+            {
+              "handle": "6F00",
+              "xyz": [
+                203798.192,
+                649314.541,
+                271.88
+              ],
+              "bulge": 0,
+              "flags": "PolylineVertex3D"
+            },
+            {
+              "handle": "6F01",
+              "xyz": [
+                203798.192,
+                649314.541,
+                271.88
+              ],
+              "bulge": 0,
+              "flags": "PolylineVertex3D"
+            }
+          ],
+          "diagnostic_chord_sum": 0
+        },
+        {
+          "handle": "6F2E",
+          "type": "Polyline3D",
+          "layer": "BIUV",
+          "owner": "1F",
+          "flags": "Polyline3D",
+          "closed": false,
+          "vertices": [
+            {
+              "handle": "6F2F",
+              "xyz": [
+                203842.024,
+                649310.646,
+                271.97
+              ],
+              "bulge": 0,
+              "flags": "PolylineVertex3D"
+            },
+            {
+              "handle": "6F30",
+              "xyz": [
+                203842.024,
+                649310.646,
+                271.97
+              ],
+              "bulge": 0,
+              "flags": "PolylineVertex3D"
+            }
+          ],
+          "diagnostic_chord_sum": 0
+        },
+        {
+          "handle": "6F4A",
+          "type": "Polyline3D",
+          "layer": "BIUV",
+          "owner": "1F",
+          "flags": "Polyline3D",
+          "closed": false,
+          "vertices": [
+            {
+              "handle": "6F4B",
+              "xyz": [
+                203873.384,
+                649308.497,
+                271.44
+              ],
+              "bulge": 0,
+              "flags": "PolylineVertex3D"
+            },
+            {
+              "handle": "6F4C",
+              "xyz": [
+                203873.384,
+                649308.497,
+                271.44
+              ],
+              "bulge": 0,
+              "flags": "PolylineVertex3D"
+            }
+          ],
+          "diagnostic_chord_sum": 0
+        }
+      ]
+    }
+  ]
+}

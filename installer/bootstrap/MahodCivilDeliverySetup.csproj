@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Native self-extracting setup for Mahod Civil Delivery.
+       Replaces the IExpress wrapper, which on a real machine extracted its payload and
+       then never launched the install command (2026-08-19). This EXE embeds the payload
+       zip, self-elevates before extraction when the bundle AutoCAD loads is machine-wide,
+       extracts to a unique protected directory, and propagates the installer exit code. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <!-- The installer must launch on a Civil 3D 2026 workstation even when no
+         machine-wide .NET 10 runtime is installed.  It is therefore a true
+         standalone win-x64 executable; the Civil plug-in payload still carries
+         its separate net8 (2026) and net10 (2027) assemblies. -->
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>Mahod_Civil_Delivery_Setup</AssemblyName>
+    <RootNamespace>MahodCivilDeliverySetup</RootNamespace>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <PublishTrimmed>false</PublishTrimmed>
+    
+    
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon></ApplicationIcon>
+    <Version>1.2.91</Version>
+    <Product>Mahod Civil Delivery Setup</Product>
+    <Company>Mahod Engineering</Company>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="payload.zip" LogicalName="payload.zip" Condition="Exists('payload.zip')" />
+  </ItemGroup>
+</Project>

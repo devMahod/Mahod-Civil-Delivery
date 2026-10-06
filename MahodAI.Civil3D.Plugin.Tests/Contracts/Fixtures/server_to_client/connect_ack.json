@@ -1,0 +1,34 @@
+{
+  "$contract": {
+    "protocol_version": "1.18",
+    "direction": "server_to_client",
+    "type": "connect_ack",
+    "audience": [
+      "plugin",
+      "web"
+    ],
+    "description": "Correlated handshake answer. available_tools is always [] (known debt).",
+    "required_payload_fields": [
+      "success",
+      "connection_id",
+      "server_version"
+    ],
+    "optional_payload_fields": [
+      "error",
+      "available_tools"
+    ]
+  },
+  "message": {
+    "id": "0f1e2d3c4b5a69788796a5b4c3d2e1f0",
+    "type": "connect_ack",
+    "timestamp": "2026-08-03T09:15:42.123456Z",
+    "session_id": null,
+    "correlation_id": "corr-connect-1",
+    "payload": {
+      "success": true,
+      "connection_id": "conn-5f8a2b1c",
+      "server_version": "1.12",
+      "available_tools": []
+    }
+  }
+}

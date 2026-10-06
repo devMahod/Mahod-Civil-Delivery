@@ -1,0 +1,221 @@
+<Window x:Class="MahodAI.Civil3D.Plugin.CivilDelivery.UI.SectionSpanLabelDecisionDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="שמות רצועות לאצוות חתכים" Width="1120" Height="660"
+        MinWidth="900" MinHeight="580" WindowStartupLocation="CenterOwner"
+        FlowDirection="RightToLeft" ShowInTaskbar="True"
+        Background="#FF141821" Foreground="#FFE6E9EF"
+        FontFamily="Segoe UI" FontSize="12">
+  <Window.Resources>
+    <SolidColorBrush x:Key="Panel" Color="#FF1C2230"/>
+    <SolidColorBrush x:Key="Line" Color="#FF2C3444"/>
+    <SolidColorBrush x:Key="Accent" Color="#FF3B82F6"/>
+    <SolidColorBrush x:Key="Muted" Color="#FF9AA4B2"/>
+    <SolidColorBrush x:Key="Text" Color="#FFE6E9EF"/>
+    <Style TargetType="TextBox">
+      <Setter Property="Background" Value="{StaticResource Panel}"/>
+      <Setter Property="Foreground" Value="{StaticResource Text}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+      <Setter Property="Padding" Value="7,5"/>
+    </Style>
+    <!-- The system template is light; use dark text in both the list and closed box. -->
+    <Style TargetType="ComboBoxItem">
+      <Setter Property="Foreground" Value="#FF141821"/>
+      <Setter Property="Padding" Value="8,4"/>
+      <Setter Property="FontSize" Value="13"/>
+    </Style>
+    <Style TargetType="ComboBox">
+      <Setter Property="Foreground" Value="#FF141821"/>
+      <Setter Property="Background" Value="White"/>
+      <Setter Property="BorderBrush" Value="{StaticResource Accent}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Padding" Value="6,3"/>
+      <Setter Property="FontSize" Value="13"/>
+    </Style>
+    <Style TargetType="Button">
+      <Setter Property="Padding" Value="14,7"/>
+      <Setter Property="Margin" Value="6,0,0,0"/>
+      <Setter Property="Background" Value="{StaticResource Panel}"/>
+      <Setter Property="Foreground" Value="{StaticResource Text}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="1" CornerRadius="3" Padding="{TemplateBinding Padding}">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True"/>
+            </Border>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+      <Style.Triggers>
+        <!-- A disabled button keeps its colours and only dims: "white on white" is
+             what the engineer saw when Save was disabled. -->
+        <Trigger Property="IsEnabled" Value="False">
+          <Setter Property="Opacity" Value="0.65"/>
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+    <Style x:Key="HeaderStyle" TargetType="DataGridColumnHeader">
+      <Setter Property="Background" Value="#FF232B3B"/>
+      <Setter Property="Foreground" Value="{StaticResource Text}"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Padding" Value="8,6"/>
+      <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+      <Setter Property="BorderThickness" Value="0,0,1,1"/>
+      <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    </Style>
+    <Style x:Key="CellStyle" TargetType="DataGridCell">
+      <Setter Property="Foreground" Value="{StaticResource Text}"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Padding" Value="6,3"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
+      <Style.Triggers>
+        <Trigger Property="IsSelected" Value="True">
+          <Setter Property="Background" Value="#FF2A3B5C"/>
+          <Setter Property="Foreground" Value="{StaticResource Text}"/>
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+    <Style x:Key="RowStyle" TargetType="DataGridRow">
+      <Setter Property="MinHeight" Value="34"/>
+    </Style>
+    <Style x:Key="WrappedCellText" TargetType="TextBlock">
+      <Setter Property="TextWrapping" Value="Wrap"/>
+      <Setter Property="Margin" Value="5,3"/>
+    </Style>
+    <Style x:Key="NumericCellText" TargetType="TextBlock">
+      <Setter Property="FlowDirection" Value="LeftToRight"/>
+      <Setter Property="Margin" Value="5,3"/>
+    </Style>
+  </Window.Resources>
+  <DockPanel Margin="16" Background="#FF141821">
+    <Border DockPanel.Dock="Top" Background="{StaticResource Panel}" Padding="11"
+            BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4"
+            Margin="0,0,0,10">
+      <StackPanel>
+        <TextBlock x:Name="SubjectTitle" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap"/>
+        <TextBlock x:Name="SubjectDetail" Foreground="{StaticResource Muted}"
+                   Margin="0,4,0,0" TextWrapping="Wrap"/>
+        <TextBlock Foreground="#FF7DD3A6" Margin="0,5,0,0" TextWrapping="Wrap" FontSize="13"
+                   Text="שנה שם בשורה או בחר כמה שורות לשם משותף. רק ✓ יישמרו; בחירת קבוצה אינה אישור."/>
+        <TextBlock Foreground="#FFE0A44C" Margin="0,6,0,0" TextWrapping="Wrap"
+                   Text="שם קודם אינו אישור לגבולות חדשים. בחר שורה להשוואה ולשיוך מפורש; ביטול אינו שומר שינויים."/>
+      </StackPanel>
+    </Border>
+    <StackPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
+      <Grid Margin="0,0,0,9">
+        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+        <TextBlock Grid.Column="0" Text="מאשר/ת:" VerticalAlignment="Center"/>
+        <TextBox Grid.Column="1" x:Name="ApproverBox" Margin="8,0,0,0" MinWidth="210"
+                 TextChanged="OnApproverChanged"/>
+      </Grid>
+      <TextBlock x:Name="ValidationText" Margin="0,0,0,6"
+                 Foreground="#FFE0A44C" TextWrapping="Wrap"/>
+      <DockPanel LastChildFill="False">
+        <Button DockPanel.Dock="Right" Content="ביטול" Click="OnCancel" IsCancel="True"/>
+        <Button x:Name="BtnSave" DockPanel.Dock="Right" Content="שמור שמות מסומנים"
+                Click="OnSave" IsDefault="True" Background="{StaticResource Accent}"
+                Foreground="White" FontWeight="SemiBold" FontSize="13" Padding="18,8"/>
+      </DockPanel>
+    </StackPanel>
+    <Border DockPanel.Dock="Top" Background="{StaticResource Panel}" Padding="9"
+            BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4"
+            Margin="0,0,0,9">
+      <StackPanel>
+        <TextBlock Text="קבוצת סקירה:" Margin="0,0,0,4"/>
+        <ComboBox x:Name="ReviewGroupBox" DisplayMemberPath="Title"
+                  SelectionChanged="OnReviewGroupChanged"/>
+        <TextBlock x:Name="ReviewGroupDetail" Foreground="{StaticResource Muted}"
+                   TextWrapping="Wrap" Margin="0,6,0,8"/>
+        <DockPanel Margin="0,0,0,8">
+          <TextBlock DockPanel.Dock="Right" Text="שם לכל השורות שבחרת בטבלה:" VerticalAlignment="Center"/>
+          <ComboBox x:Name="BatchLabelBox" IsEditable="True" MinWidth="210" Margin="8,0,8,0"
+                    IsTextSearchEnabled="False"/>
+        </DockPanel>
+        <WrapPanel>
+        <Button Content="בחר את שורות הקבוצה" Click="OnSelectReviewGroup"/>
+        <Button Content="החל שם על השורות המסומנות"
+                Click="OnApplyLabelToSelected"/>
+        <Button Content="סמן הצעות חזקות בשורות שנבחרו"
+                Click="OnMarkStrongSuggestions"/>
+        <Button Content="בטל אישור בשורות שנבחרו"
+                Click="OnClearApprovals"/>
+        </WrapPanel>
+        <TextBlock Foreground="{StaticResource Muted}" Margin="0,6,0,0" TextWrapping="Wrap"
+                   Text="עמודות נוספות, כולל ראיה וסיבה, זמינות בגלילה האופקית בתחתית הטבלה."/>
+      </StackPanel>
+    </Border>
+    <!-- IsReadOnly: the grid never opens its own edit transaction; the check box and
+         the name box live in cell templates and bind straight to the row, one click
+         each. A grid-owned EditItem transaction plus Items.Refresh() is what crashed
+         AutoCAD on 2026-09-03. -->
+    <DataGrid x:Name="SpansGrid" AutoGenerateColumns="False" CanUserAddRows="False"
+              IsReadOnly="True" HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+              SelectionMode="Extended" SelectionUnit="FullRow"
+              Background="{StaticResource Panel}" Foreground="{StaticResource Text}"
+              RowBackground="{StaticResource Panel}" AlternatingRowBackground="#FF202736"
+              HorizontalGridLinesBrush="{StaticResource Line}"
+              BorderBrush="{StaticResource Line}"
+              ColumnHeaderStyle="{StaticResource HeaderStyle}"
+              CellStyle="{StaticResource CellStyle}" RowStyle="{StaticResource RowStyle}"
+              ScrollViewer.HorizontalScrollBarVisibility="Auto" RowDetailsVisibilityMode="VisibleWhenSelected"
+              AreRowDetailsFrozen="True" VirtualizingPanel.ScrollUnit="Pixel">
+      <DataGrid.RowDetailsTemplate>
+        <DataTemplate>
+          <Border Background="#FF232B3B" Padding="8">
+            <Expander Header="השוואה ושיוך מפורש של החלטה קודמת" IsExpanded="False"
+                      Foreground="{StaticResource Text}">
+            <StackPanel>
+              <TextBlock Text="{Binding CurrentSummary}" TextWrapping="Wrap"/>
+              <TextBlock Text="החלטות קודמות חופפות מאותו מקור וציר — אינן אישור לגבולות החדשים"
+                         Foreground="#FFE0A44C" TextWrapping="Wrap" Margin="0,4,0,5"/>
+              <ComboBox ItemsSource="{Binding PreviousNames}" DisplayMemberPath="Summary"
+                        SelectedItem="{Binding SelectedPreviousName, Mode=TwoWay}" MinWidth="300"
+                        ToolTip="בחר החלטה מסוימת להשוואה; הבחירה לבדה לא מאשרת ולא משנה שם"/>
+              <Button Content="הקצה את השם הקודם לגבולות הנוכחיים" Click="OnReassignPreviousName"
+                      HorizontalAlignment="Right" Margin="0,5,0,0"/>
+            </StackPanel>
+            </Expander>
+          </Border>
+        </DataTemplate>
+      </DataGrid.RowDetailsTemplate>
+      <DataGrid.Columns>
+        <DataGridTemplateColumn Header="אישור" Width="62" MinWidth="62">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate>
+              <CheckBox IsChecked="{Binding IsApproved, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                        ToolTip="סימון = השם בשורה יישמר"/>
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+        <DataGridTemplateColumn Header="שם הרצועה" Width="210" MinWidth="210">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate>
+              <ComboBox ItemsSource="{Binding Choices}"
+                        Text="{Binding Label, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        IsEditable="True" IsTextSearchEnabled="False" StaysOpenOnEdit="True"
+                        ToolTip="בחר שם מהרשימה או הקלד שם משלך"/>
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+        <DataGridTextColumn Header="חתך" Binding="{Binding Section}" Width="100" MinWidth="100"/>
+        <DataGridTextColumn Header="רוחב נוכחי" Binding="{Binding Width}" Width="80" MinWidth="80"/>
+        <DataGridTextColumn Header="מצב / שם נוכחי" Binding="{Binding CurrentLabel}" Width="130" MinWidth="130"
+                            ElementStyle="{StaticResource WrappedCellText}"/>
+        <DataGridTextColumn Header="שם ורוחב קודמים" Binding="{Binding PreviousSummary}" Width="190" MinWidth="190"
+                            ElementStyle="{StaticResource WrappedCellText}"/>
+        <DataGridTextColumn Header="תוואי" Binding="{Binding Alignment}" Width="70" MinWidth="70"/>
+        <DataGridTextColumn Header="תחנה" Binding="{Binding Station}" Width="80" MinWidth="80" ElementStyle="{StaticResource NumericCellText}"/>
+        <DataGridTextColumn Header="מ־" Binding="{Binding From}" Width="62" MinWidth="62" ElementStyle="{StaticResource NumericCellText}"/>
+        <DataGridTextColumn Header="עד" Binding="{Binding To}" Width="62" MinWidth="62" ElementStyle="{StaticResource NumericCellText}"/>
+        <DataGridTextColumn Header="בין" Binding="{Binding Bounds}" Width="130" MinWidth="130" ElementStyle="{StaticResource WrappedCellText}"/>
+        <DataGridTextColumn Header="הצעה" Binding="{Binding Suggestion}" Width="140" MinWidth="140" ElementStyle="{StaticResource WrappedCellText}"/>
+        <DataGridTextColumn Header="ראיה" Binding="{Binding Evidence}" Width="*" MinWidth="240" ElementStyle="{StaticResource WrappedCellText}"/>
+        <DataGridTextColumn Header="קבוצה" Binding="{Binding Homology}" Width="110" MinWidth="110" ElementStyle="{StaticResource WrappedCellText}"/>
+        <DataGridTextColumn Header="סיבה" Binding="{Binding Reason}" Width="180" MinWidth="180" ElementStyle="{StaticResource WrappedCellText}"/>
+      </DataGrid.Columns>
+    </DataGrid>
+  </DockPanel>
+</Window>

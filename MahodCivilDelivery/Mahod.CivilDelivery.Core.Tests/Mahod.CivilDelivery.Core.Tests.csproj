@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The pure-logic (host-free) tests, run against the SEPARATE plugin and its renamed Core
+    (Mahod.CivilDelivery / Mahod.CivilDelivery.Core). Sources are linked unchanged from ..\..\MahodAI.Core.Tests.
+    Excluded: tests of MahodAI platform code the separate plugin does not carry (polyline editing, routing, signs,
+    drawing tables, the chat tool-result contract, verified creation, the vertical evaluator) — they keep running in
+    MahodAI.Core.Tests.
+  -->
+  <PropertyGroup>
+    <TargetFramework>$(AutoCADTargetFramework)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageReference Include="FluentAssertions" Version="6.12.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Mahod.CivilDelivery\Mahod.CivilDelivery.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\MahodAI.Core.Tests\**\*.cs"
+             Exclude="..\..\MahodAI.Core.Tests\bin\**;..\..\MahodAI.Core.Tests\obj\**;..\..\MahodAI.Core.Tests\PolylineEdit\**;..\..\MahodAI.Core.Tests\Routing\**;..\..\MahodAI.Core.Tests\DrawingTablePlacementTests.cs;..\..\MahodAI.Core.Tests\SignSpeedCodeTests.cs;..\..\MahodAI.Core.Tests\ToolResultContractTests.cs;..\..\MahodAI.Core.Tests\VerifiedCreationReadbackTests.cs;..\..\MahodAI.Core.Tests\VerticalConstraintEvaluatorTests.cs"
+             Link="%(RecursiveDir)%(Filename)%(Extension)" />
+    <None Include="..\..\MahodAI.Core.Tests\xunit.runner.json" Link="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\MahodAI.Core.Tests\Fixtures\**\*" Link="Fixtures\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

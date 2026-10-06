@@ -1,0 +1,37 @@
+{
+  "$contract": {
+    "protocol_version": "1.18",
+    "direction": "server_to_client",
+    "type": "fix_verify_result",
+    "audience": [
+      "plugin"
+    ],
+    "description": "v1.2: verifies ONLY applied items, against the ORIGINAL target (never the relaxed value).",
+    "required_payload_fields": [
+      "plan_id",
+      "items",
+      "summary_text"
+    ],
+    "optional_payload_fields": []
+  },
+  "message": {
+    "id": "0f1e2d3c4b5a69788796a5b4c3d2e1f0",
+    "type": "fix_verify_result",
+    "timestamp": "2026-08-03T09:15:42.123456Z",
+    "session_id": "3f7c1b9e-2d4a-4c8e-9b1f-5a6d7e8f9012",
+    "correlation_id": null,
+    "payload": {
+      "plan_id": "plan-4b81f2c6",
+      "summary_text": "1 מתוך 1 תיקונים אומתו",
+      "items": [
+        {
+          "item_id": "item-1",
+          "verified": true,
+          "actual_value": 300.0,
+          "expected_value": 300.0,
+          "note": "אומת מול השרטוט"
+        }
+      ]
+    }
+  }
+}

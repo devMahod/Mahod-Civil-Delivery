@@ -1,0 +1,36 @@
+{
+  "$contract": {
+    "protocol_version": "1.18",
+    "direction": "client_to_server",
+    "type": "chat",
+    "audience": [
+      "plugin",
+      "web"
+    ],
+    "description": "v1.16 — a question ABOUT an attached image. The bytes reach the answering LLM as native image parts next to the question; they are not OCR'd to text the way file_upload is.",
+    "required_payload_fields": [
+      "content"
+    ],
+    "optional_payload_fields": [
+      "attachments"
+    ]
+  },
+  "message": {
+    "id": "0f1e2d3c4b5a69788796a5b4c3d2e1f0",
+    "type": "chat",
+    "timestamp": "2026-08-03T09:15:42.123456Z",
+    "session_id": "3f7c1b9e-2d4a-4c8e-9b1f-5a6d7e8f9012",
+    "correlation_id": null,
+    "payload": {
+      "content": "מה הרדיוס המסומן בסקיצה הזו?",
+      "attachments": [
+        {
+          "kind": "image",
+          "filename": "sketch.png",
+          "mime_type": "image/png",
+          "data": "iVBORw0KGgoAAAANSUhEUg..."
+        }
+      ]
+    }
+  }
+}

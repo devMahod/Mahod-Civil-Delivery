@@ -1,0 +1,94 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(AutoCADTargetFramework)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Platforms>x64</Platforms>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <!-- P0-06: disable in-assembly test parallelization (see xunit.runner.json) to stop the
+       flaky VSTest/xunit.runner.visualstudio discovery/execution handshake mismatches on
+       net10 + RuntimeIdentifier (symptom: "Could not find VS test case", inconsistent
+       discovered-test counts across runs). -->
+  <ItemGroup>
+    <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- Protocol contract fixtures, mirrored from <workspace>/contracts (see
+       contracts/README.md). Recursive glob on purpose: a newly generated fixture
+       must reach the test output WITHOUT anyone remembering to edit this file.
+       The Remove keeps the SDK's default None glob from claiming the same files. -->
+  <ItemGroup>
+    <None Remove="Contracts\Fixtures\**\*" />
+    <None Include="Contracts\Fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- The contract suite proves a protocol message type is actually DISPATCHED,
+       not merely declared — that means reading the plugin's own source (the
+       MessageDispatcher switch and the client's send paths). Baking the source
+       directory in at build time beats guessing a relative path at runtime. -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>MahodPluginSourceDir</_Parameter1>
+      <_Parameter2>$(MSBuildThisFileDirectory)..\MahodAI.Civil3D.Plugin</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.0.2" />
+    <PackageReference Include="FluentAssertions" Version="6.12.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MahodAI.Civil3D.Plugin\MahodAI.Civil3D.Plugin.csproj" />
+  </ItemGroup>
+
+  <!-- Compile the unchanged production picker XAML and handlers into this offline
+       test assembly so WPF resource lookup does not require Civil assembly attributes.
+       This proves picker interaction, not production-assembly or native CAD acceptance. -->
+  <ItemGroup>
+    <Page Include="..\MahodAI.Civil3D.Plugin\CivilDelivery\UI\CatalogPickerDialog.xaml" Link="CivilDelivery\UI\CatalogPickerDialog.xaml" />
+    <Page Include="..\MahodAI.Civil3D.Plugin\CivilDelivery\UI\EstimateSourceReviewDialog.xaml" Link="CivilDelivery\UI\EstimateSourceReviewDialog.xaml" />
+    <Compile Include="..\MahodAI.Civil3D.Plugin\CivilDelivery\UI\EstimateSourceReviewDialog.xaml.cs" Link="CivilDelivery\UI\EstimateSourceReviewDialog.xaml.cs" />
+    <Compile Include="..\MahodAI.Civil3D.Plugin\CivilDelivery\UI\CatalogPickerDialog.xaml.cs" Link="CivilDelivery\UI\CatalogPickerDialog.xaml.cs" />
+  </ItemGroup>
+
+  <!-- Same unmodified production XAML/handlers, compiled here for unshown editor
+       interaction and layout tests. This does not stand in for native CAD loading. -->
+  <ItemGroup>
+    <Page Include="..\MahodAI.Civil3D.Plugin\CivilDelivery\UI\SectionSpanLabelDecisionDialog.xaml" Link="CivilDelivery\UI\SectionSpanLabelDecisionDialog.xaml" />
+    <Compile Include="..\MahodAI.Civil3D.Plugin\CivilDelivery\UI\SectionSpanLabelDecisionDialog.xaml.cs" Link="CivilDelivery\UI\SectionSpanLabelDecisionDialog.xaml.cs" />
+    <Page Include="..\MahodAI.Civil3D.Plugin\CivilDelivery\UI\TrafficDirectionDecisionDialog.xaml" Link="CivilDelivery\UI\TrafficDirectionDecisionDialog.xaml" />
+    <Compile Include="..\MahodAI.Civil3D.Plugin\CivilDelivery\UI\TrafficDirectionDecisionDialog.xaml.cs" Link="CivilDelivery\UI\TrafficDirectionDecisionDialog.xaml.cs" />
+  </ItemGroup>
+
+  <!-- 2027 host-coupled test references follow the installed host. The 2026 test
+       lane inherits the production project's pinned Autodesk baseline compile-only
+       NuGet references; never reintroduce installed 2026.1.2/net10 HintPaths here. -->
+  <ItemGroup Condition="'$(AutoCADVersion)' != '2026'">
+    <Reference Include="accoremgd">
+      <HintPath>$(AutoCADPath)\accoremgd.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="acdbmgd">
+      <HintPath>$(AutoCADPath)\acdbmgd.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="acmgd">
+      <HintPath>$(AutoCADPath)\acmgd.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="AeccDbMgd">
+      <HintPath>$(AutoCADPath)\C3D\AeccDbMgd.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>

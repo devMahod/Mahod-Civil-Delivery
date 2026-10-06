@@ -1,0 +1,83 @@
+<Window x:Class="MahodAI.Civil3D.Plugin.CivilDelivery.UI.QuantityExclusionDecisionDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="אישור החרגת קבוצת כמות" Width="560" SizeToContent="Height"
+        MinWidth="500" MinHeight="350" WindowStartupLocation="CenterOwner"
+        FlowDirection="RightToLeft" ShowInTaskbar="False"
+        Background="#FF141821" Foreground="#FFE6E9EF"
+        FontFamily="Segoe UI" FontSize="12">
+  <Window.Resources>
+    <SolidColorBrush x:Key="Panel" Color="#FF1C2230"/>
+    <SolidColorBrush x:Key="Line" Color="#FF2C3444"/>
+    <SolidColorBrush x:Key="Accent" Color="#FF3B82F6"/>
+    <SolidColorBrush x:Key="Muted" Color="#FF9AA4B2"/>
+    <Style TargetType="TextBox">
+      <Setter Property="Background" Value="{StaticResource Panel}"/>
+      <Setter Property="Foreground" Value="#FFE6E9EF"/>
+      <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+      <Setter Property="Padding" Value="7,5"/>
+    </Style>
+    <Style TargetType="Button">
+      <Setter Property="Padding" Value="14,7"/>
+      <Setter Property="Margin" Value="6,0,0,0"/>
+      <Setter Property="Background" Value="{StaticResource Panel}"/>
+      <Setter Property="Foreground" Value="#FFE6E9EF"/>
+      <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+    </Style>
+    <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+      <Setter Property="Background" Value="{StaticResource Accent}"/>
+      <Setter Property="Foreground" Value="White"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+  </Window.Resources>
+
+  <!-- Two rows (b20/b21, from the b19 live run: at 560x390 the save/cancel buttons were cut off). The Auto footer
+       row is measured before the star row, so the approver, the validation text and the buttons keep their room at
+       any window height while the content scrolls. The content is declared first, so Tab still goes reason ->
+       approver -> buttons as before; the ScrollViewer is not a tab stop. SizeToContent opens the window with
+       everything visible. -->
+  <Grid Margin="14">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+    <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                  Focusable="False" IsTabStop="False">
+      <StackPanel>
+        <Border Background="{StaticResource Panel}" Padding="10"
+                BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4"
+                Margin="0,0,0,10">
+          <StackPanel>
+            <TextBlock Text="קבוצת הכמות שתוחרג" FontWeight="SemiBold"/>
+            <TextBlock x:Name="QuantitySummaryText" Foreground="{StaticResource Muted}"
+                       Margin="0,3,0,0" TextWrapping="Wrap"/>
+          </StackPanel>
+        </Border>
+
+        <TextBlock Text="סיבה הנדסית להחרגה (חובה):" FontWeight="SemiBold" Margin="0,0,0,4"/>
+        <TextBox x:Name="ReasonBox" MinHeight="100" AcceptsReturn="True"
+                 TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                 TextChanged="OnInputChanged"/>
+        <TextBlock Foreground="{StaticResource Muted}" Margin="0,6,0,0" TextWrapping="Wrap"
+                   Text="הכמות לא תימחק: היא תישאר בראיות, ב-audit.json ובנספח הביקורת ב-Excel עם שרטוט, hash וידיות המקור."/>
+      </StackPanel>
+    </ScrollViewer>
+
+    <StackPanel Grid.Row="1" Margin="0,12,0,0">
+      <DockPanel Margin="0,0,0,7">
+        <TextBlock Text="מאשר:" VerticalAlignment="Center"/>
+        <TextBox x:Name="ApproverBox" Margin="8,0,0,0" MinWidth="210"
+                 TextChanged="OnInputChanged"/>
+      </DockPanel>
+      <TextBlock Foreground="{StaticResource Muted}" Margin="0,0,0,8" TextWrapping="Wrap"
+                 Text="השמירה תרשום זמן UTC וגרסת פרופיל, תעדכן את סריקת הבדיקה הפעילה ותבטל אומדן/ייצוא קודמים."/>
+      <DockPanel LastChildFill="False">
+        <TextBlock x:Name="ValidationText" DockPanel.Dock="Left"
+                   Foreground="#FFE0A44C" VerticalAlignment="Center" TextWrapping="Wrap"/>
+        <Button DockPanel.Dock="Right" Content="ביטול" Click="OnCancel" IsCancel="True"/>
+        <Button x:Name="BtnSave" DockPanel.Dock="Right" Content="שמור החרגה"
+                Click="OnSave" IsDefault="True" Style="{StaticResource PrimaryButton}"/>
+      </DockPanel>
+    </StackPanel>
+  </Grid>
+</Window>

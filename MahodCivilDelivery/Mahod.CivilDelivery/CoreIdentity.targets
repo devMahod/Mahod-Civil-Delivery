@@ -1,0 +1,29 @@
+<Project>
+  <!-- The Core this plugin is built against, by SHA-256 of the resolved implementation DLL (never ref/*.dll or a
+       bundle copy), embedded as MahodAI.CivilDelivery.CoreIdentity.v1 for CivilDeliveryLoadGuard and the release
+       verifier. Core must not be signed/rewritten after this target and before packaging. -->
+  <Target Name="MahodEmbedCivilCoreIdentity" BeforeTargets="AssignTargetPaths"
+          DependsOnTargets="ResolveReferences" Condition="'$(DesignTimeBuild)' != 'true'">
+    <ItemGroup>
+      <_MahodCoreImplementation Include="@(ReferenceCopyLocalPaths)"
+          Condition="'%(Filename)%(Extension)' == 'Mahod.CivilDelivery.Core.dll'" />
+    </ItemGroup>
+    <Error Condition="'@(_MahodCoreImplementation->Count())' != '1'"
+           Text="Exactly one Mahod.CivilDelivery.Core implementation DLL must be resolved before Plugin compilation." />
+    <GetFileHash Files="@(_MahodCoreImplementation)" Algorithm="SHA256">
+      <Output TaskParameter="Items" ItemName="_MahodHashedCore" />
+    </GetFileHash>
+    <PropertyGroup>
+      <_MahodCoreIdentityFile>$(IntermediateOutputPath)MahodCivilCoreIdentity.v1.txt</_MahodCoreIdentityFile>
+    </PropertyGroup>
+    <ItemGroup>
+      <_MahodCoreIdentityLine Include="schema=1;name=Mahod.CivilDelivery.Core;sha256=%(_MahodHashedCore.FileHash);tfm=$(TargetFramework)" />
+    </ItemGroup>
+    <WriteLinesToFile File="$(_MahodCoreIdentityFile)" Lines="@(_MahodCoreIdentityLine)"
+        Overwrite="true" WriteOnlyWhenDifferent="true" Encoding="UTF-8" />
+    <ItemGroup>
+      <EmbeddedResource Include="$(_MahodCoreIdentityFile)" LogicalName="MahodAI.CivilDelivery.CoreIdentity.v1" />
+      <FileWrites Include="$(_MahodCoreIdentityFile)" />
+    </ItemGroup>
+  </Target>
+</Project>

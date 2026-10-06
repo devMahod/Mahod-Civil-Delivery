@@ -1,0 +1,41 @@
+{
+  "$contract": {
+    "protocol_version": "1.18",
+    "direction": "client_to_server",
+    "type": "fix_approval",
+    "audience": [
+      "plugin"
+    ],
+    "description": "Engineer edits a proposed value before approving (e.g. fills a blank clothoid length).",
+    "required_payload_fields": [
+      "plan_id",
+      "decision"
+    ],
+    "optional_payload_fields": [
+      "selected_item_ids",
+      "edited_items"
+    ]
+  },
+  "message": {
+    "id": "0f1e2d3c4b5a69788796a5b4c3d2e1f0",
+    "type": "fix_approval",
+    "timestamp": "2026-08-03T09:15:42.123456Z",
+    "session_id": "3f7c1b9e-2d4a-4c8e-9b1f-5a6d7e8f9012",
+    "correlation_id": null,
+    "payload": {
+      "plan_id": "plan-4b81f2c6",
+      "decision": "update",
+      "selected_item_ids": [
+        "item-2"
+      ],
+      "edited_items": [
+        {
+          "item_id": "item-2",
+          "tool_params": {
+            "length": 85.0
+          }
+        }
+      ]
+    }
+  }
+}

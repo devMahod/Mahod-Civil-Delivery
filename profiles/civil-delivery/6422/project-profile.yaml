@@ -1,0 +1,266 @@
+# Mahod Civil Delivery — Project Profile 6422 (Modiin BRT / early design)
+# Locked plan §6: generic product, project-specific data. null > invented default.
+schema_version: 1
+profile_id: "6422"
+project_name: "נת\"צ מודיעין — תכנון מוקדם"
+project_stage: "early-design"
+
+provenance:
+  source: "Input Package v2 (original materials plus Nataly SM/GM layer evidence, 2026-08-31)"
+  version: 2
+  created_at_utc: 2026-08-18T00:00:00Z
+  created_by: "civil-delivery gate-0"
+  approved_at_utc: null
+  approved_by: null
+  source_hashes:
+    CL.dwg: "eae8f807734b04bba2497570ec27da431ac7b39f96456e3d50e2ac56b38f1574"
+    6422-HW-CS.dwg: "aaa6a6cd77698d84e672d4cf88d18699ee4f2656c3d0f8de70289e0d5c54d64e"
+    6422-SM-MODEL-NATAZ.dwg: "ff97d2c50e4d8069c667fb25b0acef45214bcac4f51001a8df999d0f4c9119eb"
+    6422-GM-MODEL-NATAZ.dwg: "46e79d5725145026d09443ce48c599be994f21119fd33a37bef44a31a262ff51"
+
+sections:
+  cl:
+    source_files:
+      # The CL instruction drawing is SEPARATE from the Civil model (Nataly's mail:
+      # "the locations in the CL file"). Relative to the model drawing's folder, or
+      # absolute. Forward slashes avoid YAML/C# escape traps.
+      #
+      # These are CANDIDATES only, and they are deliberately machine-independent: a
+      # build-machine absolute path shipped here in 1.0.0 and resolved to nothing on
+      # the engineer's machine. She points at the real file with "בחר קובץ CL" in the
+      # panel, which rewrites this list.
+      - "CL.dwg"
+      - "../../Civil3d/PD/CL.dwg"
+    # The layer CL.dwg draws its section lines on. Empty = discovery mode, which on a
+    # real model turns every polyline into a candidate (bounded, but useless).
+    layer_patterns: ["GFC111"]
+    allowed_entity_types: ["LINE", "LWPOLYLINE", "POLYLINE"]
+    intersection_tolerance_m: null      # OQ-004 — unresolved; exact intersection required until approved
+    numbering:
+      mode: null                        # OQ-003 — unresolved; labels reported, not trusted
+      label_layer_patterns: []
+      station_validation_enabled: false
+      station_validation_tolerance_m: null
+
+  projection:
+    # Design-grade sections (1.2.0): utilities that live as polylines (UT-3D XREF and
+    # host layers like MAIM*/BIUV*/HASHMAL*) are PROJECTED into each created section
+    # at their true offset, with a Hebrew label; curbs become ticks with widths.
+    # The utility layer dictionary is built in; rules here override/extend it.
+    enabled: true
+    # A CL drawn 88 m long made an 88 m section (engineer feedback 30/08); the line
+    # still decides the direction, this caps the reach per side.
+    max_half_width_m: 31
+    # Real 6422 strip-edge layers (host plus Nataly's SM/GM files, 30-31/08):
+    # HW-CURB / CURB-EXST / TR-ISLAND-CURBSTONE / HW-BIKE-LANE / PL-BIKE /
+    # END-MDR-PL / HW-TRWY. Order matters: most specific first (TR-ISLAND-
+    # CURBSTONE must be an island edge before *CURB* claims it as a plain curb).
+    plan_mark_rules:
+      # SM/GM evidence: these island-curb names must beat the generic *CURB* rule.
+      - layer_pattern: "*CURB-ILND*"
+        kind: "island"
+        label: "אי תנועה"
+      - layer_pattern: "*TR-ISLAND*"
+        kind: "island"
+        label: "אי תנועה"
+      - layer_pattern: "*BIKE*"
+        kind: "bike"
+        label: "שביל אופניים"
+      - layer_pattern: "END-MDR*"
+        kind: "sidewalk"
+        label: "מדרכה"
+      - layer_pattern: "*MIDRACHA*"
+        kind: "sidewalk"
+        label: "מדרכה"
+      - layer_pattern: "*SIDEWALK*"
+        kind: "sidewalk"
+        label: "מדרכה"
+      - layer_pattern: "HW-TRWY*"
+        kind: "lane"
+        label: "שפת מיסעה"
+      # Exact garden-boundary convention observed in Nataly's GM layer table.
+      - layer_pattern: "*CURB-GRDN*"
+        kind: "garden"
+        label: "גבול גינון"
+      - layer_pattern: "*CURB*"
+        kind: "curb"
+        label: "אבן שפה"
+      # Nataly's SM model contains this exact bus-lane convention. It names the
+      # containing strip but remains subject to the live visual acceptance gate.
+      - layer_pattern: "KAV_NETIVIM_NTZ"
+        kind: "strip"
+        label: "נת\"צ"
+      - layer_pattern: "ROW_2024-08"
+        kind: "row"
+        label: "זכות דרך"
+      - layer_pattern: "*PGVUL*"
+        kind: "row"
+        label: "זכות דרך"
+    # ROW layer names exist in several sources (GM and photogrammetry). Authority is
+    # intentionally empty until an engineer chooses one exact SHA/path/XREF in-panel.
+    row_authorities: []
+    # Surface-name patterns that mean "existing ground" (dashed green style). Empty =
+    # built-in defaults (*EG*, *EXIST*, *KAYAM*, *קיים*); set after the live round.
+    existing_surface_patterns:
+      - "MK"
+      - "MK*"
+
+  alignments:
+    # 6422 design axes. The model also carries design VARIANTS of each axis
+    # ("2000-des", "2000-des-Right-2.500", "1000 (1)", "600 (1)", "3000-DES") that run
+    # parallel and make every section ambiguous. Sections are cut on the primary axis.
+    allowed_names: ["2000", "1000", "3000", "600", "700", "750", "400", "500", "550", "580", "650", "680", "780", "800", "850", "880", "900"]
+    explicit_source_to_alignment: {}    # user-confirmed CL-handle -> alignment name mappings persist here
+
+  decisions:
+    crossings: []
+    exclusions: []
+    traffic_directions: []
+    # Filled only through the in-panel "שמות רצועות" approval dialog.
+    span_labels: []
+
+  sources:
+    sampled_source_rules:
+      - name: "existing-ground"
+        kind: "surface"
+        name_pattern: "*"
+        required: true
+    utility_source_rules: []            # populated from object-level discovery evidence, not guesses
+
+  styles:
+    template_source: "6422-HW-CS.dwg"   # best available project style evidence (directive §17)
+    sample_line_group_style: null
+    sample_line_style: null
+    section_view_style: null
+    band_set_style: null
+    label_styles: {}
+
+  layout:
+    strategy: null                      # OQ-005 — Golden PDF shows ~3-column paired grid + plan index
+    target_space: null
+    sheet_size: null
+    columns: null
+    rows: null
+    spacing_x: null
+    spacing_y: null
+    plan_index_enabled: null
+
+estimate:
+  landq:
+    project_ref: null                   # OQ-007 — LANDQ_CONTRACT_UNVERIFIED
+    contract_version: null
+
+  quantity_sources:
+    rules_ref: null
+    source_scope_policy: null
+    xref_policy: null                   # OQ-012
+    rules:
+      # ברירות מחדל של מהוד — אומתו מול נוסחי מחירון נת"י 08/2025 (31/08/2026).
+      # כל שיוך ניתן לשינוי או ל"לא רלוונטי" בידי המהנדסת; היחידה נאכפת בשער.
+      # Keep the proven SM island layer ahead of the broad curb family.  The semantic
+      # guard also blocks a road-curb item for CURB-ILND in preserved older profiles.
+      - rule_key: "mahod-default:CURB-ILND"
+        layer_pattern: "*CURB-ILND*"
+        measurement_kind: "length"
+        candidate_catalog_code: "U51.06.2140"   # אבן שפה/עטרה לאי תנועה 25/25
+        expected_unit: "מטר"
+        notes: "ברירת מחדל מהוד — אבן שפה לאי תנועה (שכבת SM מוכחת)"
+      - rule_key: "mahod-default:TR-ISLAND-CURBSTONE"
+        layer_pattern: "*TR-ISLAND-CURBSTONE*"
+        measurement_kind: "length"
+        candidate_catalog_code: "U51.06.2140"   # אבן שפה/עטרה לאי תנועה 25/25
+        expected_unit: "מטר"
+        notes: "ברירת מחדל מהוד — אבן שפה לאי תנועה"
+      - rule_key: "mahod-default:HW-CURB"
+        layer_pattern: "HW-CURB*"
+        measurement_kind: "length"
+        candidate_catalog_code: "U51.06.1900"   # אבן שפה לכביש 17/25 ס"מ
+        expected_unit: "מטר"
+        notes: "ברירת מחדל מהוד — אבן שפה חדשה לכביש"
+      - rule_key: "mahod-default:BIKE-LANE-EDGE"
+        layer_pattern: "*BIKE-LANE*"
+        measurement_kind: "length"
+        candidate_catalog_code: "U51.06.2930"   # אבן שפה לשביל אופניים 50/30/25
+        expected_unit: "מטר"
+        notes: "ברירת מחדל מהוד — שפת שביל אופניים (HW-BIKE-LANE)"
+      - rule_key: "mahod-default:PL-BIKE-EDGE"
+        layer_pattern: "*PL-BIKE*"
+        measurement_kind: "length"
+        candidate_catalog_code: "U51.06.2930"   # אבן שפה לשביל אופניים 50/30/25
+        expected_unit: "מטר"
+        notes: "ברירת מחדל מהוד — שפת שביל אופניים (PL-BIKE)"
+      # כמויות מהמודל (קורידור/חתכים) — מק"טים אומתו מול נת"י 08/2025:
+      # מצע סוג א' U51.03.0010 (מ"ק ₪170.13), חפירה לאורך הדרך U51.02.0010
+      # (מ"ק ₪22.48, כולל הובלה לאזורי מילוי), מילוי מובא U51.02.0230 (מ"ק ₪55.31).
+      # שכבות האספלט (corridor:Pave*) בכוונה ללא שיוך — תא"צ מתומחר במ"ר לפי עובי
+      # או בטון, בחירת סעיף היא החלטת מהנדסת.
+      # קודי ה-Shapes האמיתיים ב-6422 (נקראו חי מהקורידור): MAZA=מצע,
+      # ASF-5-19-70=אספלט 5 ס"מ תא"צ 19 (נשאר לבחירת סעיף ע"י המהנדסת), S5=לבירור.
+      - rule_key: "mahod-default:corridor-maza"
+        layer_pattern: "corridor:MAZA*"
+        measurement_kind: "volume"
+        candidate_catalog_code: "U51.03.0010"
+        expected_unit: "מ\"ק"
+        notes: "ברירת מחדל מהוד — מצע סוג א' מנפח הקורידור (קוד MAZA)"
+      - rule_key: "mahod-default:corridor-base"
+        layer_pattern: "corridor:Base*"
+        measurement_kind: "volume"
+        candidate_catalog_code: "U51.03.0010"
+        expected_unit: "מ\"ק"
+        notes: "ברירת מחדל מהוד — מצע סוג א' מנפח הקורידור"
+      - rule_key: "mahod-default:corridor-subbase"
+        layer_pattern: "corridor:SubBase*"
+        measurement_kind: "volume"
+        candidate_catalog_code: "U51.03.0010"
+        expected_unit: "מ\"ק"
+        notes: "ברירת מחדל מהוד — מצע סוג א' (שכבה תחתונה) מנפח הקורידור"
+      - rule_key: "mahod-default:earthworks-cut"
+        layer_pattern: "earthworks:cut"
+        measurement_kind: "volume"
+        candidate_catalog_code: "U51.02.0010"
+        expected_unit: "מ\"ק"
+        notes: "ברירת מחדל מהוד — חפירה לאורך הדרך; הסעיף כולל הובלה לאזורי מילוי"
+      - rule_key: "mahod-default:earthworks-fill"
+        layer_pattern: "earthworks:fill"
+        measurement_kind: "volume"
+        candidate_catalog_code: "U51.02.0230"
+        expected_unit: "מ\"ק"
+        notes: "ברירת מחדל מהוד — מילוי מובא; אם המילוי מגיע מהחפירה סעיף החפירה כבר מכסה — לאישור המהנדסת"
+
+  # Every price book registered with this project. Any publisher - NTI, Dekel, the
+  # engineer's own sheet - loaded from xlsx through the palette ("טען מחירון…"),
+  # stored next to this profile under its id, identified by SHA-256. One is active.
+  price_books:
+    - id: "nti-urban-082025"
+      publisher: "נתיבי ישראל"
+      edition: "מחירון לעבודות עירוניות ומסופים ושבילי אופניים 08/2025 (מחירי 07/2025)"
+      file: "nti-urban-082025.xlsx"
+      file_hash: "90da59809602c4127fcf0b91c3f037c2b98d7b93288beba2c851e3a3550f313c"
+      item_count: 8615
+      notes: "Supplied by Nataly with the project material. Shipped with the product."
+
+  # The ACTIVE book (what the estimate prices against). The palette's price-book
+  # dropdown rewrites these three keys; they are never edited by hand.
+  catalog:
+    catalog_version: "נתיבי ישראל 08/2025"
+    catalog_file: "nti-urban-082025.xlsx"
+    catalog_file_hash: "90da59809602c4127fcf0b91c3f037c2b98d7b93288beba2c851e3a3550f313c"
+
+  pricing:
+    price_book_snapshot_id: "nti-urban-082025"
+    price_book_hash: "90da59809602c4127fcf0b91c3f037c2b98d7b93288beba2c851e3a3550f313c"
+
+  approved_adjustments: []              # nothing approved — see candidate below
+
+  candidate_adjustments:
+    - rule_id: "quantity-0.90-early-design"
+      factor: 0.90
+      reason: "Observed in Judgment-2 Golden workbook: 31/31 quantities are exactly X*0.9"
+      source: "דוגמא שיפוט 2 כבישים ותנועה.xlsx (sha256 0347...8464)"
+      status: "UNCONFIRMED"             # OQ-009 — never auto-applied (plan §8.8, directive §23)
+      scope: null
+      approved_by: null
+      approved_at_utc: null
+      order: 1
+
+  project_overrides: []

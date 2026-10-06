@@ -1,0 +1,9 @@
+<Project>
+  <!-- Inherit the repo's AutoCAD detection (AutoCADVersion / AutoCADTargetFramework / AutoCADPath). -->
+  <Import Project="..\Directory.Build.props" />
+  <PropertyGroup>
+    <!-- The separate tool's own version line, independent of MahodAI's. -->
+    <MahodCivilDeliveryVersion Condition="'$(MahodCivilDeliveryVersion)' == ''">$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)VERSION').Trim())</MahodCivilDeliveryVersion>
+    <DefineConstants>$(DefineConstants);MAHOD_CD_STANDALONE</DefineConstants>
+  </PropertyGroup>
+</Project>

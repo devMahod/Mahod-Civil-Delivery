@@ -1,0 +1,40 @@
+{
+  "$contract": {
+    "protocol_version": "1.18",
+    "direction": "server_to_client",
+    "type": "tool_call",
+    "audience": [
+      "plugin"
+    ],
+    "description": "v1.16 visual sheet scan: ONE layout per call, 300s (walks every xref on the sheet).",
+    "required_payload_fields": [
+      "tool_call_id",
+      "tool_name",
+      "arguments",
+      "timeout_seconds"
+    ],
+    "optional_payload_fields": []
+  },
+  "message": {
+    "id": "0f1e2d3c4b5a69788796a5b4c3d2e1f0",
+    "type": "tool_call",
+    "timestamp": "2026-08-03T09:15:42.123456Z",
+    "session_id": "3f7c1b9e-2d4a-4c8e-9b1f-5a6d7e8f9012",
+    "correlation_id": "tc-5e8a13c7",
+    "payload": {
+      "tool_call_id": "tc-5e8a13c7",
+      "tool_name": "run_visual_scan",
+      "arguments": {
+        "layout_name": "3001-01",
+        "draw_markup": true,
+        "clear_existing_markup": true,
+        "max_findings_per_check": 60,
+        "utility_xrefs": [
+          "6327-BEZEK-EX-2500",
+          "6327-HOT-EX-2500"
+        ]
+      },
+      "timeout_seconds": 300
+    }
+  }
+}

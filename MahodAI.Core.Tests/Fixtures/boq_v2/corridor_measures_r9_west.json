@@ -1,0 +1,122 @@
+{
+  "Header": {
+    "Schema": "mahod-corridor-measures/2",
+    "Project": "6422",
+    "RulesetVersion": "1",
+    "RulesetSha256": "4c473a463f719907b8318fcaf97e892f0c1c4afc2984bb0b7c5c572a67f929f9",
+    "DrawingPath": "6422-CIVIL-WEST-2026-08-04-UT.claude-copy.dwg",
+    "DrawingSha256": "84606791d4ef8ec8df5fdeba78d0ec2526314f22f219e413709ca2a58da3ab29",
+    "RawReceiptFile": "corridor_boq_raw_inputs.json",
+    "RawReceiptSha256": "519240a96bcbd5216d7eabff2f2044eb99b23282f86ad0c5f01a17994f6b9510",
+    "MeasuredLocal": "2026-09-30T18:09:00",
+    "ProfileId": null
+  },
+  "Measures": [
+    {
+      "CorridorId": "2000-DES [31063]",
+      "Complete": true,
+      "Issues": [],
+      "Stations": 202,
+      "LengthM": 1191,
+      "VolCut": 1632.5402997715425,
+      "VolFill": 347.7882005562666,
+      "PlanCut": 8357.507732140046,
+      "PlanFill": 3585.2703280971987,
+      "Plan3DCut": 8453.165741805471,
+      "Plan3DFill": 3622.371515150825,
+      "CodeVolume": {
+        "ASF-5-19-70": 430.1929415782976,
+        "ASF-6-25-70": 0,
+        "ASF-7-25-68": 0,
+        "MAZA": 333.3630807388623,
+        "S5": 666.4041605476141
+      },
+      "CodePlanArea": {
+        "ASF-5-19-70": 8608.987966211153,
+        "ASF-6-25-70": 0,
+        "ASF-7-25-68": 0,
+        "MAZA": 3333.7900940260893,
+        "S5": 3333.7900940260893
+      },
+      "AsphaltPlanArea": 8608.987966211153,
+      "InterfaceStatus": "not_applicable",
+      "EarthworksComplete": true,
+      "MaterialsComplete": true,
+      "PostCut": 477.01822565871066,
+      "PostFill": 1607.3735778346809,
+      "StripDebit": 2415.1074513912595,
+      "StripDepthM": 0.2,
+      "StripMethodId": "post-strip/per-ground-segment-slope-equivalent-debit/avg-end-area/v1-candidate"
+    },
+    {
+      "CorridorId": "3000 [7BCB8E]",
+      "Complete": false,
+      "Issues": [
+        "read-failed: region-001 60080.00 empty-section: the applied assembly has no links (67 points) \u2014 Civil did not build the corridor section at this station",
+        "material material-read-failed: region-001 60080.00 empty-section: the applied assembly has no links (67 points) \u2014 Civil did not build the corridor section at this station"
+      ],
+      "Stations": 249,
+      "LengthM": 1428,
+      "VolCut": 11025.852700627607,
+      "VolFill": 316.55504961177974,
+      "PlanCut": 38306.71136233406,
+      "PlanFill": 3512.569581333166,
+      "Plan3DCut": 38497.629147967964,
+      "Plan3DFill": 3528.76673611498,
+      "CodeVolume": {
+        "ASF-5-19-70": 1061.9582815581489,
+        "ASF-6-25-70": 268.5960354308054,
+        "ASF-7-25-68": 313.36204133593947,
+        "MAZA": 4443.051909943907,
+        "S5": 3377.10871972925
+      },
+      "CodePlanArea": {
+        "ASF-5-19-70": 21246.09314682436,
+        "ASF-6-25-70": 4476.6005905134225,
+        "ASF-7-25-68": 4476.6005905134225,
+        "MAZA": 24592.365611014615,
+        "S5": 16885.540802757943
+      },
+      "AsphaltPlanArea": 21246.093146824365,
+      "InterfaceStatus": "unknown",
+      "EarthworksComplete": false,
+      "MaterialsComplete": false,
+      "PostCut": 5569.930638722077,
+      "PostFill": 3265.9105571787895,
+      "StripDebit": 8405.277569472542,
+      "StripDepthM": 0.2,
+      "StripMethodId": "post-strip/per-ground-segment-slope-equivalent-debit/avg-end-area/v1-candidate"
+    }
+  ],
+  "Skipped": [
+    {
+      "Corridor": "2000",
+      "Text": "\u05DE\u05DB\u05D5\u05D1\u05D4 \u05D1\u05E9\u05E8\u05D8\u05D5\u05D8 (IsProcessed=false) \u2014 \u05DE\u05D7\u05D5\u05E5 \u05DC\u05EA\u05D7\u05D5\u05DD \u05D4\u05D0\u05D5\u05DE\u05D3\u05DF \u05DC\u05E4\u05D9 \u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u0027\u05EA\u05DB\u05E0\u05D5\u05DF \u05E4\u05E2\u05D9\u05DC \u05D1\u05DC\u05D1\u05D3\u0027; \u05DC\u05D0 \u05E0\u05DE\u05D3\u05D3 \u05D5\u05D0\u05D9\u05E0\u05D5 \u05DB\u05DE\u05D5\u05EA 0"
+    },
+    {
+      "Corridor": "700",
+      "Text": "\u05DE\u05DB\u05D5\u05D1\u05D4 \u05D1\u05E9\u05E8\u05D8\u05D5\u05D8 (IsProcessed=false) \u2014 \u05DE\u05D7\u05D5\u05E5 \u05DC\u05EA\u05D7\u05D5\u05DD \u05D4\u05D0\u05D5\u05DE\u05D3\u05DF \u05DC\u05E4\u05D9 \u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u0027\u05EA\u05DB\u05E0\u05D5\u05DF \u05E4\u05E2\u05D9\u05DC \u05D1\u05DC\u05D1\u05D3\u0027; \u05DC\u05D0 \u05E0\u05DE\u05D3\u05D3 \u05D5\u05D0\u05D9\u05E0\u05D5 \u05DB\u05DE\u05D5\u05EA 0"
+    },
+    {
+      "Corridor": "600",
+      "Text": "\u05DE\u05DB\u05D5\u05D1\u05D4 \u05D1\u05E9\u05E8\u05D8\u05D5\u05D8 (IsProcessed=false) \u2014 \u05DE\u05D7\u05D5\u05E5 \u05DC\u05EA\u05D7\u05D5\u05DD \u05D4\u05D0\u05D5\u05DE\u05D3\u05DF \u05DC\u05E4\u05D9 \u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u0027\u05EA\u05DB\u05E0\u05D5\u05DF \u05E4\u05E2\u05D9\u05DC \u05D1\u05DC\u05D1\u05D3\u0027; \u05DC\u05D0 \u05E0\u05DE\u05D3\u05D3 \u05D5\u05D0\u05D9\u05E0\u05D5 \u05DB\u05DE\u05D5\u05EA 0"
+    },
+    {
+      "Corridor": "1000",
+      "Text": "\u05DE\u05DB\u05D5\u05D1\u05D4 \u05D1\u05E9\u05E8\u05D8\u05D5\u05D8 (IsProcessed=false) \u2014 \u05DE\u05D7\u05D5\u05E5 \u05DC\u05EA\u05D7\u05D5\u05DD \u05D4\u05D0\u05D5\u05DE\u05D3\u05DF \u05DC\u05E4\u05D9 \u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u0027\u05EA\u05DB\u05E0\u05D5\u05DF \u05E4\u05E2\u05D9\u05DC \u05D1\u05DC\u05D1\u05D3\u0027; \u05DC\u05D0 \u05E0\u05DE\u05D3\u05D3 \u05D5\u05D0\u05D9\u05E0\u05D5 \u05DB\u05DE\u05D5\u05EA 0"
+    },
+    {
+      "Corridor": "750",
+      "Text": "\u05DE\u05DB\u05D5\u05D1\u05D4 \u05D1\u05E9\u05E8\u05D8\u05D5\u05D8 (IsProcessed=false) \u2014 \u05DE\u05D7\u05D5\u05E5 \u05DC\u05EA\u05D7\u05D5\u05DD \u05D4\u05D0\u05D5\u05DE\u05D3\u05DF \u05DC\u05E4\u05D9 \u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u0027\u05EA\u05DB\u05E0\u05D5\u05DF \u05E4\u05E2\u05D9\u05DC \u05D1\u05DC\u05D1\u05D3\u0027; \u05DC\u05D0 \u05E0\u05DE\u05D3\u05D3 \u05D5\u05D0\u05D9\u05E0\u05D5 \u05DB\u05DE\u05D5\u05EA 0"
+    }
+  ],
+  "DrawingTables": [],
+  "Evidence": [],
+  "Notes": [
+    "\u05E7\u05D5\u05E8\u05D9\u05D3\u05D5\u05E8 \u05DC\u05D0 \u05E0\u05DE\u05D3\u05D3 \u2014 2000: \u05DE\u05DB\u05D5\u05D1\u05D4 \u05D1\u05E9\u05E8\u05D8\u05D5\u05D8 (IsProcessed=false) \u2014 \u05DE\u05D7\u05D5\u05E5 \u05DC\u05EA\u05D7\u05D5\u05DD \u05D4\u05D0\u05D5\u05DE\u05D3\u05DF \u05DC\u05E4\u05D9 \u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u0027\u05EA\u05DB\u05E0\u05D5\u05DF \u05E4\u05E2\u05D9\u05DC \u05D1\u05DC\u05D1\u05D3\u0027; \u05DC\u05D0 \u05E0\u05DE\u05D3\u05D3 \u05D5\u05D0\u05D9\u05E0\u05D5 \u05DB\u05DE\u05D5\u05EA 0",
+    "\u05E7\u05D5\u05E8\u05D9\u05D3\u05D5\u05E8 \u05DC\u05D0 \u05E0\u05DE\u05D3\u05D3 \u2014 700: \u05DE\u05DB\u05D5\u05D1\u05D4 \u05D1\u05E9\u05E8\u05D8\u05D5\u05D8 (IsProcessed=false) \u2014 \u05DE\u05D7\u05D5\u05E5 \u05DC\u05EA\u05D7\u05D5\u05DD \u05D4\u05D0\u05D5\u05DE\u05D3\u05DF \u05DC\u05E4\u05D9 \u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u0027\u05EA\u05DB\u05E0\u05D5\u05DF \u05E4\u05E2\u05D9\u05DC \u05D1\u05DC\u05D1\u05D3\u0027; \u05DC\u05D0 \u05E0\u05DE\u05D3\u05D3 \u05D5\u05D0\u05D9\u05E0\u05D5 \u05DB\u05DE\u05D5\u05EA 0",
+    "\u05E7\u05D5\u05E8\u05D9\u05D3\u05D5\u05E8 \u05DC\u05D0 \u05E0\u05DE\u05D3\u05D3 \u2014 600: \u05DE\u05DB\u05D5\u05D1\u05D4 \u05D1\u05E9\u05E8\u05D8\u05D5\u05D8 (IsProcessed=false) \u2014 \u05DE\u05D7\u05D5\u05E5 \u05DC\u05EA\u05D7\u05D5\u05DD \u05D4\u05D0\u05D5\u05DE\u05D3\u05DF \u05DC\u05E4\u05D9 \u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u0027\u05EA\u05DB\u05E0\u05D5\u05DF \u05E4\u05E2\u05D9\u05DC \u05D1\u05DC\u05D1\u05D3\u0027; \u05DC\u05D0 \u05E0\u05DE\u05D3\u05D3 \u05D5\u05D0\u05D9\u05E0\u05D5 \u05DB\u05DE\u05D5\u05EA 0",
+    "\u05E7\u05D5\u05E8\u05D9\u05D3\u05D5\u05E8 \u05DC\u05D0 \u05E0\u05DE\u05D3\u05D3 \u2014 1000: \u05DE\u05DB\u05D5\u05D1\u05D4 \u05D1\u05E9\u05E8\u05D8\u05D5\u05D8 (IsProcessed=false) \u2014 \u05DE\u05D7\u05D5\u05E5 \u05DC\u05EA\u05D7\u05D5\u05DD \u05D4\u05D0\u05D5\u05DE\u05D3\u05DF \u05DC\u05E4\u05D9 \u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u0027\u05EA\u05DB\u05E0\u05D5\u05DF \u05E4\u05E2\u05D9\u05DC \u05D1\u05DC\u05D1\u05D3\u0027; \u05DC\u05D0 \u05E0\u05DE\u05D3\u05D3 \u05D5\u05D0\u05D9\u05E0\u05D5 \u05DB\u05DE\u05D5\u05EA 0",
+    "\u05E7\u05D5\u05E8\u05D9\u05D3\u05D5\u05E8 \u05DC\u05D0 \u05E0\u05DE\u05D3\u05D3 \u2014 750: \u05DE\u05DB\u05D5\u05D1\u05D4 \u05D1\u05E9\u05E8\u05D8\u05D5\u05D8 (IsProcessed=false) \u2014 \u05DE\u05D7\u05D5\u05E5 \u05DC\u05EA\u05D7\u05D5\u05DD \u05D4\u05D0\u05D5\u05DE\u05D3\u05DF \u05DC\u05E4\u05D9 \u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u0027\u05EA\u05DB\u05E0\u05D5\u05DF \u05E4\u05E2\u05D9\u05DC \u05D1\u05DC\u05D1\u05D3\u0027; \u05DC\u05D0 \u05E0\u05DE\u05D3\u05D3 \u05D5\u05D0\u05D9\u05E0\u05D5 \u05DB\u05DE\u05D5\u05EA 0"
+  ]
+}

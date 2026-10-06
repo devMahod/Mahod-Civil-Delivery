@@ -1,0 +1,79 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The Civil Delivery plugin tests, run against the SEPARATE plugin assembly (Mahod.CivilDelivery) instead of the
+    MahodAI fork. The test sources are linked from ..\..\MahodAI.Civil3D.Plugin.Tests\CivilDelivery unchanged; the
+    few that exercise MahodAI-only code (chat tools, platform integration) are excluded below, each with its reason.
+    Standalone-only tests (names, ribbon, guard, bundle) live in this folder.
+  -->
+  <PropertyGroup>
+    <TargetFramework>$(AutoCADTargetFramework)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Platforms>x64</Platforms>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <!-- Linked production XAML duplicates types of the referenced plugin on purpose (as in the MahodAI test project). -->
+    <NoWarn>$(NoWarn);CS0436</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\MahodAI.Civil3D.Plugin.Tests\xunit.runner.json" Link="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>MahodPluginSourceDir</_Parameter1>
+      <_Parameter2>$(MSBuildThisFileDirectory)..\..\MahodAI.Civil3D.Plugin</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.0.2" />
+    <PackageReference Include="FluentAssertions" Version="6.12.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Mahod.CivilDelivery\Mahod.CivilDelivery.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Test-side only: reads the exported XLSX back. The product writes XLSX with MiniXlsx, never OpenXml. -->
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Excluded, both about MahodAI's chat tools, which the separate plugin does not carry:
+         RobustnessTests also asserts the chat-tool wire format (EstimateToolJson / WebSocketJson) — its product logic
+         is the same source and runs in MahodAI.Civil3D.Plugin.Tests; SetupToolSourceSelectionTests tests only the
+         save_civil_delivery_project_setup chat tool. -->
+    <Compile Include="..\..\MahodAI.Civil3D.Plugin.Tests\CivilDelivery\**\*.cs"
+             Exclude="..\..\MahodAI.Civil3D.Plugin.Tests\CivilDelivery\RobustnessTests.cs;..\..\MahodAI.Civil3D.Plugin.Tests\CivilDelivery\SetupToolSourceSelectionTests.cs"
+             Link="CivilDelivery\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Include="..\..\MahodAI.Civil3D.Plugin\CivilDelivery\UI\CatalogPickerDialog.xaml" Link="CivilDelivery\UI\CatalogPickerDialog.xaml" />
+    <!-- Compile the production dialog unchanged into the offline WPF test host; no Autodesk assembly resource loader. -->
+    <Page Include="..\..\MahodAI.Civil3D.Plugin\CivilDelivery\UI\EstimateSourceReviewDialog.xaml" Link="CivilDelivery\UI\EstimateSourceReviewDialog.xaml" />
+    <Compile Include="..\..\MahodAI.Civil3D.Plugin\CivilDelivery\UI\EstimateSourceReviewDialog.xaml.cs" Link="CivilDelivery\UI\EstimateSourceReviewDialog.xaml.cs" />
+    <Compile Include="..\..\MahodAI.Civil3D.Plugin\CivilDelivery\UI\CatalogPickerDialog.xaml.cs" Link="CivilDelivery\UI\CatalogPickerDialog.xaml.cs" />
+    <Page Include="..\..\MahodAI.Civil3D.Plugin\CivilDelivery\UI\SectionSpanLabelDecisionDialog.xaml" Link="CivilDelivery\UI\SectionSpanLabelDecisionDialog.xaml" />
+    <Compile Include="..\..\MahodAI.Civil3D.Plugin\CivilDelivery\UI\SectionSpanLabelDecisionDialog.xaml.cs" Link="CivilDelivery\UI\SectionSpanLabelDecisionDialog.xaml.cs" />
+    <Page Include="..\..\MahodAI.Civil3D.Plugin\CivilDelivery\UI\TrafficDirectionDecisionDialog.xaml" Link="CivilDelivery\UI\TrafficDirectionDecisionDialog.xaml" />
+    <Compile Include="..\..\MahodAI.Civil3D.Plugin\CivilDelivery\UI\TrafficDirectionDecisionDialog.xaml.cs" Link="CivilDelivery\UI\TrafficDirectionDecisionDialog.xaml.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(AutoCADVersion)' != '2026'">
+    <Reference Include="accoremgd"><HintPath>$(AutoCADPath)\accoremgd.dll</HintPath><Private>False</Private></Reference>
+    <Reference Include="acdbmgd"><HintPath>$(AutoCADPath)\acdbmgd.dll</HintPath><Private>False</Private></Reference>
+    <Reference Include="acmgd"><HintPath>$(AutoCADPath)\acmgd.dll</HintPath><Private>False</Private></Reference>
+    <Reference Include="AdWindows"><HintPath>$(AutoCADPath)\AdWindows.dll</HintPath><Private>False</Private></Reference>
+    <Reference Include="AeccDbMgd"><HintPath>$(AutoCADPath)\C3D\AeccDbMgd.dll</HintPath><Private>False</Private></Reference>
+  </ItemGroup>
+
+</Project>

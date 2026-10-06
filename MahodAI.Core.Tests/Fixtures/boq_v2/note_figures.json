@@ -1,0 +1,25 @@
+{
+ "lowered_total_m": 1355.0,
+ "lowered_beside_c1_m": 512.0,
+ "lowered_beside_c2_m": 696.8,
+ "lowered_beside_both_m": 2.9,
+ "lowered_beside_any_m": 1205.8,
+ "curb_c1_with_c2_face_m": 460.9,
+ "frame_815": {
+  "lines": 59,
+  "plan_m": 1219.9,
+  "all_lines": 625,
+  "one_object_m": 1031.8,
+  "one_object_at_1852_width_m": 1186.7
+ },
+ "long_rect_808": {
+  "lines": 30,
+  "plan_m": 1651.6
+ },
+ "method": {
+  "lowered_beside": "along HW-EVEN_MUN (GM): pieces ≤0.25 m; a piece counts for an item when a chord of its layers runs parallel (<0.2 rad) within 0.35 m and the piece midpoint projects inside that chord; lowered curb counted once (width 0.02)",
+  "curb_c1_with_c2_face": "HW-CURB/HW-CURB2 pieces with an island-curb line parallel 0.17–0.26 m (±5 mm) beside them (projection inside), one object once width 0.23",
+  "frame_815": "TR-MARK-WHT-815 lines longer than 10 m, plan length",
+  "long_rect_808": "all lines on TR-MARK-WHT-3-1.5-808, plan length"
+ }
+}

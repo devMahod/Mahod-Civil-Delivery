@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Per-user setup EXE for the separate Mahod Civil Delivery plugin: embeds payload.zip (built by
+       ..\build-setup.ps1), extracts it with per-entry SHA-256 checks and runs Install-MahodCivilDelivery.ps1.
+       Self-contained so it starts on any workstation whatever .NET is installed. asInvoker: never elevates. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>Mahod_Civil_Delivery_Setup</AssemblyName>
+    <RootNamespace>MahodCivilDeliverySetup</RootNamespace>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <PublishTrimmed>false</PublishTrimmed>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Version>$(MahodCivilDeliveryVersion)</Version>
+    <Product>Mahod Civil Delivery Setup</Product>
+    <Company>Mahod Engineering</Company>
+    <!-- Not part of the plugin build: never inherit its Autodesk defines. -->
+    <DefineConstants></DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="payload.zip" LogicalName="payload.zip" Condition="Exists('payload.zip')" />
+  </ItemGroup>
+</Project>

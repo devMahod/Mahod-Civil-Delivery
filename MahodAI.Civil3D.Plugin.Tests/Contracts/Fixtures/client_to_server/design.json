@@ -1,0 +1,23 @@
+{
+  "$contract": {
+    "protocol_version": "1.18",
+    "direction": "client_to_server",
+    "type": "design",
+    "audience": [],
+    "description": "Stage-3 road design request. Requires an existing session (no auto-create) -- answers NO_DRAWING_SESSION otherwise. Undocumented until v1.13. AUDIENCE IS EMPTY ON PURPOSE: the agent dispatches this type, but NO CLIENT SENDS IT -- the plugin has no MessageTypes.Design and the web repo has no sender. Design requests reach the pipeline as `chat` + the agent classifier. Tracked under Known debt; give it a real audience only when a client sends it.",
+    "required_payload_fields": [
+      "content"
+    ],
+    "optional_payload_fields": []
+  },
+  "message": {
+    "id": "0f1e2d3c4b5a69788796a5b4c3d2e1f0",
+    "type": "design",
+    "timestamp": "2026-08-03T09:15:42.123456Z",
+    "session_id": "3f7c1b9e-2d4a-4c8e-9b1f-5a6d7e8f9012",
+    "correlation_id": null,
+    "payload": {
+      "content": "תכנן כביש חדש לאורך הקו שסימנתי"
+    }
+  }
+}

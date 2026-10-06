@@ -1,0 +1,147 @@
+{
+ "polygon_source": "Civil 3D boundary rings (estimate-extract-20260930-101013-ada35207), make_valid structure",
+ "hatches": 352,
+ "polygons": 352,
+ "not_built": [],
+ "checked_against_civil": 308,
+ "agree_within_1pct": 288,
+ "worst": [
+  [
+   "7792",
+   14215.05,
+   14132.1
+  ],
+  [
+   "2623E0",
+   1931.52,
+   1958.14
+  ],
+  [
+   "7995",
+   584.14,
+   607.49
+  ],
+  [
+   "2623A8",
+   2775.43,
+   2752.1
+  ],
+  [
+   "2623A7",
+   2628.81,
+   2651.63
+  ]
+ ],
+ "cross_check_direct_read": {
+  "compared": 310,
+  "agree_within_0_1pct": 309,
+  "worst": [
+   [
+    "26236C",
+    2291.29,
+    2308.58
+   ],
+   [
+    "717C",
+    1018.0,
+    1018.03
+   ],
+   [
+    "7158",
+    703.06,
+    703.07
+   ],
+   [
+    "7112",
+    8110.16,
+    8110.16
+   ],
+   [
+    "7113",
+    1434.37,
+    1434.37
+   ]
+  ]
+ },
+ "layers": {
+  "HW-HTCH-ROAD": {
+   "count": 53,
+   "sum_m2": 95704.7,
+   "union_m2": 95366.8,
+   "overlap_inside_layer_m2": 337.9
+  },
+  "HW-HTCH-NATAZ": {
+   "count": 30,
+   "sum_m2": 20238.48,
+   "union_m2": 20001.7,
+   "overlap_inside_layer_m2": 236.78
+  },
+  "HW_HA_SIDEWALK": {
+   "count": 130,
+   "sum_m2": 55184.5,
+   "union_m2": 55004.69,
+   "overlap_inside_layer_m2": 179.82
+  },
+  "HACTH-GINUN": {
+   "count": 77,
+   "sum_m2": 17280.14,
+   "union_m2": 17271.81,
+   "overlap_inside_layer_m2": 8.34
+  },
+  "PL-BIKE": {
+   "count": 14,
+   "sum_m2": 8375.36,
+   "union_m2": 8373.98,
+   "overlap_inside_layer_m2": 1.38
+  },
+  "HW-HATCH-ILND": {
+   "count": 48,
+   "sum_m2": 2946.22,
+   "union_m2": 2924.71,
+   "overlap_inside_layer_m2": 21.51
+  }
+ },
+ "between": {
+  "HW-HTCH-ROAD × HW-HTCH-NATAZ": 550.07,
+  "HW-HTCH-ROAD × HW_HA_SIDEWALK": 53.5,
+  "HW-HTCH-ROAD × HACTH-GINUN": 377.48,
+  "HW-HTCH-ROAD × HW-HATCH-ILND": 164.38,
+  "HW-HTCH-NATAZ × HW_HA_SIDEWALK": 123.02,
+  "HW-HTCH-NATAZ × HACTH-GINUN": 1.43,
+  "HW_HA_SIDEWALK × HACTH-GINUN": 68.91,
+  "HW_HA_SIDEWALK × PL-BIKE": 48.91,
+  "HACTH-GINUN × PL-BIKE": 11.33
+ },
+ "missing_estimate": {
+  "HACTH-GINUN": {
+   "count": 6,
+   "built": 6,
+   "area_m2": 424.74,
+   "not_built": []
+  },
+  "HW-HATCH-ILND": {
+   "count": 2,
+   "built": 2,
+   "area_m2": 70.85,
+   "not_built": []
+  },
+  "HW-HTCH-NATAZ": {
+   "count": 3,
+   "built": 3,
+   "area_m2": 2815.96,
+   "not_built": []
+  },
+  "HW-HTCH-ROAD": {
+   "count": 16,
+   "built": 16,
+   "area_m2": 55653.93,
+   "not_built": []
+  },
+  "HW_HA_SIDEWALK": {
+   "count": 12,
+   "built": 12,
+   "area_m2": 12271.74,
+   "not_built": []
+  }
+ }
+}
