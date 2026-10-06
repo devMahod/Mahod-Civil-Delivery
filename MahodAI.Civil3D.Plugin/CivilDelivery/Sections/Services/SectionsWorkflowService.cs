@@ -61,6 +61,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
 
         public SectionPlan Plan(Document doc, ProjectProfile profile, string? profileHash)
         {
+            using var usage = CivilDeliveryUsage.Begin(CivilDeliveryUsage.PlanAction);
             var db = doc.Database;
             Log?.Begin("workflow.plan.start_transaction");
             SectionPlan plan;
@@ -83,6 +84,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
 
             WriteArtifact(plan.RunId, "section_plan.json", plan);
             WritePlanManifest(doc, profile, profileHash, plan);
+            CivilDeliveryUsage.Step(CivilDeliveryUsage.PlanAction, ok: true);
             return plan;
         }
 
@@ -90,6 +92,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             Document doc, ProjectProfile profile, string? profileHash, SectionPlan plan,
             string? selectedRecordId = null)
         {
+            using var usage = CivilDeliveryUsage.Begin(CivilDeliveryUsage.PreviewAction);
             var staleReason = SectionPlanLogic.ScopeStaleReason(
                 plan, DrawingScopeIdentity.For(doc), profile, profileHash);
             if (staleReason != null)
@@ -125,6 +128,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                     prepared = null; // ownership was transferred to the preview service
                     Log?.End("workflow.preview.sample_surfaces",
                         $"record={preview.RecordId} drawables={preview.DrawableCount}");
+                    CivilDeliveryUsage.Step(CivilDeliveryUsage.PreviewAction, ok: true);
                     return preview;
                 }
                 catch (Exception ex)
@@ -149,6 +153,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             Document doc, ProjectProfile profile, string? profileHash,
             SectionPlan plan, IReadOnlyCollection<string>? approvedRecordIds = null)
         {
+            using var usage = CivilDeliveryUsage.Begin(CivilDeliveryUsage.ApplyAction);
             RequirePlanEvidence(plan);
             Log?.Begin("workflow.apply.get_civil_document");
             var civilDoc = CivilDocument.GetCivilDocument(doc.Database);
@@ -165,6 +170,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             Document doc, ProjectProfile profile, string? profileHash,
             SectionPlan plan, string selectedRecordId)
         {
+            using var usage = CivilDeliveryUsage.Begin(CivilDeliveryUsage.ApplyAction);
             RequirePlanEvidence(plan);
             Log?.Begin("workflow.apply-selected.get_civil_document", selectedRecordId);
             var civilDoc = CivilDocument.GetCivilDocument(doc.Database);
@@ -182,6 +188,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             Document doc, ProjectProfile profile, string? profileHash, SectionPlan plan,
             string selectedRecordId, SectionVerifyResult failedVerification)
         {
+            using var usage = CivilDeliveryUsage.Begin(CivilDeliveryUsage.ApplyAction);
             RequirePlanEvidence(plan);
             var stale = SectionPlanLogic.ScopeStaleReason(plan, DrawingScopeIdentity.For(doc), profile, profileHash)
                 ?? SectionInputIntegrityService.StaleReason(doc.Database, plan, plan.SourceDatabaseRevision, "REBUILD-SELECTED", profile);
@@ -210,6 +217,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             Document doc, ProjectProfile profile, string? profileHash,
             SectionPlan plan, SectionApplyResult applied)
         {
+            using var usage = CivilDeliveryUsage.Begin(CivilDeliveryUsage.VerifyAction);
             RequirePlanEvidence(plan);
             RequireApplyEvidence(applied);
             var staleReason = SectionPlanLogic.ScopeStaleReason(
@@ -253,6 +261,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             Document doc, ProjectProfile profile, string? profileHash,
             SectionPlan plan, SectionApplyResult applied, string selectedRecordId)
         {
+            using var usage = CivilDeliveryUsage.Begin(CivilDeliveryUsage.VerifyAction);
             RequirePlanEvidence(plan);
             RequireApplyEvidence(applied);
             var staleReason = SectionPlanLogic.ScopeStaleReason(
@@ -307,6 +316,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
         internal CurrentSelectedVerification VerifySelectedCurrent(
             Document doc, ProjectProfile profile, string? profileHash, SectionPlan plan, string recordId)
         {
+            using var usage = CivilDeliveryUsage.Begin(CivilDeliveryUsage.VerifyAction);
             RequirePlanEvidence(plan);
             var scopeReason = SectionPlanLogic.ScopeStaleReason(
                 plan, DrawingScopeIdentity.For(doc), profile, profileHash);
@@ -354,6 +364,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             Document doc, ProjectProfile profile, string? profileHash,
             SectionPlan plan, SectionApplyResult result)
         {
+            CivilDeliveryUsage.Step(CivilDeliveryUsage.ApplyAction, result.Committed);
             try
             {
                 PersistEvidenceBundle(
@@ -377,6 +388,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             Document doc, ProjectProfile profile, string? profileHash,
             SectionPlan plan, SectionApplyResult applied, SectionVerifyResult result)
         {
+            CivilDeliveryUsage.Verified(doc, result);   // every verification is persisted here: one unit per verified section
             try
             {
                 // Selected-record VERIFY also stages its diagnostic layout-input receipt

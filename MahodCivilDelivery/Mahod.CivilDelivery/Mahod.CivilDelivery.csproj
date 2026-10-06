@@ -26,6 +26,8 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <Version>$(MahodCivilDeliveryVersion)</Version>
     <Product>Mahod Civil Delivery</Product>
+    <!-- Bake the products' usage key from MAHOD_CAD_KEY at build time (Directory.Build.props, MahodUsageKey). -->
+    <MahodUsageKeyed>true</MahodUsageKeyed>
   </PropertyGroup>
 
   <!-- Explicit opt-in from the guide-bound standalone builder; preserve Autodesk and standalone symbols. -->
@@ -48,6 +50,8 @@
     <Compile Include="..\..\MahodAI.Civil3D.Plugin\Tools\CivilDelivery\CivilDeliverySession.cs" Link="Shared\CivilDeliverySession.cs" />
     <Compile Include="..\..\MahodAI.Civil3D.Plugin\Services\SheetQA\**\*.cs" Link="Shared\SheetQA\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="..\..\MahodAI.Civil3D.Plugin\Utilities\MahodLogger.cs" Link="Shared\MahodLogger.cs" />
+    <!-- Mahod Impact usage records (1.4.2): the MahodAI plugin's recorder, byte for byte (BCL-only). -->
+    <Compile Include="..\..\MahodAI.Civil3D.Plugin\Utilities\MahodUsage.cs" Link="Shared\MahodUsage.cs" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(AutoCADVersion)' != '2026'">

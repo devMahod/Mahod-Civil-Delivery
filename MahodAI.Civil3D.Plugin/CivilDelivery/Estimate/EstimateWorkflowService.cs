@@ -126,6 +126,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Estimate
             ProjectProfileWriter.ExpectedProfileState profileWriteState)
         {
             ArgumentNullException.ThrowIfNull(profileWriteState);
+            using var usage = CivilDeliveryUsage.Begin(CivilDeliveryUsage.EstimateAction);
             var expectedState = profileWriteState;
             ProjectProfileWriter.RequireExpectedStateUnchanged(profile, expectedState);
             var db = doc.Database;
@@ -152,6 +153,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Estimate
             EstimateScanTrace.Step("scan.publish", () => PublishScanEvidence(result));
             ScanDatabaseChangeProbe.SampleDbmod(doc, "scan.publish");
             EstimateScanTrace.Mark("scan.complete", result.Records.Count);
+            CivilDeliveryUsage.Step(CivilDeliveryUsage.EstimateAction, ok: true);
             return result;
         }
 

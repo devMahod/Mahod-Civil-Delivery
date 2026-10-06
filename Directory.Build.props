@@ -49,4 +49,34 @@
     <DefineConstants Condition="'$(AgentEnvironment)' == 'prod'">$(DefineConstants);MAHOD_AGENT_PROD</DefineConstants>
   </PropertyGroup>
 
+  <!--
+    The products' key for MahodAI's usage route (Utilities/MahodUsage.cs; the agent's
+    USAGE_PRODUCT_KEY), baked in from the build machine's MAHOD_CAD_KEY environment variable.
+    Copied from the MahodAI plugin's Directory.Build.props (2026-10-06). A project opts in with
+    <MahodUsageKeyed>true</MahodUsageKeyed> - only the ones that compile MahodUsage.cs, because
+    the generated file completes its partial class. Here that is the standalone
+    Mahod.CivilDelivery only; this repository's MahodAI fork never bakes a key.
+
+    Without the variable the build is complete and correct: a PC with a MahodAI installation
+    key sends with that key, and any other PC queues its records until a build with the
+    products' key runs there (the queue keeps 30 days).
+    The key is a filter, not a secret, but it stays out of git all the same (the file lands in
+    obj/, which is ignored; this repository is public). Only [A-Za-z0-9_-] is accepted, so it
+    can never break out of the string literal.
+  -->
+  <Target Name="MahodUsageKey" BeforeTargets="CoreCompile"
+          Condition="'$(MahodUsageKeyed)' == 'true' AND '$(MAHOD_CAD_KEY)' != ''">
+    <Error Condition="!$([System.Text.RegularExpressions.Regex]::IsMatch('$(MAHOD_CAD_KEY)', '^[A-Za-z0-9_-]{16,128}$'))"
+           Text="MAHOD_CAD_KEY must be 16-128 characters of [A-Za-z0-9_-]." />
+    <PropertyGroup>
+      <MahodUsageKeyFile>$(IntermediateOutputPath)MahodUsageKey.g.cs</MahodUsageKeyFile>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(MahodUsageKeyFile)" Overwrite="true" WriteOnlyWhenDifferent="true"
+                      Lines="// &lt;auto-generated /&gt;;#nullable enable;namespace MahodAI.Civil3D.Plugin.Utilities { internal static partial class MahodUsage { static partial void BakedKey(ref string%3F key) { key = &quot;$(MAHOD_CAD_KEY)&quot;%3B } } }" />
+    <ItemGroup>
+      <Compile Include="$(MahodUsageKeyFile)" />
+      <FileWrites Include="$(MahodUsageKeyFile)" />
+    </ItemGroup>
+  </Target>
+
 </Project>

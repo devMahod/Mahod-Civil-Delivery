@@ -18,7 +18,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
     /// </summary>
     public sealed class SectionPlanService
     {
-        public const string ToolVersion = "civil-delivery/1.4.0";
+        public const string ToolVersion = "civil-delivery/1.4.2";
 
         private readonly ClInstructionReader _reader = new();
         private readonly AlignmentCandidateResolver _resolver = new();

@@ -5,3 +5,12 @@ obj/
 *.user
 *.suo
 TestResults/
+
+# Release output (1.4.2+): built DLLs, installers and ZIPs carry the baked usage key - never commit them.
+MahodCivilDelivery/out/
+MahodCivilDelivery/installer/bootstrap/payload.zip
+installer/out/
+installer/stage/
+nataly/out/
+release/*/out/
+*.zip
