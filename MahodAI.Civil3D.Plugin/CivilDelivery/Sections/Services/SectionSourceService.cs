@@ -401,6 +401,35 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
         /// requiring the exact triple is the one-to-one contract behind
         /// SampleLine.GetSectionId(sourceId).
         /// </summary>
+        /// <summary>
+        /// The Section types that sample a surface. CorridorSurface was missing from every surface
+        /// filter, so a corridor top planned as the design surface was never found and APPLY rolled
+        /// back (MahodAI live test, 2026-09-30).
+        /// </summary>
+        internal static bool IsSurfaceSection(CivilDb.SectionSourceType sourceType) =>
+            sourceType is CivilDb.SectionSourceType.TinSurface or CivilDb.SectionSourceType.GridSurface or CivilDb.SectionSourceType.CorridorSurface;
+
+        /// <summary>
+        /// The corridor surface a Section named "&lt;corridor&gt; &lt;surface&gt;" samples, as the
+        /// surface object PLAN knows (its own name and handle), or null.
+        /// </summary>
+        internal static SampledSourceIdentity? ResolveCorridorSurface(
+            Transaction tr, CivilDb.Corridor corridor, string sectionSourceName)
+        {
+            var name = sectionSourceName.Trim();
+            foreach (CivilDb.CorridorSurface corridorSurface in corridor.CorridorSurfaces)
+            {
+                if (!string.Equals(name, corridor.Name + " " + corridorSurface.Name, StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(name, corridorSurface.Name, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (corridorSurface.SurfaceId.IsNull ||
+                    tr.GetObject(corridorSurface.SurfaceId, OpenMode.ForRead) is not CivilDb.Surface surface)
+                    return null;
+                return new SampledSourceIdentity(surface.Name, "surface", surface.Handle.ToString());
+            }
+            return null;
+        }
+
         internal static SampledSourceIdentity ResolveLiveSourceIdentityStrict(
             Transaction tr,
             ObjectId sourceId,
@@ -425,6 +454,13 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                 throw new InvalidOperationException(
                     $"The {context} object {sourceId.Handle} could not be opened.", ex);
             }
+
+            // A corridor-surface Section's SourceId is the CORRIDOR and its SourceName is
+            // "<corridor> <surface>"; PLAN planned the surface itself, so resolve to that.
+            if (sourceType == CivilDb.SectionSourceType.CorridorSurface && obj is CivilDb.Corridor corridor)
+                return ResolveCorridorSurface(tr, corridor, sourceName)
+                    ?? throw new InvalidOperationException(
+                        $"The {context} '{sourceName}' names no surface of corridor '{corridor.Name}'.");
 
             var typeToken = sourceType.ToString();
             var kind = typeToken.Contains("PipeNetwork", StringComparison.OrdinalIgnoreCase)

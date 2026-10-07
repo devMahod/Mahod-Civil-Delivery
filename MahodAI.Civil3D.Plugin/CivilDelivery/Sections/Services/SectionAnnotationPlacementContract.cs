@@ -486,8 +486,8 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                 if (!seenChildren.Add(section.Handle.ToString()))
                     throw new InvalidOperationException(
                         $"SampleLine repeats Section child {section.Handle}.");
-                if (section.SourceType != CivilDb.SectionSourceType.TinSurface &&
-                    section.SourceType != CivilDb.SectionSourceType.GridSurface)
+                // Corridor-surface Sections are surfaces too (the resolver maps them to the surface).
+                if (!SectionSourceService.IsSurfaceSection(section.SourceType))
                     continue;
 
                 var identity = SectionSourceService.ResolveLiveSourceIdentityStrict(

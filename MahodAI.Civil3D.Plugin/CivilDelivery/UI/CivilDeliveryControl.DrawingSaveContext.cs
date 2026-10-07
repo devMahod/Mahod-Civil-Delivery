@@ -12,6 +12,21 @@ public partial class CivilDeliveryControl
 
     private void OnObservedDocumentActivated(object sender, DocumentCollectionEventArgs e)
     {
+        // An AutoCAD event handler must never throw: an exception here reaches AutoCAD's ".NET unhandled
+        // exception" modal on every drawing switch, and the MahodAI chat and tools freeze behind it
+        // (MahodAI audit, 2026-10-05).
+        try
+        {
+            OnObservedDocumentActivatedCore(e);
+        }
+        catch (System.Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine("Civil Delivery activation: " + ex.Message);
+        }
+    }
+
+    private void OnObservedDocumentActivatedCore(DocumentCollectionEventArgs e)
+    {
         // b26 (Codex 16:10 (ג), landscape copies turned DBMOD 0→1 on activation): opt-in only. Without the scan-diagnostics
         // switch every call below is a pass-through; with it, DBMOD around the palette's own activation work and the first
         // database objects modified meanwhile are journaled — read-only, nothing reset or saved.

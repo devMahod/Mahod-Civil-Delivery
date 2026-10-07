@@ -180,7 +180,26 @@ namespace MahodAI.CivilDelivery.Shared
             ArgumentNullException.ThrowIfNull(expectedState);
             if (string.IsNullOrWhiteSpace(approvedBy))
                 throw new ArgumentException("An approver is required — configuration is an engineering decision.", nameof(approvedBy));
-            return Publish(profile, path, changeSummary, approvedBy, expectedState, extraSourceHashes);
+            return RaiseSaved(Publish(profile, path, changeSummary, approvedBy, expectedState, extraSourceHashes));
+        }
+
+        /// <summary>
+        /// Raised after every successful save, on the saving thread. An open palette listens so a profile
+        /// changed under it — a decision saved from the MahodAI chat — is reloaded instead of being
+        /// overwritten from a stale copy. A listener can never fail the save.
+        /// </summary>
+        public static event Action<SaveResult>? Saved;
+
+        private static SaveResult RaiseSaved(SaveResult saved)
+        {
+            var handlers = Saved;
+            if (handlers == null) return saved;
+            foreach (Action<SaveResult> handler in handlers.GetInvocationList())
+            {
+                try { handler(saved); }
+                catch { /* a listener's failure is its own; the profile is saved */ }
+            }
+            return saved;
         }
 
         /// <summary>
@@ -192,7 +211,7 @@ namespace MahodAI.CivilDelivery.Shared
             ProjectProfile profile, string path, string changeSummary, ExpectedProfileState expectedState)
         {
             ArgumentNullException.ThrowIfNull(expectedState);
-            return Publish(profile, path, changeSummary, null, expectedState, null);
+            return RaiseSaved(Publish(profile, path, changeSummary, null, expectedState, null));
         }
 
         private static SaveResult Publish(

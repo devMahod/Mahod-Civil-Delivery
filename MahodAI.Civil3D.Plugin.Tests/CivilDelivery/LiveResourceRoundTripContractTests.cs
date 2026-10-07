@@ -113,9 +113,12 @@ namespace MahodAI.Civil3D.Plugin.Tests.CivilDelivery
             var reader = Between(decoration,
                 "internal static SectionAnnotationResourceContracts.LinetypeState ReadLinetypeState(",
                 "internal static IReadOnlyList<string> InvalidLinetypes(");
+            // Text through the guard: TextAt throws eNotApplicable on a plain dash (Civil 3D 2026), and
+            // MHD-DASHED2 / MHD-CENTER are plain dashes read back on every APPLY (MahodAI live test 2026-09-30).
             reader.Should().Contain("rec.ShapeNumberAt(i)")
-                .And.Contain("rec.TextAt(i)")
-                .And.Contain("rec.DashLengthAt(i)");
+                .And.Contain("TextAtOrNull(rec, i)")
+                .And.Contain("rec.DashLengthAt(i)")
+                .And.Contain("ErrorStatus.NotApplicable");
         }
 
         [Fact]

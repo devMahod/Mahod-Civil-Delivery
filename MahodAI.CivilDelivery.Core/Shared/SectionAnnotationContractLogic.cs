@@ -151,6 +151,26 @@ namespace MahodAI.CivilDelivery.Shared
             return true;
         }
 
+        /// <summary>
+        /// Whether a datum label is the one decoration wrote for this evidence. Decoration labels the
+        /// existing-ground datum with the FULL elevation to 2 decimals and records the evidence to 3
+        /// (<c>elevation={x:F3}</c>), so re-rounding the stored value double-rounds: 102.21489 is
+        /// labelled "102.21", stored as 102.215, and 102.215:F2 is "102.22" — VERIFY failed a correct
+        /// label (MahodAI live test, 2026-09-30; 824/825 on a correct batch). The label matches when it
+        /// is the 2-decimal rounding of any value the 3-decimal evidence stands for.
+        /// </summary>
+        public static bool DatumTextMatches(string? text, double evidenceElevation)
+        {
+            if (text == null || double.IsNaN(evidenceElevation) || double.IsInfinity(evidenceElevation))
+                return false;
+            foreach (var candidate in new[] { evidenceElevation, evidenceElevation - 0.0005, evidenceElevation + 0.0005 })
+            {
+                if (string.Equals(text, SectionDrawingTextLogic.DatumText(candidate), StringComparison.Ordinal))
+                    return true;
+            }
+            return false;
+        }
+
         public static bool TryParseDatumReference(
             string? value, out DatumEvidence? evidence, out string error)
         {

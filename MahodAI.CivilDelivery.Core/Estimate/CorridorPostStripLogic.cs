@@ -82,7 +82,7 @@ public static class CorridorPostStripLogic
                     var za = a.ElevationM - lowering; var zb = b.ElevationM - lowering;
                     if (!double.IsFinite(dx) || !double.IsFinite(dz) || !double.IsFinite(lowering) ||
                         !double.IsFinite(za) || !double.IsFinite(zb)) { failed = true; break; }
-                    parts.Add(new(new[] { new Point(a.OffsetM, za), new Point(b.OffsetM, zb) }));
+                    parts.Add(new(new[] { new CorridorBotSurfaceLogic.Point(a.OffsetM, za), new CorridorBotSurfaceLogic.Point(b.OffsetM, zb) }));
                     // Envelope cells are disjoint and cover only the proven Bot domain union.
                     foreach (var cell in valid.Envelope)
                     {

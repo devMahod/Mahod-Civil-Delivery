@@ -1326,8 +1326,8 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                 try
                 {
                     if (tr.GetObject(secId, OpenMode.ForWrite) is not CivilDb.Section section) continue;
-                    if (section.SourceType != CivilDb.SectionSourceType.TinSurface &&
-                        section.SourceType != CivilDb.SectionSourceType.GridSurface) continue;
+                    // Corridor-surface Sections too, keyed by the surface's own name.
+                    if (!SectionSourceService.IsSurfaceSection(section.SourceType)) continue;
                     var sourceName = section.SourceName ?? string.Empty;
                     if (!expectedBySource.TryGetValue(sourceName, out var expected))
                         continue;
@@ -1584,8 +1584,8 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                     if (tr.GetObject(secId, OpenMode.ForRead) is not CivilDb.Section s)
                         throw new InvalidOperationException(
                             $"SampleLine returned unreadable Section child {secId.Handle} while clamping elevation range.");
-                    if (s.SourceType != CivilDb.SectionSourceType.TinSurface &&
-                        s.SourceType != CivilDb.SectionSourceType.GridSurface) continue;
+                    // Corridor-surface Sections are surfaces too.
+                    if (!SectionSourceService.IsSurfaceSection(s.SourceType)) continue;
                     var lo = s.MinmumElevation;
                     var hi = s.MaximumElevation;
                     if (!double.IsFinite(lo) || !double.IsFinite(hi) || hi <= lo ||
@@ -1950,7 +1950,9 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                 var offset = rec.ShapeOffsetAt(i);
                 elements.Add(new SectionAnnotationResourceContracts.LinetypeElementState(
                     rec.DashLengthAt(i), rec.ShapeNumberAt(i),
-                    !rec.ShapeStyleAt(i).IsNull, rec.TextAt(i),
+                    // TextAtOrNull: TextAt throws eNotApplicable on a plain dash (Civil 3D 2026), and
+                    // MHD-DASHED2 / MHD-CENTER are plain dashes read back on every APPLY.
+                    !rec.ShapeStyleAt(i).IsNull, TextAtOrNull(rec, i),
                     offset.X, offset.Y, rec.ShapeScaleAt(i), rec.ShapeRotationAt(i),
                     rec.ShapeIsUcsOrientedAt(i), rec.ShapeIsUprightAt(i)));
             }
@@ -1960,6 +1962,19 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
         }
 
         /// <summary>Every missing or semantically drifted protected linetype (VERIFY reads through this too).</summary>
+        /// <summary>A dash element with no text has no text to read: null, which IsEmbeddedShapeOrText already treats so.</summary>
+        private static string? TextAtOrNull(LinetypeTableRecord rec, int index)
+        {
+            try
+            {
+                return rec.TextAt(index);
+            }
+            catch (Autodesk.AutoCAD.Runtime.Exception ex) when (ex.ErrorStatus == Autodesk.AutoCAD.Runtime.ErrorStatus.NotApplicable)
+            {
+                return null;
+            }
+        }
+
         internal static IReadOnlyList<string> InvalidLinetypes(Transaction tr, Database db)
         {
             var table = (LinetypeTable)tr.GetObject(db.LinetypeTableId, OpenMode.ForRead);

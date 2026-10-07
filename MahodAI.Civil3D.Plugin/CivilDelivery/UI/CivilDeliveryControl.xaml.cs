@@ -97,6 +97,15 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
             QuantitiesGrid.ItemsSource = _quantityRows;
             InitializeQuantityReviewFilter();
             HookApprover();
+            // A decision saved from the MahodAI chat changes the profile file under the palette. Subscribed
+            // while shown only (Loaded fires again on every re-show, so never twice), so a closed palette
+            // is not kept alive by the static event.
+            Loaded += (_, _) =>
+            {
+                ProjectProfileWriter.Saved -= OnProfileSavedElsewhere;
+                ProjectProfileWriter.Saved += OnProfileSavedElsewhere;
+            };
+            Unloaded += (_, _) => ProjectProfileWriter.Saved -= OnProfileSavedElsewhere;
 
             Loaded += (_, _) =>
             {
@@ -454,6 +463,34 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
         private System.Windows.Media.Brush? _statusBrush;
         private string? _evidenceBlockingStatus;
         private string? _previewCleanupBlockingStatus;
+
+        /// <summary>
+        /// Reloads when a save that was not ours (a chat decision) changed our profile file. The palette's own
+        /// saves read back through <see cref="PublishSavedProfile"/> first, so by the time this runs on the UI
+        /// thread their hash already matches and nothing happens.
+        /// </summary>
+        private void OnProfileSavedElsewhere(ProjectProfileWriter.SaveResult saved)
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                try
+                {
+                    if (string.IsNullOrWhiteSpace(_profileWriteTarget) ||
+                        !string.Equals(System.IO.Path.GetFullPath(_profileWriteTarget), System.IO.Path.GetFullPath(saved.Path),
+                            StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(_profileHash, saved.NewHash, StringComparison.Ordinal))
+                        return;
+                    ReloadProfile();
+                    RefreshDashboard();
+                    RefreshGates();
+                    SetStatus($"פרופיל הפרויקט עודכן מהצ'אט (גרסה {saved.NewVersion}) — הנתונים נטענו מחדש");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("Civil Delivery profile reload: " + ex.Message);
+                }
+            }));
+        }
 
         private void SetStatus(string s)
         {

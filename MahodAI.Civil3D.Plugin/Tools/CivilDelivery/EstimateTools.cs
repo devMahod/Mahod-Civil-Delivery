@@ -396,7 +396,9 @@ namespace MahodAI.Civil3D.Plugin.Tools.CivilDelivery
                 approvals.Add(new EstimateWorkflowService.MappingApproval(
                     RuleKey: ruleKey!,
                     CatalogCode: code!.Trim().ToUpperInvariant(),
-                    LayerPattern: sample.Source.Layer ?? "*",
+                    // The palette's mapping approval stores the layer LEAF, so an XREF layer saved
+                    // from chat is written exactly as the palette writes it (not "xref|layer").
+                    LayerPattern: SectionProjectionLogic.LayerLeaf(sample.Source.Layer) is { Length: > 0 } leaf ? leaf : "*",
                     EntityType: sample.Source.EntityType,
                     MeasurementKind: sample.Measurement.Kind,
                     MeasuredUnit: sample.Measurement.Unit));

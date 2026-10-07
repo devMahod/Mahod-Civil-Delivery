@@ -1400,9 +1400,9 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                     string.Equals(e.EntityType, nameof(DBText), StringComparison.Ordinal) &&
                     string.Equals(e.Layer, SectionDecorationService.AnnoLayer,
                         StringComparison.OrdinalIgnoreCase) &&
-                    string.Equals(e.Text,
-                        SectionDrawingTextLogic.DatumText(datumEvidence.Elevation),
-                        StringComparison.Ordinal) &&
+                    // Not string.Equals(DatumText(evidence)): the evidence is the label's value to 3
+                    // decimals, and re-rounding it to 2 can differ from the label (see DatumTextMatches).
+                    SectionAnnotationContractLogic.DatumTextMatches(e.Text, datumEvidence.Elevation) &&
                     expectedDatumPosition is { } expectedPosition &&
                     TextPlacementMatches(
                         e, expectedPosition, height: 0.75, rotation: 0.0,
@@ -1962,8 +1962,8 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                     if (tr.GetObject(sectionId, OpenMode.ForRead) is not CivilDb.Section section)
                         throw new InvalidOperationException(
                             $"Section child {sectionId.Handle} is not readable as a Civil Section.");
-                    if (section.SourceType != CivilDb.SectionSourceType.TinSurface &&
-                        section.SourceType != CivilDb.SectionSourceType.GridSurface)
+                    // Corridor-surface Sections are surfaces too, named for the surface itself.
+                    if (!SectionSourceService.IsSurfaceSection(section.SourceType))
                         continue;
 
                     var sourceName = section.SourceName;

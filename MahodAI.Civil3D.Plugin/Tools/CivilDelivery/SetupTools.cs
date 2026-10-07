@@ -129,6 +129,15 @@ namespace MahodAI.Civil3D.Plugin.Tools.CivilDelivery
                     ["crossed_by"] = a.CrossedByCandidateLayers.Distinct().ToList(),
                 }).ToList(),
                 ["sources"] = scan.Sources.Select(s => new { s.Name, s.Kind }).ToList(),
+                // What the saved setup samples, so chat can see a saved source the drawing no longer
+                // has (live 2026-09-30: a renamed corridor surface left the setup "configured" while
+                // the design surface it now plans was never sampled).
+                ["configured_sources"] = loaded.Profile.Sections.Sources.SampledSourceRules.Select(r => new Dictionary<string, object?>
+                {
+                    ["name"] = r.Name ?? r.NamePattern,
+                    ["kind"] = r.Kind,
+                    ["required"] = r.Required,
+                }).ToList(),
                 ["findings"] = scan.Findings.Select(f => new { f.Code, severity = f.Severity.ToString(), f.Title }).ToList(),
             };
             return Task.FromResult(ToolResult.ReadOnly(payload));

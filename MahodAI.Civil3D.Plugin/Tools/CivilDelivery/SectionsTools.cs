@@ -708,7 +708,10 @@ namespace MahodAI.Civil3D.Plugin.Tools.CivilDelivery
                 CivilDeliverySession.ClearSectionsApply();
                 return Task.FromResult(ToolResult.Fail(ToolErrorCodes.ExecutionFailed,
                     "APPLY batch failed — transaction must be aborted; findings: " +
-                    string.Join("; ", result.Records.SelectMany(r => r.Findings).Select(f => f.Title))));
+                    // The batch's own findings too: a refusal of the whole batch (SEC-LAYOUT-UNRESOLVED …)
+                    // used to reach the engineer as "findings: " and nothing else.
+                    string.Join("; ", result.Findings.Concat(result.Records.SelectMany(r => r.Findings))
+                        .Select(f => $"{f.Code}: {f.Title}"))));
             }
 
             cache.RemoveByPattern("get_drawing_summary:");
