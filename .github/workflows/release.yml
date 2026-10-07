@@ -1,0 +1,61 @@
+# Mahod desktop tool - release on every push to main (MahodAI-Plugin scripts/release/README.md).
+#
+# This file is IDENTICAL in every tool repository (mahod-visual-scan, Cross-Sections,
+# MahodCulvert, Mahod-Parking, Mahod-Civil-Delivery, Mahod-InterGreen); the master copy is
+# MahodAI-Plugin scripts/release/release.yml. What differs per tool is ci/tool.json + ci/build.ps1.
+#
+#   push to main      build + test on the release PC. If the tool's version has no v<version> tag
+#                     yet: the ZIP (installer + Hebrew guide) goes to the employee portal, the
+#                     source goes into MahodAI and out through the MahodAI updater, and the
+#                     commit is tagged v<version>. Same version as last time = built and tested only.
+#   Run workflow      the same, with Publish = build-only | force.
+#
+# The job runs ONLY on the self-hosted runner labelled `mahod-release` (the release PC: AutoCAD /
+# Civil 3D 2026 + 2027, the signing and usage keys). It never runs for pull requests or forks:
+# a self-hosted runner executes whatever the workflow says with that PC's keys.
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'auto = publish a new version; build-only = never publish; force = re-publish this version'
+        type: choice
+        options: [auto, build-only, force]
+        default: auto
+
+permissions:
+  contents: write   # the v<version> tag; linked tools also commit shared/SOURCE.json back
+
+concurrency:
+  group: release-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.repository_owner == 'devMahod'
+    runs-on: [self-hosted, windows, mahod-release]
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # tags for the version gate; Intergreen's engine-freeze gate diffs history
+          clean: true
+
+      - name: Release
+        shell: powershell
+        env:
+          PUBLISH: ${{ inputs.publish || 'auto' }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # The release scripts come from MahodAI-Plugin main, in a clone of their own: the
+          # MahodAI step resets C:\mr\plugin while it runs.
+          $scripts = 'C:\mr\release-scripts'
+          if (-not (Test-Path "$scripts\.git")) { git clone -q https://github.com/devMahod/MahodAI-Plugin.git $scripts }
+          git -C $scripts fetch -q origin
+          git -C $scripts reset -q --hard origin/main
+          & powershell -NoProfile -ExecutionPolicy Bypass -File "$scripts\scripts\release\Invoke-ToolRelease.ps1" `
+              -ToolRepo $env:GITHUB_WORKSPACE -Publish $env:PUBLISH
+          if ($LASTEXITCODE -ne 0) { throw "Invoke-ToolRelease.ps1 failed with exit code $LASTEXITCODE" }
