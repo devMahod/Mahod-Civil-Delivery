@@ -1,0 +1,7 @@
+{
+  "id": "civil-delivery",
+  "repo": "Mahod-Civil-Delivery",
+  "name": "Mahod Civil Delivery",
+  "portal": { "card": "civil-delivery" },
+  "mahodai": { "sync": "civil-delivery" }
+}
