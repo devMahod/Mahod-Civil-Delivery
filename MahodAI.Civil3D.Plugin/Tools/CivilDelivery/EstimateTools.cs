@@ -135,7 +135,7 @@ namespace MahodAI.Civil3D.Plugin.Tools.CivilDelivery
             if (result.Data is not ScanPublicationPayload pending)
                 throw new InvalidOperationException(
                     "Quantity scan completed without its post-transaction publication payload.");
-            if (!ReferenceEquals(database, pending.Database))
+            if (!EstimateToolSessionScope.SameDatabase(database, pending.Database))
                 throw new InvalidOperationException(
                     "Quantity scan transaction closed for a different drawing database.");
 
@@ -276,7 +276,7 @@ namespace MahodAI.Civil3D.Plugin.Tools.CivilDelivery
             if (result.Data is not ProposalPublicationPayload pending)
                 throw new InvalidOperationException(
                     "Mapping proposals completed without their post-transaction publication payload.");
-            if (!ReferenceEquals(database, pending.Database))
+            if (!EstimateToolSessionScope.SameDatabase(database, pending.Database))
                 throw new InvalidOperationException(
                     "Mapping proposals closed for a different drawing database.");
 
@@ -419,7 +419,7 @@ namespace MahodAI.Civil3D.Plugin.Tools.CivilDelivery
             if (result.Data is not MappingSavePayload pending)
                 throw new InvalidOperationException(
                     "Mapping approval completed without its post-transaction save payload.");
-            if (!ReferenceEquals(database, pending.Database))
+            if (!EstimateToolSessionScope.SameDatabase(database, pending.Database))
                 throw new InvalidOperationException(
                     "Mapping approval closed for a different drawing database.");
 
@@ -537,7 +537,7 @@ namespace MahodAI.Civil3D.Plugin.Tools.CivilDelivery
             if (result.Data is not BuildPublicationPayload pending)
                 throw new InvalidOperationException(
                     "Estimate build completed without its post-transaction publication payload.");
-            if (!ReferenceEquals(database, pending.Database))
+            if (!EstimateToolSessionScope.SameDatabase(database, pending.Database))
                 throw new InvalidOperationException(
                     "Estimate build closed for a different drawing database.");
 
@@ -774,6 +774,16 @@ namespace MahodAI.Civil3D.Plugin.Tools.CivilDelivery
     /// </summary>
     internal static class EstimateToolSessionScope
     {
+        /// <summary>
+        /// The same drawing database, by its native object. ReferenceEquals on the managed
+        /// wrappers refused a scan of the one open drawing in chat ("transaction closed for a
+        /// different drawing database", live 2026-10-07): AutoCAD may hand out another wrapper
+        /// for the same database. The identity checked is unchanged — the native pointer.
+        /// </summary>
+        internal static bool SameDatabase(Database? a, Database? b) =>
+            ReferenceEquals(a, b) ||
+            (a != null && b != null && !a.IsDisposed && !b.IsDisposed && a.UnmanagedObject == b.UnmanagedObject);
+
         internal sealed record ResolvedContext(
             EstimateWorkflowService.ScanResult Scan,
             EstimateResult? Estimate,
