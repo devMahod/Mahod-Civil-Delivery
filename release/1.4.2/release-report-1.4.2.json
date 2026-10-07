@@ -1,0 +1,44 @@
+{
+    "product":  "Mahod Civil Delivery",
+    "version":  "1.4.2",
+    "source_commit":  "b3995512094ccd913ffbdb3b156eeea23595fb51",
+    "built_utc":  "2026-10-07T06:36:27.0095443Z",
+    "zip_entries":  [
+                        "Mahod_Civil_Delivery_Setup_1.4.2.exe",
+                        "Mahod_Civil_Delivery_מדריך_למשתמשת.pdf"
+                    ],
+    "hosts":  {
+                  "2026":  {
+                               "plugin_assembly_version":  "1.4.2.0",
+                               "core_assembly_version":  "1.4.2.0",
+                               "plugin_sha256":  "C6D276D75C07EC75BB34C8D558DA0CBCD451A0603CAC7938FB1A4CB1F04103CA",
+                               "core_sha256":  "7CE169AE781A729494212E48A4B90D651615CB71C9251D256B01D03A8F6022BC",
+                               "usage_endpoint":  true,
+                               "usage_key_baked":  true
+                           },
+                  "2027":  {
+                               "plugin_assembly_version":  "1.4.2.0",
+                               "core_assembly_version":  "1.4.2.0",
+                               "plugin_sha256":  "7AF95BDF5C012F43512FD763608734CC8A9D8D4104E68A45BD709BA1FC83C37A",
+                               "core_sha256":  "D4480DB73B9800B08D22B51348C2F9772A482EB3350898EA2C83CCFFC8FAC487",
+                               "usage_endpoint":  true,
+                               "usage_key_baked":  true
+                           }
+              },
+    "installer_lifecycle":  "20 passed, 0 failed",
+    "payload_manifest_sha256":  "781C3B1EFF607AACCF32D40D7C7E681AE121DD45D1DA6288E0EF54CA6B0A05E7",
+    "artifacts":  {
+                      "Mahod_Civil_Delivery_1.4.2.zip":  {
+                                                             "bytes":  71673279,
+                                                             "sha256":  "A132C6E0665710FCB014F7401DF6CBF59C64F7E018656C1FC134DBE8E9C1EA56"
+                                                         },
+                      "Mahod_Civil_Delivery_Setup_1.4.2.exe":  {
+                                                                   "bytes":  77129739,
+                                                                   "sha256":  "AD1D1055FE14D4084E224E5B29960BEF1959407317B250FDCDEC6039DBC5E97B"
+                                                               },
+                      "MAHOD_CIVIL_DELIVERY_GUIDE_HE_1.4.2.pdf":  {
+                                                                      "bytes":  296658,
+                                                                      "sha256":  "5A14A476C92E4188CC51470CE24CACB1107A29F7A23AC2AE83D0114CB14E2156"
+                                                                  }
+                  }
+}

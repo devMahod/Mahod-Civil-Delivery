@@ -1,53 +1,60 @@
 # Mahod Civil Delivery 1.4.2
 
-**Status: source ready, release artifacts NOT built.** The guide input is missing (see "Guide"). Nothing here is published.
-
-1.4.2 = the 1.4.0 b41 developer source (`9430d5e`) + usage counts for Mahod Impact (`636e6c7`, `dea0b66` on `feat/impact-usage`).
+Built on 7 October 2026 from source `b3995512094ccd913ffbdb3b156eeea23595fb51` (`feat/impact-usage`) by `build-release-1.4.2.ps1`, run through the owner's `with-usage-key.ps1`. **Not published**: putting it on the portal is the owner's decision.
 
 ## Changes from the b41 source
 
-- **Usage counts for Mahod Impact (the only code change).** The tool reports to Mahod AI (`https://dev.mahodeng.co.il/api/v1/usage`) with MahodAI's own recorder, `MahodAI.Civil3D.Plugin/Utilities/MahodUsage.cs`, byte for byte (MahodAI plugin `a259bed`):
-  - Actions, timed, `completed` or `failed` (never `cancelled`): `civildelivery_plan`, `_preview`, `_apply`, `_verify` (SectionsWorkflowService), `civildelivery_estimate` (the early estimate's quantity scan), and the typed `MCD_CIVIL_DELIVERY` / `MCD_SETUP` / `MCD_SECTIONS` as `civildelivery_open` / `_setup` / `_sections`.
-  - Units: one `section_delivery` per section read back Verified. The key is drawing `FingerprintGuid` + `|section:` + the logical key, hashed on the PC. This is the same scheme MahodAI uses for the Civil Delivery it carries.
-  - Doors: `palette`, or `standalone` inside a typed `MCD_*` command. The door is never decided by assembly name.
-- **Never in a record:** the drawing, file name, path, layers, quantities, prices, the Windows user or a PC id. The HTTP request authenticates with this PC's MahodAI installation key when there is one, else with the products' key baked in at build time.
-- **How it sends:** queue in `%LOCALAPPDATA%\Mahod\cad-usage`; upload on a background task at most every 15 minutes per Civil session. `MAHOD_USAGE_OFF=1` turns it off.
-- Version 1.4.2 in `MahodCivilDelivery/VERSION` and `SectionPlanService.ToolVersion`.
-  - 1.4.1 is reserved by `round-1.4.1/PLAN_1.4.1_HE.md` for the release that closes the round's five requests. That release must now be numbered 1.4.3 or later, or it would install as a downgrade.
-- **Beware: b41 is not the build the portal ships as 1.4.0.** The portal ZIP was uploaded on 4 October; b41 was built on 6 October with the round-1.4.1 work. That work (XREF categories, Hebrew item descriptions, SIMUN mapping, CL picker and more) is not yet live-accepted (`round-1.4.1/STATUS_1.4.1_HE.md`). Shipping 1.4.2 therefore ships that work as well. Publishing is the owner's decision.
+**Usage counts for Mahod Impact (the only code change).** The tool reports to Mahod AI (`https://dev.mahodeng.co.il/api/v1/usage`) with MahodAI's own recorder, `Utilities/MahodUsage.cs`. It is a byte-for-byte copy of the MahodAI plugin's recorder at `a259bed`.
 
-## Guide
+- **Actions:** each is timed and reported as `completed` or `failed` (never `cancelled`).
+  - `civildelivery_plan`, `_preview`, `_apply` and `_verify` (SectionsWorkflowService).
+  - `civildelivery_estimate`, the early estimate's quantity scan.
+  - `civildelivery_open`, `_setup` and `_sections`, for the typed `MCD_CIVIL_DELIVERY`, `MCD_SETUP` and `MCD_SECTIONS`.
+- **Units:** one `section_delivery` per section read back as Verified. Its key is the drawing `FingerprintGuid` + `|section:` + the section's logical key, hashed on the PC.
+- **Doors:** `palette`, or `standalone` inside a typed `MCD_*` command. The door is never decided by assembly name.
+- **Never sent:** the drawing, file name, path, layers, quantities, prices, the Windows user or the PC.
+  - The request authenticates with this PC's MahodAI installation key when there is one. Otherwise it uses the products' key, baked in at build time.
+  - Records wait in `%LOCALAPPDATA%\Mahod\cad-usage` and upload at most every 15 minutes per Civil session.
+  - `MAHOD_USAGE_OFF=1` turns reporting off.
 
-- `nataly/guide/GUIDE_HE.html` has the new section "מה נשלח ל-Mahod AI" (chapter 7). That template cannot produce the 1.4.x guide:
-  - its screenshots (`nataly/guide/img/`) are not in this repository;
-  - it still describes the 1.2.x MahodAI-fork install (`MHD_*`, `MahodAI.bundle`);
-  - `release/release.json` pins 1.2.91.
-- The engineers' 1.4.0 guide (`MAHOD_CIVIL_DELIVERY_GUIDE_HE_1.4.0.pdf`, SHA-256 `8816E962…F1D4`, README_DEVELOPERS_HE.md) is not in this repository either.
-- `build_guide_142.py` makes the 1.4.2 guide from that PDF: the 1.4.0 PDF unchanged, plus one page "תוספת לגרסה 1.4.2". The page is rendered by Edge from the same section and CSS.
-  - It was checked on a stand-in PDF: the page renders correctly in Hebrew RTL.
-  - Limitation: the cover still says 1.4.0.
+**Version and guide**
 
-## Building (once the 1.4.0 guide PDF is available)
+- The version is 1.4.2, in `MahodCivilDelivery/VERSION` and `SectionPlanService.ToolVersion`.
+  - 1.4.1 is reserved by `round-1.4.1/PLAN_1.4.1_HE.md` for the release that closes the round's five requests.
+  - That release must therefore be numbered 1.4.3 or later.
+- The guide is a new Hebrew user guide written for 1.4.2 (`guide-source/`), by the owner's decision of 7 October 2026.
+  - The 1.4.0 guide's source and screenshots are not in this repository.
+  - `nataly/guide/GUIDE_HE.html` is the 1.2.x guide.
 
-```powershell
-# 1. guide (project venv; never bare python)
-<venv>\python.exe release\1.4.2\build_guide_142.py --base <MAHOD_CIVIL_DELIVERY_GUIDE_HE_1.4.0.pdf> --out <dir>
-# 2. setup + gates + lifecycle test + portal ZIP, with the key in this process only
-powershell -NoProfile -Command "& '<with-usage-key.ps1>' -WorkDir '<repo>' -Script '<repo>\release\1.4.2\build-release-1.4.2.ps1' -Arguments @('<dir>\MAHOD_CIVIL_DELIVERY_GUIDE_HE_1.4.2.pdf','<its SHA-256>','<out dir>')"
-```
+**Beware: b41 is newer than the build the portal ships as 1.4.0.**
 
-`build-release-1.4.2.ps1` does the following:
+- 1.4.2 therefore also carries the round-1.4.1 work: XREF categories, Hebrew item descriptions, SIMUN mapping, the CL picker, known price books and the work-domain choice.
+- That work is not yet fully live-accepted (`round-1.4.1/STATUS_1.4.1_HE.md`). The guide says so in chapter 8.
 
-1. Runs `MahodCivilDelivery/installer/build-setup.ps1` unchanged. This builds both hosts (Civil 3D 2026 net8 and 2027 net10), checks the payload, writes the MANIFEST, runs the EXE payload self-test and the Defender scan.
-2. Checks that each host's DLLs are 1.4.2.0 and carry the endpoint and the key. The key check is a boolean and the key is never printed.
-3. Runs `Test-Installer.ps1`.
-4. Zips exactly the setup and `Mahod_Civil_Delivery_מדריך_למשתמשת.pdf` (named as `nataly/build-nataly.ps1` names it), runs a Defender scan on the ZIP, and writes the sidecars and `release-report-1.4.2.json`.
+## Artifacts
 
-Built DLLs, setups and ZIPs carry the key: never commit them (this repository is public).
+| Artifact | Bytes | SHA-256 |
+|---|---:|---|
+| `Mahod_Civil_Delivery_1.4.2.zip` (portal package) | 71673279 | `A132C6E0665710FCB014F7401DF6CBF59C64F7E018656C1FC134DBE8E9C1EA56` |
+| `Mahod_Civil_Delivery_Setup_1.4.2.exe` | 77129739 | `AD1D1055FE14D4084E224E5B29960BEF1959407317B250FDCDEC6039DBC5E97B` |
+| [`MAHOD_CIVIL_DELIVERY_GUIDE_HE_1.4.2.pdf`](MAHOD_CIVIL_DELIVERY_GUIDE_HE_1.4.2.pdf) (9 pages) | 296658 | `5A14A476C92E4188CC51470CE24CACB1107A29F7A23AC2AE83D0114CB14E2156` |
 
-## Validation done (6 October 2026)
+- **The ZIP** holds exactly the setup and `Mahod_Civil_Delivery_מדריך_למשתמשת.pdf`. Each is byte-identical to the rows above. This is the two-file rule of `nataly/build-nataly.ps1`.
+  - The portal's description of 1.4.0 says its ZIP also carried a folder `מחירון` with `nti-2026.xlsx`. That file is not in this repository, so it is not in this package; the guide tells engineers to get the price book from Arthur.
+- **The setup and ZIP are not in git:** they carry the baked key, and this repository is public.
+- **[release-report-1.4.2.json](release-report-1.4.2.json)** gives the plugin and Core SHA-256 for each host, the assembly versions, and the endpoint and key checks (booleans only). It also records the installer lifecycle result.
 
-**Repository lanes** (`round-1.4.1/chain_b18.sh` filters, `MAHOD_USAGE_OFF=1`). Results are identical to `9430d5e` on this machine apart from the new tests:
+## Hosts and installation
+
+- **Hosts:** Civil 3D 2026 (.NET 8) and 2027 (.NET 10), the same hosts as 1.4.0.
+- **Install:** per user, no administrator rights, into `%APPDATA%\Autodesk\ApplicationPlugins\Mahod.CivilDelivery.bundle`.
+- **Upgrade:** setup upgrades 1.4.0 in place. The previous version is kept as `Mahod.CivilDelivery.previous`, and project data is untouched.
+- **Refusals:** setup refuses while Civil 3D or AutoCAD runs, when run elevated, and when neither Civil 3D 2026 nor 2027 is present.
+- **Beside MahodAI:** the tool is a separate assembly (`Mahod.CivilDelivery`) with `MCD_*` commands, so it loads beside MahodAI. It hides MahodAI's old Civil Delivery button.
+
+## Validation (6–7 October 2026)
+
+**Test lanes** (filters of `round-1.4.1/chain_b18.sh`, run with `MAHOD_USAGE_OFF=1`):
 
 | Lane | 1.4.2 (pass / fail / skip) | 9430d5e (pass / fail / skip) |
 |---|---|---|
@@ -56,22 +63,37 @@ Built DLLs, setups and ZIPs carry the key: never commit them (this repository is
 | Standalone Core | 3247 / 42 / 2 | 3247 / 42 / 2 |
 | Standalone | 2543 / 12 / 14 | 2530 / 12 / 14 |
 
-- The new tests: 10 in Plugin and 13 in Standalone (the same 10 plus 3).
-- The failing tests are the same set on both commits. They are fixture SHA-256 mismatches and recorded native runs that are not on this PC; they are not caused by this change.
-- The 2026 build (`MahodCivilDeliveryGuideEnabled`) succeeds.
+- The failing set is identical on both commits: fixture SHA-256 mismatches and native runs that are not on this PC.
+- The new usage tests pass: +10 in Plugin, +13 in Standalone.
 
-**Pipeline** (through `with-usage-key.ps1`, with a stand-in guide; those artifacts were deleted):
+**Release build:**
 
-- Both hosts are assembly 1.4.2.0, with the usage endpoint present and the key baked.
-- Payload verification, the setup self-test and Defender passed.
+- `build-setup.ps1` checks passed: payload verification, the setup EXE payload self-test, and Defender (clean).
+- Both hosts are assembly 1.4.2.0, with the usage endpoint present and the key baked in.
 - `Test-Installer.ps1`: 20 passed, 0 failed.
-- The ZIP held exactly the 2 expected entries.
+- The ZIP held exactly 2 entries, and Defender found it clean.
 
-**Offline end-to-end check** of the built 2027 DLL, run without AutoCAD against a loopback listener:
+**Offline end-to-end check** of this release's 2027 DLL, run without AutoCAD against a loopback listener:
 
-- Records `civildelivery` actions with real durations, the `palette` and `standalone` doors, and a disposed step sent as `failed`.
-- Records 2 `section_delivery` units out of 3 verify records, of which 2 were Verified.
-- The envelope holds only `v,sid,events`. No user, PC, drawing or section text was found in the bodies.
-- The baked key equals the owner's key file (checked as a boolean).
+- Reported `civildelivery` actions with real durations, in the `palette` and `standalone` doors, including a `failed` step.
+- Reported 2 `section_delivery` units out of 3 verify records, of which 2 were Verified.
+- The body held only `v,sid,events`, and no user, PC, drawing or section text.
+- The baked key equals the key file (checked as a boolean).
 
-**Not run:** installing the setup, or any run inside Civil 3D 2026/2027; an upload to the real Mahod AI route from this build.
+**Guide:**
+
+- Rendered with Edge headless.
+- All 9 pages were rendered to PNG and inspected: Hebrew right-to-left, commands and paths not reversed, nothing cut off.
+- Mixed-direction lines were also checked by extracting their visual character order.
+- Every command, button label and path in the guide was checked against this source.
+
+**Not run:** installing the setup; any run inside Civil 3D 2026/2027; an upload to the real Mahod AI route from this build.
+
+## Rebuild
+
+```powershell
+# guide (project venv; never bare python) - pass the commit the installer is built from
+<venv>\python.exe release\1.4.2\guide-source\build_guide.py <commit> --out <dir>
+# setup + gates + lifecycle test + portal ZIP, with the key in that child process only
+powershell -NoProfile -Command "& '<with-usage-key.ps1>' -WorkDir '<repo>' -Script '<repo>\release\1.4.2\build-release-1.4.2.ps1' -Arguments @('<dir>\MAHOD_CIVIL_DELIVERY_GUIDE_HE_1.4.2.pdf','<its SHA-256>','<out dir>')"
+```
