@@ -415,7 +415,7 @@
               <!-- The fast path after a scan: an editable, priced BoQ draft from the design
                    models with the Mahod roads library. No per-layer mapping, no approval.
                    Kept on the title line so narrow palettes keep their table height. -->
-              <Button DockPanel.Dock="Left" x:Name="BtnExportEngineerDraft" Content="טיוטת כמויות להנדסה…"
+              <Button DockPanel.Dock="Left" x:Name="BtnExportEngineerDraft" Content="ייצא כתב כמויות…"
                       Click="OnExportEngineerDraft" Style="{StaticResource PrimaryButton}" IsEnabled="False"
                       MinHeight="26" Padding="10,2" Margin="0,4,0,2" VerticalAlignment="Center"
                       ToolTip="הדרך המהירה אחרי סריקה: טיוטת כתב כמויות ב-Excel ממודלי התכנון — מבני מיסעה, אבני שפה, סימון, שילוט ומחירים מהמחירון, עם נוסחאות לעריכה. כוללת שיוכים מאושרים בפרופיל שתקפים למחירון הפעיל, ומחילה החלטות &apos;לא כמות בנייה&apos; שנשמרו עם שם מאשר. מצב קיים, תשתיות ושכבות עזר מופיעים בגיליונות נפרדים. זו טיוטה לבדיקה הנדסית ולא אומדן; הקובץ אינו משנה את הפרופיל"/>
@@ -480,8 +480,8 @@
                            FontWeight="SemiBold"/>
                 <Button DockPanel.Dock="Left" x:Name="BtnLoadPriceBook" Content="טען מחירון…"
                         Click="OnLoadPriceBook" ToolTip="בחר Excel ובדוק גיליון ועמודות: סעיף, תיאור, יחידה ומחיר. הרישום רק לאחר אישור הקריאה"/>
-                <Button DockPanel.Dock="Left" x:Name="BtnKnownPriceBooks" Content="מוכר…" Click="OnKnownPriceBooks"
-                        ToolTip="הצע מחירונים שנרשמו בעבר במחשב זה; בחירה מפורשת ובדיקת זהות, מהדורה וקריאה לפני רישום בפרויקט"/>
+                <Button DockPanel.Dock="Left" x:Name="BtnKnownPriceBooks" Content="מחירונים…" Click="OnKnownPriceBooks"
+                        ToolTip="בחר מחירון הכלול בתוסף או מחירון שנרשם בעבר במחשב זה, ובדוק את המהדורה לפני הפעלתו בפרויקט"/>
                 <ComboBox x:Name="PriceBookCombo" MinWidth="120" Margin="0,0,8,0"
                           SelectionChanged="OnPriceBookChanged"
                           DisplayMemberPath="Label"
@@ -584,7 +584,9 @@
                 </Grid>
                 <TextBlock x:Name="QuantityFilterCount" Style="{StaticResource Muted}" TextWrapping="Wrap"/>
               </StackPanel>
-            <DataGrid x:Name="QuantitiesGrid" SelectionChanged="OnQuantitySelected" RowHeight="NaN" MinRowHeight="52"
+            <DataGrid x:Name="QuantitiesGrid" SelectionChanged="OnQuantitySelected" MouseDoubleClick="OnQuantityDoubleClick"
+                      ToolTip="דאבל־קליק ממקד ובוחר אובייקט אחד; דאבל־קליק נוסף עובר לאובייקט הבא בקבוצה"
+                      RowHeight="NaN" MinRowHeight="52"
                       RowStyle="{StaticResource SeverityRow}">
               <!-- Keep selected cells legible when focus moves to another palette control.
                    The system inactive-selection fill otherwise hides the dark row tint. -->

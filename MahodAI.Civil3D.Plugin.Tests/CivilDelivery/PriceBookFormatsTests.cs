@@ -255,7 +255,7 @@ namespace MahodAI.Civil3D.Plugin.Tests.CivilDelivery
                 "PriceBookXlsxLoader.cs"));
             source.Should().Contain("var workbookBytes = File.ReadAllBytes(xlsxPath)")
                 .And.Contain("SHA256.HashData(workbookBytes)")
-                .And.Contain("MiniXlsx.ReadFirstSheet(workbookBytes)")
+                .And.Contain("PriceBookWorkbook.ReadSheet(workbookBytes, sheetName)")
                 .And.NotContain("ArtifactHash.Sha256OfFile(xlsxPath)");
         }
     }

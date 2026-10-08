@@ -31,12 +31,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="ExcelDataReader" Version="3.8.0" />
     <PackageReference Include="YamlDotNet" Version="16.3.0" />
     <!-- v4.5 BoQ hatch-overlap estimates (BoqNoteAnalysis); the same 2.6.0 the bundle already ships for the plugin -->
     <PackageReference Include="NetTopologySuite" Version="2.6.0" />
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="..\..\MahodAI.CivilDelivery.Core\Estimate\PriceBooks\nti-unified-2026-07.xls"
+                      LogicalName="Mahod.CivilDelivery.PriceBooks.nti-unified-2026-07.xls" />
     <!-- Same ruleset resource name as the MahodAI Core build (BoqRuleset.EmbeddedResource6422). -->
     <EmbeddedResource Include="..\..\MahodAI.CivilDelivery.Core\Estimate\CorridorBoq\rulesets\6422_corridor_v1.json"
                       LogicalName="MahodAI.CivilDelivery.Estimate.CorridorBoq.rulesets.6422_corridor_v1.json" />

@@ -106,7 +106,9 @@ namespace MahodAI.CivilDelivery.Estimate
                     "והאישורים הקיימים אינם עוברים אליה.");
 
             Directory.CreateDirectory(profileDir);
-            var storedPath = Path.Combine(profileDir, finalId + ".xlsx");
+            var extension = string.Equals(Path.GetExtension(sourceXlsx), ".xls", StringComparison.OrdinalIgnoreCase) ? ".xls" : ".xlsx";
+            var storedName = existingEntry?.File ?? finalId + extension;
+            var storedPath = Path.Combine(profileDir, storedName);
             var sourceFullPath = Path.GetFullPath(sourceXlsx);
             var storedFullPath = Path.GetFullPath(storedPath);
             var storedFileCreated = false;
@@ -143,7 +145,7 @@ namespace MahodAI.CivilDelivery.Estimate
                 }
                 entry.Publisher = finalPublisher;
                 entry.Edition = finalEdition;
-                entry.File = finalId + ".xlsx";
+                entry.File = storedName;
                 entry.FileHash = inspection.FileHash;
                 entry.ItemCount = inspection.ItemCount;
                 entry.RegisteredAtUtc = DateTime.UtcNow;
@@ -304,9 +306,9 @@ namespace MahodAI.CivilDelivery.Estimate
                     (!string.Equals(entries[0].FileHash, fileHash, StringComparison.OrdinalIgnoreCase) ||
                      !SameMapping(entries[0].Mapping, mapping)))
                     continue;
-                var stored = Path.Combine(profileDir, candidate + ".xlsx");
-                if (File.Exists(stored) &&
-                    !string.Equals(ArtifactHash.Sha256OfFile(stored), fileHash, StringComparison.OrdinalIgnoreCase))
+                var storedPaths = new[] { ".xlsx", ".xls" }.Select(ext => Path.Combine(profileDir, candidate + ext));
+                if (storedPaths.Any(stored => File.Exists(stored) &&
+                    !string.Equals(ArtifactHash.Sha256OfFile(stored), fileHash, StringComparison.OrdinalIgnoreCase)))
                     continue;
                 return candidate;
             }

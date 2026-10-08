@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Text;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -74,27 +76,29 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
         private void ShowProposalsOnly()
         {
             _rows.Clear();
-            foreach (var r in _proposals) _rows.Add(r);
+            foreach (var r in _proposals.Where(r => CompatibleOnly.IsChecked != true || r.UnitCompatible)) _rows.Add(r);
             ResultCount.Text = _proposals.Count > 0 ? $"{_proposals.Count} הצעות" : "אין הצעות — חפש";
         }
 
         private void OnSearchChanged(object sender, TextChangedEventArgs e)
         {
+            if (_catalog == null) return;
             var q = SearchBox.Text.Trim();
             if (q.Length < 2) { ShowProposalsOnly(); return; }
 
-            var terms = q.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var terms = NormalizeSearch(q).Split(' ', StringSplitOptions.RemoveEmptyEntries);
             var matches = new List<Row>();
 
             foreach (var item in _catalog.Items.Values)
             {
                 // Code prefix match (51.01) or every term in the description.
                 var byCode = item.Code.Contains(q, StringComparison.OrdinalIgnoreCase);
-                var byText = terms.All(t => item.Description.Contains(t, StringComparison.OrdinalIgnoreCase));
+                var description = NormalizeSearch(item.Description);
+                var byText = terms.Length > 0 && terms.All(t => description.Contains(t, StringComparison.OrdinalIgnoreCase));
                 if (!byCode && !byText) continue;
 
                 var row = ToRow(item.Code, why: byCode ? "לפי סעיף" : "לפי תיאור", rank: 1000);
-                if (row != null) matches.Add(row);
+                if (row != null && (CompatibleOnly.IsChecked != true || row.UnitCompatible)) matches.Add(row);
             }
 
             // Rank the entire matching set before limiting the visible grid. Stopping
@@ -140,8 +144,11 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
             {
                 BtnOk.IsEnabled = false;
                 UnitVerdict.Text = "";
+                SelectedDetail.Text = "בחר סעיף מהרשימה כדי לראות תיאור מלא, יחידה ומחיר.";
                 return;
             }
+
+            SelectedDetail.Text = $"סעיף {Bidi.Ltr(r.Code)} · יחידה: {r.Unit} · מחיר יחידה: {r.PriceDisplay} ₪\n\n{r.Description}";
 
             if (r.UnitCompatible)
             {
@@ -173,6 +180,21 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
         }
 
         private void OnCancel(object sender, RoutedEventArgs e) => DialogResult = false;
+
+        private void OnClearSearch(object sender, RoutedEventArgs e) { SearchBox.Clear(); SearchBox.Focus(); }
+        private void OnUnitFilterChanged(object sender, RoutedEventArgs e) => OnSearchChanged(sender, null!);
+
+        internal static string NormalizeSearch(string text)
+        {
+            var result = new StringBuilder();
+            foreach (var c in text.Normalize(NormalizationForm.FormD))
+            {
+                if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark) continue;
+                if (c is '\'' or '"' or '׳' or '״') continue;
+                result.Append(char.IsLetterOrDigit(c) ? char.ToLowerInvariant(c) : ' ');
+            }
+            return string.Join(" ", result.ToString().Split(' ', StringSplitOptions.RemoveEmptyEntries));
+        }
 
         private static string KindHe(string kind) => kind switch
         {

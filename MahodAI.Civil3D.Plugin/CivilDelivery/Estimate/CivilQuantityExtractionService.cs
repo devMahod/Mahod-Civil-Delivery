@@ -1120,12 +1120,18 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Estimate
                             findings?.Add(Failure(
                                 $"Failed to read block name for {SafeEntityId(br)}", ex.Message, "block-name"));
                         }
+                        var countScale = br.ScaleFactors;
                         return new QuantityMeasurement
                         {
                             Kind = "count", Method = "block-count",
                             RawValue = 1, Unit = "יח'",
                             GeometryEvidence = bbox,
-                            Parameters = { ["block_name"] = blockName },
+                            Parameters =
+                            {
+                                ["block_name"] = blockName,
+                                ["block_count_scale"] = string.Join(",", new[] { countScale.X, countScale.Y, countScale.Z }
+                                    .Select(value => value.ToString("R", System.Globalization.CultureInfo.InvariantCulture))),
+                            },
                         };
 
                     default:
@@ -1621,7 +1627,15 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Estimate
                     : default;
             if (string.IsNullOrWhiteSpace(parameter.Name)) return key;
 
-            var normalized = string.Join("_", parameter.Name.Trim()
+            var groupedName = parameter.Prefix == "block"
+                ? BlockQuantityGrouping.Name(parameter.Name) : parameter.Name;
+            // Explicit exported family/dimension grouping also preserves insertion scale.
+            // Evidence metadata and historic per-instance approvals do not broaden this scope.
+            if (groupedName != parameter.Name.Trim() &&
+                measurement.Parameters.TryGetValue("block_count_scale", out var scale) &&
+                scale != "1,1,1")
+                groupedName += " SCALE=" + scale;
+            var normalized = string.Join("_", groupedName.Trim()
                 .Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
                 .ToUpperInvariant();
             return $"{key}|{parameter.Prefix}:{Uri.EscapeDataString(normalized)}";

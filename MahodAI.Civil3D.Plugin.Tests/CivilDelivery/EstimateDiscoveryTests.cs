@@ -122,6 +122,31 @@ namespace MahodAI.Civil3D.Plugin.Tests.CivilDelivery
         }
 
         [Fact]
+        public void ExportedColumns_GroupByTypeDimensionsAndScale_KeepingOriginalNames()
+        {
+            static QuantityMeasurement Column(string name, string scale = "1,1,1") => new()
+            {
+                Kind = "count", Method = "block-count", RawValue = 1, Unit = "יח'",
+                Parameters = { ["block_name"] = name, ["block_count_scale"] = scale },
+            };
+            const string prefix = "XREF|STC_עמוד בטון ריבועי - PARA ";
+            var original = Column(prefix + "30_100-8059796-B1 WK");
+            var key = CivilQuantityExtractionService.BuildDiscoveryRuleKey("XREF|S-COLS", original);
+            CivilQuantityExtractionService.BuildDiscoveryRuleKey("S-COLS",
+                Column(prefix + "30_100-V16-B1 WK")).Should().Be(key);
+            CivilQuantityExtractionService.BuildDiscoveryRuleKey("S-COLS",
+                Column(prefix + "30_200-8059344-B1 WK")).Should().NotBe(key);
+            CivilQuantityExtractionService.BuildDiscoveryRuleKey("OTHER",
+                Column(prefix + "30_100-8059796-B1 WK")).Should().NotBe(key);
+            CivilQuantityExtractionService.BuildDiscoveryRuleKey("S-COLS",
+                Column(prefix + "30_100-8059796-B1 WK", "2,2,2")).Should().NotBe(key);
+            original.Parameters["block_name"].Should().Be(prefix + "30_100-8059796-B1 WK");
+            BlockQuantityGrouping.Name("COLUMN-8059796").Should().Be("COLUMN-8059796");
+            BlockQuantityGrouping.Name(prefix + "30_100 2-8059796-B1 WK")
+                .Should().NotBe(BlockQuantityGrouping.Name(prefix + "30_100-8059796-B1 WK"));
+        }
+
+        [Fact]
         public void ApprovedCountRule_DoesNotFallBackToAnotherBlockOnTheSameLayer()
         {
             var profile = EstimateFixtures.Profile();

@@ -195,7 +195,7 @@ namespace MahodAI.CivilDelivery.Estimate
                 }
             }
 
-            sheetNames = MiniXlsx.ReadSheetNames(workbookBytes);
+            sheetNames = PriceBookWorkbook.ReadSheetNames(workbookBytes);
             if (sheetNames.Count == 0)
             {
                 problems.Add("לא נמצאו גיליונות בקובץ המחירון.");
@@ -207,7 +207,7 @@ namespace MahodAI.CivilDelivery.Estimate
                 problems.Add($"נדרש גיליון יחיד בשם '{sheetName}'; לא נבחר גיליון חלופי.");
                 return Finish();
             }
-            var sheetRows = mapping == null ? MiniXlsx.ReadFirstSheet(workbookBytes) : MiniXlsx.ReadSheet(workbookBytes, sheetName);
+            var sheetRows = PriceBookWorkbook.ReadSheet(workbookBytes, sheetName);
             var rows = new List<(int Number, List<(string Col, string Text, bool IsNumeric)> Cells)>();
             int rowIndex = 0;
             foreach (var row in sheetRows)

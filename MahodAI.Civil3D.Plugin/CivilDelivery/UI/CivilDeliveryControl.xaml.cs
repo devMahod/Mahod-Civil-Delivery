@@ -1073,7 +1073,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
             var dlg = new Microsoft.Win32.OpenFileDialog
             {
                 Title = "טען מחירון (Excel)",
-                Filter = "Excel price book (*.xlsx)|*.xlsx",
+                Filter = "Excel price book (*.xlsx;*.xls)|*.xlsx;*.xls",
                 CheckFileExists = true,
             };
             if (dlg.ShowDialog() != true) return;
@@ -3005,6 +3005,8 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
                 {
                     RuleKey = group.Key,
                     Layer = string.IsNullOrWhiteSpace(semanticLayer) ? "—" : semanticLayer,
+                    BlockType = first.Measurement.Parameters.TryGetValue("block_name", out var sourceBlockName)
+                        ? BlockQuantityGrouping.Name(sourceBlockName) : null,
                     EntityType = first.Source.EntityType,
                     Method = first.Measurement.Method,
                     ObjectCount = group.Count(),
@@ -3106,6 +3108,44 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
         /// explicit left-to-right embedding keeps the name exactly as the engineer knows it.
         /// </summary>
         internal static string Ltr(string? s) => Bidi.Ltr(s);
+
+        private object? _quantityLocateScan;
+        private string? _quantityLocateRuleKey;
+        private int _quantityLocateIndex;
+
+        private void OnQuantityDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton != System.Windows.Input.MouseButton.Left ||
+                e.OriginalSource is not DependencyObject source ||
+                System.Windows.Controls.ItemsControl.ContainerFromElement(QuantitiesGrid, source)
+                    is not System.Windows.Controls.DataGridRow gridRow ||
+                gridRow.Item is not QuantityRowViewModel row)
+                return;
+            // Use the clicked row, never an old selection when the header or empty space is clicked.
+            QuantitiesGrid.SelectedItem = row;
+            e.Handled = true;
+            var doc = Doc();
+            if (doc == null || _scan == null || !VerifyEstimateSourcesForAction(doc, "מיקוד אובייקט")) return;
+            try
+            {
+                var records = _scan.Records.Where(r => (r.Classification.RuleKey ?? "(ללא חוק)") == row.RuleKey)
+                    .DistinctBy(r => (r.Source.Xref, r.Source.Handle))
+                    .OrderBy(r => r.Source.Handle, StringComparer.Ordinal).ToList();
+                if (records.Count == 0) { SetStatus("לא נמצאו אובייקטים להצגה ברשומה זו"); return; }
+                if (!ReferenceEquals(_quantityLocateScan, _scan) || _quantityLocateRuleKey != row.RuleKey)
+                    _quantityLocateIndex = 0;
+                var index = _quantityLocateIndex % records.Count;
+                var record = records[index];
+                var outcome = QuantityLocatorService.Show(doc, new[] { record }, _profile);
+                _quantityLocateScan = _scan;
+                _quantityLocateRuleKey = row.RuleKey;
+                _quantityLocateIndex = (index + 1) % records.Count;
+                var message = $"אובייקט {index + 1} מתוך {records.Count} · שכבה {row.Layer} · Handle {record.Source.Handle} · {outcome.Message}";
+                SetStatus(message);
+                Log(message);
+            }
+            catch (Exception ex) { ShowError("מיקוד אובייקט", ex); }
+        }
 
         private void OnShowQuantity(object sender, RoutedEventArgs e)
         {

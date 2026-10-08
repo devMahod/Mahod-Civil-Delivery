@@ -50,7 +50,7 @@ public sealed partial class EstimateWorkflowService
                 var context = DraftContext(profile, scan, snapshot);
                 draft = EngineerBoqDraftBuilder.Build(scan.Records, scan.Findings, snapshot,
                     PriceBookChapterTitles.Read(catalog.CatalogPath, catalog.CatalogSheetName), EngineerBoqLibrary.For(profile), context);
-                return EngineerBoqDraftExcelWriter.Write(draft, tempPath);
+                return EngineerBoqDraftExcelWriter.Write(draft, tempPath, simpleView: true);
             },
             directory, stem,
             (written, hash, proof) => PublishEngineerDraft(scan, written, hash, draft!, proof, catalog!.CatalogPath, catalog.Snapshot!));

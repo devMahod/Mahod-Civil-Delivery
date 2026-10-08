@@ -29,9 +29,7 @@ public static class PriceBookChapterTitles
         if (string.IsNullOrWhiteSpace(xlsxPath)) return titles;
         try
         {
-            var rows = string.IsNullOrEmpty(sheetName)
-                ? MiniXlsx.ReadFirstSheet(xlsxPath)
-                : MiniXlsx.ReadSheet(System.IO.File.ReadAllBytes(xlsxPath), sheetName);
+            var rows = PriceBookWorkbook.ReadSheet(System.IO.File.ReadAllBytes(xlsxPath), sheetName);
             foreach (var row in rows)
             {
                 var first = row.FirstOrDefault(cell => !string.IsNullOrWhiteSpace(cell.Text));

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Windows;
 using MahodAI.Civil3D.Plugin.CivilDelivery.Estimate;
 using MahodAI.CivilDelivery.Estimate;
@@ -64,7 +65,11 @@ public partial class CivilDeliveryControl
         PriceBookRegistry.RegisterResult? published = null;
         try
         {
-            var offers = KnownPriceBookIndex.Offers(KnownPriceBookDirectory, scope.Profile);
+            var remembered = KnownPriceBookIndex.Offers(KnownPriceBookDirectory, scope.Profile);
+            var bundled = BundledPriceBooks.Offers(KnownPriceBookDirectory, scope.Profile);
+            var offers = bundled.Concat(remembered.Where(offer => !bundled.Any(book =>
+                string.Equals(book.Entry.Sha256, offer.Entry.Sha256, StringComparison.OrdinalIgnoreCase) &&
+                PriceBookRegistry.SameMapping(book.Entry.Mapping, offer.Entry.Mapping)))).ToArray();
             var review = new KnownPriceBookDialog(offers, scope.Profile.ProjectName);
             if (CivilModalHost.ShowFromPalette(review) != true || review.Accepted is not { } chosen)
             { SetStatus("לא נרשם מחירון מוכר — הפרויקט לא השתנה"); return; }

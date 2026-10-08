@@ -158,7 +158,7 @@ foreach ($year in $hosts.Keys) {
 # ── 2. stage the bundle ───────────────────────────────────────────────────────
 $bundle = Join-Path $stage 'payload\Mahod.CivilDelivery.bundle'
 New-Item -ItemType Directory -Force -Path (Join-Path $bundle 'Installer') | Out-Null
-$expected = @('Mahod.CivilDelivery.Core.dll', 'Mahod.CivilDelivery.deps.json', 'Mahod.CivilDelivery.dll', 'NetTopologySuite.dll', 'YamlDotNet.dll')
+$expected = @('ExcelDataReader.dll', 'Mahod.CivilDelivery.Core.dll', 'Mahod.CivilDelivery.deps.json', 'Mahod.CivilDelivery.dll', 'NetTopologySuite.dll', 'YamlDotNet.dll')
 # The referenced Core project's own deps.json lands in -o as well; the host reads only the plugin's.
 $notShipped = @('Mahod.CivilDelivery.Core.deps.json')
 foreach ($year in $hosts.Keys) {

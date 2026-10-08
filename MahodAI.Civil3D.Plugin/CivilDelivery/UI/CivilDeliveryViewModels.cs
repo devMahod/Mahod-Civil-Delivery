@@ -237,6 +237,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
     {
         public required string RuleKey { get; init; }
         public required string Layer { get; init; }
+        public string? BlockType { get; init; }
         public required string EntityType { get; init; }
         public required string Method { get; init; }
         public required int ObjectCount { get; init; }
@@ -381,7 +382,8 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
 
         public string QuantityDisplay => $"{Quantity:N2} {Unit}";
         /// <summary>Layer first - it is what the engineer recognises; count and type after.</summary>
-        public string Source => $"{Bidi.Ltr(Layer)} · {ObjectCount} × {Bidi.Ltr(EntityType)}";
+        public string Source => $"{Bidi.Ltr(Layer)} · {ObjectCount} × {Bidi.Ltr(EntityType)}" +
+            (string.IsNullOrWhiteSpace(BlockType) ? "" : "\n" + Bidi.Ltr(BlockType));
 
         /// <summary>The measurement method in one Hebrew word; the raw name stays in the detail panel.</summary>
         public string MethodDisplay => Method.Split('+')[0] switch

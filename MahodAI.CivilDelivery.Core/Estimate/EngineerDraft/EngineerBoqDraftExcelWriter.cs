@@ -54,7 +54,7 @@ public static class EngineerBoqDraftExcelWriter
         public DraftConfidence Confidence => Lines.Max(l => l.Element.Rule.Confidence);
     }
 
-    public static WriteResult Write(EngineerBoqDraft draft, string outputPath)
+    public static WriteResult Write(EngineerBoqDraft draft, string outputPath, bool simpleView = false)
     {
         ArgumentNullException.ThrowIfNull(draft);
         if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("נדרש נתיב לקובץ הטיוטה.", nameof(outputPath));
@@ -64,7 +64,7 @@ public static class EngineerBoqDraftExcelWriter
         var workbook = Build(draft, out var pricedTotal, out var pricedRows, out var boqRows);
         var directory = Path.GetDirectoryName(Path.GetFullPath(outputPath));
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-        MiniXlsx.Write(workbook, outputPath);
+        MiniXlsx.Write(simpleView ? SimpleBoq(workbook) : workbook, outputPath);
         return new WriteResult(outputPath, draft.Lines.Count, draft.Elements.Count, pricedRows, pricedTotal, draft.AccountedRecords, boqRows);
     }
 
@@ -123,6 +123,81 @@ public static class EngineerBoqDraftExcelWriter
         wb.AdditionalSheets.Add(aids);
         IsolateLatinInHebrewCells(wb);
         return wb;
+    }
+
+    /// <summary>A concise first sheet; detailed calculation sheets remain available and authoritative.</summary>
+    internal static MiniXlsx.Workbook SimpleBoq(MiniXlsx.Workbook detailed)
+    {
+        var source = detailed.AdditionalSheets.Single(s => s.SheetName == BoqSheet);
+        var simple = new MiniXlsx.Workbook
+        {
+            SheetName = "כתב כמויות פשוט", RightToLeft = true, ShowGridLines = false,
+            FreezeTopRows = 5, PrintTitleRows = 5, PrintLandscapeFitToWidth = true,
+        };
+        simple.Styles.Clear();
+        simple.Styles.AddRange(detailed.Styles);
+        simple.ColumnWidths.AddRange(new[] { (1, 6d), (2, 16d), (3, 47d), (4, 9.5d),
+            (5, 14.5d), (6, 13d), (7, 15.5d), (8, 55d) });
+        Row(simple, 1).Text("C", "כתב כמויות — טיוטה", StyleTitle);
+        Row(simple, 2).Text("C", "כמויות ומחירים מתוך הסריקה והמחירון הפעיל", StyleSubtle);
+        Row(simple, 3).Text("C", "סכום חלקי — פריטים ללא מחיר אינם נכללים. טעון בדיקה הנדסית.", StyleNotice);
+        simple.SingleRowMerges.Add("C3:H3");
+        simple.Rows[^1].HeightPoints = 30;
+        Row(simple, 5).Text("A", "מס׳", StyleHeader).Text("B", "מס׳ קטלוגי", StyleHeader)
+            .Text("C", "תיאור", StyleHeader).Text("D", "יחידה", StyleHeader)
+            .Text("E", "כמות", StyleHeader).Text("F", "מחיר יחידה", StyleHeader)
+            .Text("G", "סה״כ, ₪", StyleHeader).Text("H", "בסיס / נתון להשלמה", StyleHeader);
+        var r = 6;
+        var number = 0;
+        var itemRows = new List<int>();
+        foreach (var original in source.Rows.Where(row => row.Index > 4))
+        {
+            MiniXlsx.OutCell? Cell(string column) => original.Cells
+                .Where(c => c.Reference == column + original.Index).Select(c => (MiniXlsx.OutCell?)c).FirstOrDefault();
+            var description = Cell("C");
+            if (description is not { Kind: MiniXlsx.CellKind.Text } || string.IsNullOrWhiteSpace(description.Value.Value)) continue;
+            if (Cell("E") == null)
+            {
+                if (Cell("G") == null)
+                    Row(simple, r++).Text("C", description.Value.Value, StyleChapter);
+                continue;
+            }
+            var row = Row(simple, r).Number("A", (double)++number, StyleCount)
+                .Text("B", Cell("B") is { Kind: MiniXlsx.CellKind.Text } code ? code.Value : "", StyleLtr)
+                .Text("C", description.Value.Value, StyleText)
+                .Text("D", Cell("D") is { Kind: MiniXlsx.CellKind.Text } unit ? unit.Value : "", StyleText);
+            string Reference(string column) => $"'{BoqSheet}'!{column}{original.Index}";
+            row.Formula("E", $"IF(ISNUMBER({Reference("E")}),{Reference("E")},\"\")", StyleNumber);
+            row.Formula("F", $"IF(ISNUMBER({Reference("F")}),{Reference("F")},\"\")", StyleNumber);
+            // Use the detailed result: incompatible units and incomplete engineering definitions stay blocked.
+            row.Formula("G", $"IF(AND(ISNUMBER(E{r}),ISNUMBER(F{r})),{Reference("G")},\"\")", StyleNumber);
+            var notes = string.Join(" · ", new[] { Cell("I"), Cell("J") }
+                .Where(c => c is { Kind: MiniXlsx.CellKind.Text } && !string.IsNullOrWhiteSpace(c.Value.Value))
+                .Select(c => c!.Value.Value));
+            if (notes.Length > 240) notes = notes[..240] + "… (פירוט בגיליון כתב כמויות)";
+            row.Text("H", notes, StyleText);
+            row.HeightPoints = Math.Max(32, Math.Ceiling(Math.Max(description.Value.Value.Length / 38d, notes.Length / 45d)) * 15);
+            itemRows.Add(r++);
+        }
+        Row(simple, r + 1).Text("C", "סה״כ חלקי לשורות המתומחרות, ₪", StyleChapter)
+            .Formula("G", itemRows.Count == 0 ? "0" : $"SUM(G6:G{r - 1})", StyleSubtotalBoq);
+        Row(simple, r + 3).Text("C", "לפריטים שלא זוהו או שויכו: גיליון 'לא שויכו'. לפירוט החישובים: 'כתב כמויות' ו'מדידות בסיס'.", StyleSubtle);
+        simple.SingleRowMerges.Add($"C{r + 3}:H{r + 3}");
+        simple.Rows[^1].HeightPoints = 32;
+        var summary = new MiniXlsx.Worksheet
+        {
+            SheetName = detailed.SheetName, RightToLeft = detailed.RightToLeft,
+            ShowGridLines = detailed.ShowGridLines, FreezeTopRows = detailed.FreezeTopRows,
+            FreezeLeftColumns = detailed.FreezeLeftColumns, PrintTitleRows = detailed.PrintTitleRows,
+            AutoFilterRange = detailed.AutoFilterRange, PrintLandscapeFitToWidth = detailed.PrintLandscapeFitToWidth,
+        };
+        summary.Rows.AddRange(detailed.Rows);
+        summary.ColumnWidths.AddRange(detailed.ColumnWidths);
+        summary.SingleRowMerges.AddRange(detailed.SingleRowMerges);
+        summary.DataValidations.AddRange(detailed.DataValidations);
+        simple.AdditionalSheets.Add(summary);
+        simple.AdditionalSheets.AddRange(detailed.AdditionalSheets);
+        return simple;
     }
 
     /// <summary>Row positions on the BoQ sheet that the summary refers to.</summary>

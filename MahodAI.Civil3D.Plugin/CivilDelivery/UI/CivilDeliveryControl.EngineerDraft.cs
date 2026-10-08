@@ -58,7 +58,7 @@ public partial class CivilDeliveryControl
                 $"נוצרה טיוטת כתב כמויות להנדסה — לא אומדן. {written.BoqRowCount} שורות מוצעות, ל-{written.PricedLineCount} מהן יש מחיר. " +
                 $"סכום ביניים חלקי של השורות עם מחיר בלבד: {written.PricedTotalAtDefaults:N0} ₪ — לפני בדיקת ההנחות, ולא כולל רכיבים ללא פריט, " +
                 "מערכות אחרות (ניקוז, מים, תאורה ועוד), היקפים שאינם משורטטים, חפירה ומילוי ומע\"מ. הרשימה המלאה בגיליון 'סיכום'; " +
-                "להתחיל בגיליון 'בדיקות והערות'.\n" + SupportPackage.DisplayPath(written.XlsxPath);
+                "להתחיל בגיליון 'כתב כמויות פשוט'; פירוט החישובים והחסרים בגיליונות הנלווים.\n" + SupportPackage.DisplayPath(written.XlsxPath);
             EngineerDraftNotice.Visibility = Visibility.Visible;
             _engineerDraftNoticeScan = capturedScan;
             Log(EngineerDraftNotice.Text.Replace(Environment.NewLine, " ").Replace("\n", " "));

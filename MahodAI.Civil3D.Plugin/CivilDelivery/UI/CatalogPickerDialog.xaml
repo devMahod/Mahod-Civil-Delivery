@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="שיוך שכבה לסעיף מחירון"
-        Width="760" Height="620" MinWidth="640" MinHeight="480"
+        Width="980" Height="740" MinWidth="760" MinHeight="580"
         WindowStartupLocation="CenterOwner"
         FlowDirection="RightToLeft"
         Background="#FF141821" Foreground="#FFE6E9EF"
@@ -107,14 +107,23 @@
     <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
       <TextBlock DockPanel.Dock="Right" x:Name="ResultCount" Foreground="{StaticResource Muted}"
                  VerticalAlignment="Center" Margin="10,0,0,0"/>
-      <TextBox x:Name="SearchBox" TextChanged="OnSearchChanged"
+      <Button DockPanel.Dock="Left" Content="נקה חיפוש" Click="OnClearSearch"/>
+      <TextBox x:Name="SearchBox" TextChanged="OnSearchChanged" FontSize="16"
                ToolTip="חפש לפי מילים בעברית (למשל: אבן שפה) או לפי מס' סעיף (למשל: 51.01)"/>
     </DockPanel>
     <TextBlock DockPanel.Dock="Top" x:Name="Hint" Foreground="{StaticResource Muted}" Margin="0,0,0,6" TextWrapping="Wrap"
-               Text="הצעות מהקטלוג מופיעות ראשונות. אפשר להקליד כדי לחפש בכל המחירון — לפי תיאור או לפי מס' סעיף."/>
+               Text="מה ראית בשרטוט? הקלד מילים כמו אבן שפה, פירוק אספלט או סימון לבן. סדר המילים לא משנה. בחר תוצאה ובדוק את התיאור המלא לפני אישור השיוך."/>
+    <CheckBox DockPanel.Dock="Top" x:Name="CompatibleOnly" Content="הצג רק סעיפים ביחידת המדידה של השכבה"
+              Foreground="#FFE6E9EF" Margin="0,4,0,10" Checked="OnUnitFilterChanged" Unchecked="OnUnitFilterChanged"/>
 
     <!-- Buttons -->
     <StackPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+      <Border Background="{StaticResource Panel}" BorderBrush="{StaticResource Line}" BorderThickness="1" Padding="12" Margin="0,0,0,8">
+        <ScrollViewer MaxHeight="155" VerticalScrollBarVisibility="Auto">
+          <TextBlock x:Name="SelectedDetail" Text="בחר סעיף מהרשימה כדי לראות תיאור מלא, יחידה ומחיר."
+                     FontSize="14" TextWrapping="Wrap"/>
+        </ScrollViewer>
+      </Border>
       <TextBlock x:Name="UnitVerdict" Margin="0,0,0,6" TextWrapping="Wrap"
                  Foreground="{StaticResource Muted}"/>
       <DockPanel LastChildFill="False">

@@ -39,8 +39,8 @@ internal sealed class KnownPriceBookDialog : Window
         var actions = new WrapPanel(); actions.Children.Add(UseButton); actions.Children.Add(CancelButton); footer.Children.Add(actions); root.Children.Add(footer);
         var body = new StackPanel();
         body.Children.Add(Text("רישום מחירון בפרויקט " + project, 18));
-        body.Children.Add(Text("רק קבצים שנרשמו בעבר ושזהותם אומתה מוצעים כאן. לא נבחר מחירון אוטומטית. הרישום יעתיק את המחירון לפרויקט ויפעיל אותו; נדרשת סריקה חדשה ושיוכים ייבדקו מחדש."));
-        body.Children.Add(Text(offers.Count == 0 ? "אין כרגע מחירון מוכר זמין שאינו כבר רשום בפרויקט. לרישום ראשון השתמש ב־טען מחירון…; למחירון קיים השתמש ברשימת מחירון פעיל." : "בחר מחירון ובדוק את פרטיו:"));
+        body.Children.Add(Text("כאן מוצעים מחירונים הכלולים בתוסף ומחירונים שנרשמו בעבר במחשב זה, לאחר אימות זהותם. הרישום יעתיק את המחירון לפרויקט ויפעיל אותו; נדרשת סריקה חדשה ושיוכים ייבדקו מחדש."));
+        body.Children.Add(Text(offers.Count == 0 ? "כל המחירונים הזמינים כבר רשומים בפרויקט, או שאין מחירון זמין. למחירון קיים השתמש ברשימת מחירון פעיל; לקובץ נוסף השתמש ב־טען מחירון…." : "בחר מחירון ובדוק את פרטיו:"));
         Books.ItemsSource = offers; Books.SelectedIndex = -1;
         var style = new Style(typeof(ListBoxItem)); style.Setters.Add(new Setter(Control.HorizontalContentAlignmentProperty, System.Windows.HorizontalAlignment.Stretch));
         Books.ItemContainerStyle = style;
@@ -64,7 +64,7 @@ internal sealed class KnownPriceBookDialog : Window
         var e = offer.Entry;
         var reading = e.Mapping is { } m
             ? $"גיליון: {m.SheetName}\nשורת כותרת: {m.HeaderRow}\nקוד: {m.CodeColumn}; תיאור: {m.DescriptionColumn ?? "ללא"}; יחידה: {m.UnitColumn}; מחיר: {m.PriceColumn}"
-            : "קריאה אוטומטית מאושרת מהרישום הקודם; קובץ זהה ייקרא שוב וייבדק לפני הרישום.";
+            : "קריאה אוטומטית של גיליון ועמודות; הקובץ ייקרא וייבדק לפני הרישום בפרויקט.";
         Details.Text = $"מוציא: {e.Publisher ?? "לא צוין"}\nמהדורה: {e.Edition ?? "לא צוינה"}\nסעיפים: {e.ItemCount?.ToString("N0") ?? "לא צוין"}\n{reading}\n" +
             $"נרשם בעבר על ידי: {e.RegisteredBy ?? "לא צוין"}\nנתיב: {Bidi.Ltr(e.Path)}\nSHA-256: {Bidi.Ltr(e.Sha256)}\n" +
             "רישום קודם אינו אישור לתוקף המחירים היום או לרישיון בפרויקט הזה. אין כאן אישור כמויות או הנדסה.";

@@ -72,10 +72,6 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Estimate
                 }
                 tr.Commit();
 
-                if (ids.Count > 0)
-                {
-                    try { ed.SetImpliedSelection(ids.ToArray()); } catch { }
-                }
             }
 
             bool zoomed = false;
@@ -84,9 +80,27 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Estimate
                 zoomed = ZoomTo(doc, ext.Value);
             }
 
+            // Apply selection after changing the view, then verify what AutoCAD actually selected.
+            int selected = 0;
+            string? selectionFailure = null;
+            try
+            {
+                using (doc.LockDocument())
+                {
+                    ed.SetImpliedSelection(ids.Distinct().ToArray());
+                    var actual = ed.SelectImplied();
+                    if (actual.Status == PromptStatus.OK)
+                        selected = actual.Value.GetObjectIds().Count(id => ids.Contains(id));
+                    ed.UpdateScreen();
+                }
+            }
+            catch (Exception ex) { selectionFailure = "הבחירה לא הושלמה: " + ex.Message; }
+
             var parts = new List<string>();
-            if (ids.Count > 0)
-                parts.Add(ids.Count == 1 ? "נבחר עצם אחד" : $"נבחרו {ids.Count:N0} עצמים");
+            if (selected > 0)
+                parts.Add(selected == 1 ? "נבחר עצם אחד" : $"נבחרו {selected:N0} עצמים");
+            if (ids.Count > selected) parts.Add("חלק מהעצמים לא סומנו כבחורים בשרטוט");
+            if (selectionFailure != null) parts.Add(selectionFailure);
             if (inXref > 0)
                 parts.Add(xrefBounded == inXref
                     ? $"{inXref:N0} בתוך XREF — התמקדות לפי תחומי המקור (לא ניתנים לבחירה ישירה)"
@@ -94,7 +108,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Estimate
             if (missing > 0) parts.Add($"{missing:N0} לא נמצאו בשרטוט הנוכחי");
             if (!zoomed && ext != null) parts.Add("לא ניתן להתמקד אוטומטית. " + NativeViewZoomService.RecoveryGuidance);
             if (parts.Count == 0) parts.Add("לא נמצאו מקורות להצגה");
-            return new Outcome(ids.Count, inXref, missing, zoomed, string.Join(" · ", parts));
+            return new Outcome(selected, inXref, missing, zoomed, string.Join(" · ", parts));
         }
 
         /// <summary>
