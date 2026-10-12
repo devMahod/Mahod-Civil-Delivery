@@ -76,9 +76,15 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Estimate
         internal ExtractionResult Extract(
             Database db, Transaction tr, ProjectProfile profile, string runId,
             string drawingPath, string drawingHash, StageLog? log = null,
-            DrawingRevisionTracker.LiveSnapshot? savedHost = null)
+            DrawingRevisionTracker.LiveSnapshot? savedHost = null,
+            SpatialBoundarySelection? spatialSelection = null)
         {
             var result = new ExtractionResult();
+            var spatialBoundary = spatialSelection == null ? null : EstimateSpatialBoundary.Resolve(db, tr, spatialSelection);
+            if (spatialSelection != null)
+                result.Findings.Add(new DeliveryFinding {Code="ESTIMATE_SPATIAL_SCOPE",Domain="estimate",Severity=FindingSeverity.Info,
+                    Title="סריקה מוגבלת לתחום שנבחר",Message="boundary_handle="+spatialSelection.Handle+"; model volumes excluded; host-XY clipping",
+                    ProjectProfileId=profile.ProfileId});
             var rules = profile.Estimate.QuantitySources.Rules ?? new();
             result.Findings.AddRange(EstimatePreflightPolicy.ValidateSourcePolicies(profile));
             result.Findings.AddRange(EstimateConfigurationPolicy.Validate(profile));
@@ -125,7 +131,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Estimate
             // Even an invalid/legacy rules-only profile follows this full discovery
             // path. ValidateSourcePolicies blocks export, while extraction preserves
             // all supported host evidence for remediation instead of hiding it.
-            return ExtractDiscovery(db, tr, profile, runId, result, drawingPath, drawingHash, log, savedHost);
+            return ExtractDiscovery(db, tr, profile, runId, result, drawingPath, drawingHash, log, savedHost, spatialBoundary);
         }
 
         /// <summary>
@@ -138,7 +144,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Estimate
         private ExtractionResult ExtractDiscovery(
             Database db, Transaction tr, ProjectProfile profile, string runId,
             ExtractionResult result, string drawingPath, string drawingHash, StageLog? log,
-            DrawingRevisionTracker.LiveSnapshot? savedHost)
+            DrawingRevisionTracker.LiveSnapshot? savedHost, EstimateSpatialBoundary? spatialBoundary)
         {
             var drawingName = string.IsNullOrEmpty(drawingPath) ? "(unsaved)" : Path.GetFileName(drawingPath);
             var drawingUnits = HostDrawingUnitService.Scale(result.PhysicalUnits!);
@@ -185,6 +191,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Estimate
                 IReadOnlyDictionary<string, string>? extraParameters = null)
             {
                 if (!Included(source.ScopeKey)) return;
+                if (spatialBoundary != null && spatialBoundary.IsOutside(ent, transform)) return;
                 EstimateScanTrace.Mark("entity.consider", result.ScannedEntities, handlePath, ent.GetType().Name);
                 // Drawing text is recognition context for nearby records (index only).
                 // Captured before the presentation exclusion so *LABEL* text still counts;
@@ -356,8 +363,25 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Estimate
                         source.DrawingPath, source.DrawingHash, handlePath, source.XrefChain)
                     : null;
 
-                foreach (var measurement in measurements)
+                foreach (var measured in measurements)
                 {
+                    var measurement = measured;
+                    if (spatialBoundary != null)
+                    {
+                        try
+                        {
+                            measurement = spatialBoundary.Clip(ent, tr, transform, measured, drawingUnits.LinearToMetres);
+                            if (measurement == null) continue;
+                            extentsEvidence.Transfer(measured, measurement);
+                        }
+                        catch (Exception ex)
+                        {
+                            result.Findings.Add(new DeliveryFinding {Code="ESTIMATE_BOUNDARY_CLIP_FAILED",Domain="estimate",Severity=FindingSeverity.Error,
+                                Title="אובייקט לא נמדד בתחום — נדרשת בדיקה",Message=ex.Message+"; handle="+handlePath,
+                                ProjectProfileId=profile.ProfileId,SourceRefs={FailureSource("spatial-clip")}});
+                            continue;
+                        }
+                    }
                     // An approved rule for this layer+kind classifies the record; the
                     // RuleKey is the same key the approval was saved under.
                     var ruleKey = BuildDiscoveryRuleKey(ent.Layer, measurement);

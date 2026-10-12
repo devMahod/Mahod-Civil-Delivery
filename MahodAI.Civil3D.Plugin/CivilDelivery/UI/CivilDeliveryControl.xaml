@@ -514,6 +514,13 @@
             <TextBlock x:Name="EstimateReviewOverview" Style="{StaticResource Muted}" TextWrapping="Wrap"
                        Margin="0,0,0,4" Visibility="Collapsed"/>
 
+            <StackPanel Margin="0,2,0,6">
+              <WrapPanel>
+                <Button Content="בחר תחום…" Click="OnSelectQuantityBoundary" ToolTip="בחר פוליליין סגור וישר ב-Model Space; כמויות ייחתכו לתחום בלי לשנות את השרטוט"/>
+                <Button Content="נקה תחום" Click="OnClearQuantityBoundary" Margin="6,0,0,0"/>
+              </WrapPanel>
+              <TextBlock x:Name="QuantityBoundaryStatus" Text="תחום המדידה: כל השרטוט" Style="{StaticResource Muted}" TextWrapping="Wrap"/>
+            </StackPanel>
             <Expander x:Name="EstimateAdvancedActions" Header="מקורות, היקף וממצאים" Foreground="{StaticResource TextDim}" Margin="0,0,0,6"
                       Expanded="OnEstimateSourcesExpanded">
             <ScrollViewer MaxHeight="110" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
