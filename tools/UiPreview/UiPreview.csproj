@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Mahod Civil Delivery - UI preview (2026-10).
+
+    A plain WPF window, no AutoCAD: it loads the tool's real palette and dialog XAML straight from the source tree
+    (MahodAI.Civil3D.Plugin/CivilDelivery/UI) with sample data, so a change to the theme or a window can be looked
+    at in seconds without starting Civil 3D. The same markup is what the plugin compiles; nothing is copied.
+
+        cd tools\UiPreview
+        dotnet run                        : the gallery window
+        dotnet run  (snapshot switch)     : one PNG per view, then exit (see Program.cs)
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>MahodCivilDelivery.UiPreview</AssemblyName>
+    <RootNamespace>Mahod.CivilDelivery.UiPreview</RootNamespace>
+    <StartupObject>Mahod.CivilDelivery.UiPreview.Program</StartupObject>
+    <EnableDefaultPageItems>false</EnableDefaultPageItems>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <!-- Where the tool's UI sources live, baked in so the preview finds them from any working directory. -->
+    <CivilDeliveryUiDir>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\MahodAI.Civil3D.Plugin\CivilDelivery\UI'))</CivilDeliveryUiDir>
+    <CivilDeliveryAssetsDir>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\MahodAI.Civil3D.Plugin\assets'))</CivilDeliveryAssetsDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>CivilDeliveryUiDir</_Parameter1>
+      <_Parameter2>$(CivilDeliveryUiDir)</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>CivilDeliveryAssetsDir</_Parameter1>
+      <_Parameter2>$(CivilDeliveryAssetsDir)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+</Project>

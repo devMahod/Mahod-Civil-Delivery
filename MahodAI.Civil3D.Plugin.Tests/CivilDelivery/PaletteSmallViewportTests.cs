@@ -328,7 +328,7 @@ public sealed class PaletteSmallViewportTests
         var xml = XDocument.Load(Path.Combine(root, "CivilDelivery", "UI", "CivilDeliveryControl.xaml"));
         foreach (var a in xml.Root!.DescendantsAndSelf().Attributes()
                      .Where(a => a.Name.LocalName == "Class" || a.Value.StartsWith("On", StringComparison.Ordinal)).ToArray()) a.Remove();
-        return (UserControl)XamlReader.Parse(xml.ToString());
+        return (UserControl)TestXaml.Parse(xml);
     }
 
     private static void Pump(UserControl control)

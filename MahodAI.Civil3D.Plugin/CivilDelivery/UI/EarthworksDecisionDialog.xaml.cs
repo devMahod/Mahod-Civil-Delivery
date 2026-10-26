@@ -19,6 +19,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
             EstimateWorkflowService.EarthworksDecisionSummary current)
         {
             InitializeComponent();
+            FontFamily = CivilDeliveryTheme.Font;
             UiGuard.Attach(this, "החלטת היקף עבודות עפר");
             CurrentStateText.Text = current.DisplayText;
             // b24: a new decision starts from the session approver (or empty) — never the previous decider or Windows.

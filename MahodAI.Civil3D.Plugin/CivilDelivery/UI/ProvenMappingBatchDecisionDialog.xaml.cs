@@ -29,6 +29,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
                     "The batch review received an incomplete mapping candidate.");
 
             InitializeComponent();
+            FontFamily = CivilDeliveryTheme.Font;
             UiGuard.Attach(this, "אישור מיפויים חד־משמעיים");
             CandidatesGrid.ItemsSource = candidates;
             SummaryText.Text =

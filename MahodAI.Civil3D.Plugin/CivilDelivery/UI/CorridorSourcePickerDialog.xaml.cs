@@ -40,6 +40,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
         public CorridorSourcePickerDialog(IReadOnlyList<BoqRulesSourceResolver.CorridorSourceOption> options)
         {
             InitializeComponent();
+            FontFamily = CivilDeliveryTheme.Font;
             UiGuard.Attach(this, "בחירת מדידת קורידורים");
 
             Headline.Text = $"בפרויקט יש מדידות קורידורים מ-{options.Count} שרטוטים";

@@ -31,7 +31,7 @@ internal sealed class DrawingUnitsReviewDialog : Window
         Content = Text("שרטוט זה מצויר במטרים — יחידת שרטוט אחת מייצגת מטר אחד."),
         HorizontalContentAlignment = System.Windows.HorizontalAlignment.Stretch,
         VerticalContentAlignment = VerticalAlignment.Center,
-        Margin = new Thickness(0, 8, 0, 8), Foreground = Brushes.White,
+        Margin = new Thickness(0, 8, 0, 8), Foreground = CivilDeliveryTheme.Ink,
     };
     /// <summary>b25 (Codex 15:12): a unitless host whose Civil drawing units read another unit than metres — declaring
     /// metres contradicts that setting, so it takes this explicit acknowledgement besides the reason and the source.</summary>
@@ -40,7 +40,7 @@ internal sealed class DrawingUnitsReviewDialog : Window
         IsChecked = false,
         HorizontalContentAlignment = System.Windows.HorizontalAlignment.Stretch,
         VerticalContentAlignment = VerticalAlignment.Center,
-        Margin = new Thickness(0, 0, 0, 8), Foreground = Brushes.White, Visibility = Visibility.Collapsed,
+        Margin = new Thickness(0, 0, 0, 8), Foreground = CivilDeliveryTheme.Ink, Visibility = Visibility.Collapsed,
     };
     internal readonly RadioButton KeepRecorded = Choice(), OtherUnit = Choice();
     internal readonly ComboBox OtherUnitChoice = new()
@@ -64,8 +64,8 @@ internal sealed class DrawingUnitsReviewDialog : Window
         Width = 700; Height = 710; MinWidth = 460; MinHeight = 420;
         FlowDirection = System.Windows.FlowDirection.RightToLeft;
         WindowStartupLocation = WindowStartupLocation.CenterOwner; ShowInTaskbar = false;
-        Background = new SolidColorBrush(Color.FromRgb(20, 24, 33)); Foreground = Brushes.White;
-        FontFamily = new FontFamily("Segoe UI"); FontSize = 13;
+        Background = CivilDeliveryTheme.Canvas; Foreground = CivilDeliveryTheme.Ink;
+        CivilDeliveryTheme.Apply(this, 13);
         var root = new DockPanel { Margin = new Thickness(14) };
         var footer = new StackPanel(); DockPanel.SetDock(footer, Dock.Bottom);
         Validation.MinHeight = 36; footer.Children.Add(Validation);
@@ -82,7 +82,7 @@ internal sealed class DrawingUnitsReviewDialog : Window
         if (!string.IsNullOrWhiteSpace(context.Suspicion))
         {
             var suspicion = Text("נדרשת בדיקה: " + context.Suspicion);
-            suspicion.Foreground = new SolidColorBrush(Color.FromRgb(255, 214, 120));
+            suspicion.Foreground = CivilDeliveryTheme.Review;
             body.Children.Add(suspicion);
         }
         body.Children.Add(Text("השרטוט הנוכחי", 15));
@@ -102,7 +102,7 @@ internal sealed class DrawingUnitsReviewDialog : Window
                   "הצהר רק אם יש ראיה מתועדת שהשרטוט מצויר במטרים, ופרט אותה בנימוק ובמקור."
                 : $"הגדרת Civil של השרטוט היא {civilName}, לא מטר. היא אינה מכריעה לבדה (לעיתים זו ברירת מחדל של התבנית), " +
                   "אבל הצהרת מטרים סותרת אותה: הצהר רק אם יש ראיה מתועדת שהשרטוט מצויר במטרים, ופרט אותה בנימוק ובמקור.");
-            conflict.Foreground = new SolidColorBrush(Color.FromRgb(255, 214, 120));
+            conflict.Foreground = CivilDeliveryTheme.Review;
             body.Children.Add(conflict);
             CivilConflict.Content = Text(unmapped
                 ? "ראיתי שיחידות Civil אינן מאשרות מטרים, ולפי הראיה שבנימוק ובמקור השרטוט מצויר במטרים."
@@ -242,7 +242,7 @@ internal sealed class DrawingUnitsReviewDialog : Window
     }
 
     private static TextBlock Text(string text, double size = 13) => new()
-    { Text = text, TextWrapping = TextWrapping.Wrap, Foreground = Brushes.White,
+    { Text = text, TextWrapping = TextWrapping.Wrap, Foreground = CivilDeliveryTheme.Ink,
       FontSize = size, Margin = new Thickness(0, 4, 0, 4) };
     private static TextBlock IdentityText(string value)
     {
@@ -251,7 +251,7 @@ internal sealed class DrawingUnitsReviewDialog : Window
     }
     private static RadioButton Choice() => new()
     {
-        GroupName = "physical-unit-decision", IsChecked = false, Foreground = Brushes.White,
+        GroupName = "physical-unit-decision", IsChecked = false, Foreground = CivilDeliveryTheme.Ink,
         HorizontalContentAlignment = System.Windows.HorizontalAlignment.Stretch,
         VerticalContentAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 6, 0, 4),
     };
@@ -260,13 +260,13 @@ internal sealed class DrawingUnitsReviewDialog : Window
         MinHeight = multiline ? 54 : 32, TextWrapping = TextWrapping.Wrap,
         AcceptsReturn = multiline, MaxLength = 2000,
         Padding = new Thickness(7), Margin = new Thickness(0, 1, 0, 5),
-        Foreground = Brushes.Black, Background = Brushes.White,
+        Foreground = CivilDeliveryTheme.Ink, Background = Brushes.White,
         VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
     };
     private static Button Action(string label) => new()
     {
         Content = label, MinHeight = 38, Padding = new Thickness(12, 6, 12, 6),
-        Margin = new Thickness(0, 6, 8, 0), Foreground = new SolidColorBrush(Color.FromRgb(20, 24, 33)),
-        Background = new SolidColorBrush(Color.FromRgb(232, 239, 247)),
+        Margin = new Thickness(0, 6, 8, 0), Foreground = CivilDeliveryTheme.Ink,
+        Background = CivilDeliveryTheme.Panel,
     };
 }

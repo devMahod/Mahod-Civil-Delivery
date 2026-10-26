@@ -75,7 +75,7 @@ public sealed class EditionLinksDialog : Window
         MinWidth = 760;
         MinHeight = 520;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        Background = Brushes.White;
+        Background = CivilDeliveryTheme.Canvas;
 
         var reviewable = Reviewable(proposals);
         var root = new DockPanel { Margin = new Thickness(12) };
@@ -102,7 +102,7 @@ public sealed class EditionLinksDialog : Window
         {
             var stale = new TextBlock
             {
-                TextWrapping = TextWrapping.Wrap, Foreground = Brushes.DarkRed, Margin = new Thickness(0, 0, 0, 6),
+                TextWrapping = TextWrapping.Wrap, Foreground = CivilDeliveryTheme.Blocked, Margin = new Thickness(0, 0, 0, 6),
                 Text = "קישורים שלא הוחלו: " + string.Join(" · ", staleLinks),
             };
             DockPanel.SetDock(stale, Dock.Top);
@@ -124,7 +124,7 @@ public sealed class EditionLinksDialog : Window
         _reason = new TextBox { TextWrapping = TextWrapping.Wrap, MinHeight = 44, AcceptsReturn = false };
         why.Children.Add(_reason);
         footer.Children.Add(why);
-        _status = new TextBlock { Foreground = Brushes.DarkRed, Margin = new Thickness(0, 4, 0, 0), TextWrapping = TextWrapping.Wrap };
+        _status = new TextBlock { Foreground = CivilDeliveryTheme.Blocked, Margin = new Thickness(0, 4, 0, 0), TextWrapping = TextWrapping.Wrap };
         footer.Children.Add(_status);
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 6, 0, 0) };
         var approve = new Button { Content = "אשר קישורים שנבחרו", Padding = new Thickness(12, 4, 12, 4), IsDefault = true };
@@ -152,7 +152,7 @@ public sealed class EditionLinksDialog : Window
         header.Inlines.Add(new System.Windows.Documents.Run(proposal.LibraryCode) { FlowDirection = System.Windows.FlowDirection.LeftToRight });
         header.Inlines.Add(new System.Windows.Documents.Run($" — {proposal.Reference!.Description} [{proposal.Reference.Unit}]"));
         if (proposal.LinkedCode != null)
-            header.Inlines.Add(new System.Windows.Documents.Run($" · מקושר כעת ל־{proposal.LinkedCode}") { Foreground = Brushes.DarkGreen });
+            header.Inlines.Add(new System.Windows.Documents.Run($" · מקושר כעת ל־{proposal.LinkedCode}") { Foreground = CivilDeliveryTheme.Ok });
         var panel = new StackPanel();
         panel.Children.Add(header);
         var options = new List<(RadioButton, EditionCandidate?)>();
@@ -173,7 +173,7 @@ public sealed class EditionLinksDialog : Window
             if (candidate.Differences.Count > 0)
             {
                 text.Inlines.Add(new System.Windows.Documents.LineBreak());
-                text.Inlines.Add(new System.Windows.Documents.Run(string.Join(" · ", candidate.Differences)) { Foreground = Brushes.DarkRed });
+                text.Inlines.Add(new System.Windows.Documents.Run(string.Join(" · ", candidate.Differences)) { Foreground = CivilDeliveryTheme.Blocked });
             }
             var button = new RadioButton { GroupName = proposal.LibraryCode, Content = text, Margin = new Thickness(0, 2, 0, 2) };
             panel.Children.Add(button);
@@ -182,7 +182,7 @@ public sealed class EditionLinksDialog : Window
         if (proposal.Candidates.Count == 0)
             panel.Children.Add(new TextBlock
             {
-                TextWrapping = TextWrapping.Wrap, Foreground = Brushes.DimGray,
+                TextWrapping = TextWrapping.Wrap, Foreground = CivilDeliveryTheme.Muted,
                 Text = "אין במחירון זה מועמד באותה יחידה עם ראיה מספקת — זו בחירה הנדסית; אפשר לבחור סעיף בחלון השיוך.",
             });
         _choices[proposal.LibraryCode] = options;
@@ -200,7 +200,7 @@ public sealed class EditionLinksDialog : Window
             option.Button.IsChecked = true;
             marked++;
         }
-        _status.Foreground = Brushes.DarkGreen;
+        _status.Foreground = CivilDeliveryTheme.Ok;
         _status.Text = $"סומנו {marked} התאמות בטקסט זהה. כל שאר הבחירות נשארו כפי שהיו.";
     }
 
@@ -210,7 +210,7 @@ public sealed class EditionLinksDialog : Window
             .Where(x => x.Chosen != null)
             .Select(x => new EditionLinkRequest(x.Key, x.Chosen!.Code, x.Chosen.Kind))
             .ToList();
-        _status.Foreground = Brushes.DarkRed;
+        _status.Foreground = CivilDeliveryTheme.Blocked;
         if (requests.Count == 0) { _status.Text = "לא נבחר אף קישור חדש."; return; }
         if (ApprovedBy.Length == 0) { _status.Text = "שם המאשר חובה."; return; }
         if (Reason.Length == 0) { _status.Text = "סיבת האישור חובה."; return; }

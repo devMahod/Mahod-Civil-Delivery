@@ -205,9 +205,8 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
                 Padding = new Thickness(12),
-                Background = new System.Windows.Media.SolidColorBrush(
-                    System.Windows.Media.Color.FromRgb(0x1C, 0x22, 0x30)),
-                Foreground = System.Windows.Media.Brushes.White,
+                Background = CivilDeliveryTheme.Panel,
+                Foreground = CivilDeliveryTheme.Ink,
                 BorderThickness = new Thickness(0),
             };
             System.Windows.Automation.AutomationProperties.SetName(report, "פרטי מקורות וממצאים מלאים");
@@ -227,7 +226,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
             buttons.Children.Add(previous);
             buttons.Children.Add(next);
             var position = new TextBlock { Text = pager.Position, TextWrapping = TextWrapping.Wrap,
-                Foreground = System.Windows.Media.Brushes.White, Margin = new Thickness(0, 0, 0, 8) };
+                Foreground = CivilDeliveryTheme.Ink, Margin = new Thickness(0, 0, 0, 8) };
             var categories = new[] { new { Label = $"כל סוגי הממצאים ({groups.Count:N0} קבוצות)", Code = (string?)null } }
                 .Concat(groups.GroupBy(group => group.Code).OrderByDescending(group => group.Count())
                     .Select(group => new { Label = $"{group.Key} · {group.Count():N0} קבוצות החלטה · {group.Sum(item => item.Count):N0} ממצאים", Code = (string?)group.Key }))
@@ -245,7 +244,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
             var visibleGroups = groups;
             var groupPosition = new TextBlock
             {
-                TextWrapping = TextWrapping.Wrap, Foreground = System.Windows.Media.Brushes.White,
+                TextWrapping = TextWrapping.Wrap, Foreground = CivilDeliveryTheme.Ink,
                 Margin = new Thickness(0, 0, 0, 8),
             };
             var selectedRecovery = EstimateReviewRecoveryTarget(pager.CurrentBatch);
@@ -343,11 +342,11 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
                 ResizeMode = ResizeMode.CanResize, ShowInTaskbar = false,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
                 FlowDirection = System.Windows.FlowDirection.RightToLeft,
-                FontFamily = new System.Windows.Media.FontFamily("Segoe UI"), FontSize = 13,
-                Background = new System.Windows.Media.SolidColorBrush(
-                    System.Windows.Media.Color.FromRgb(0x14, 0x18, 0x21)),
+                FontFamily = CivilDeliveryTheme.Font, FontSize = 13,
+                Background = CivilDeliveryTheme.Canvas,
             };
             var requestedRecovery = false;
+            CivilDeliveryTheme.Apply(dialog, 13);
             ApplyReviewDialogButtonStyle(dialog);
             var requestedCatalog = false;
             var requestedAreas = false;

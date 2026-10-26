@@ -28,6 +28,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
         public SectionRowAuthorityDecisionDialog(SectionPlanRecord record)
         {
             InitializeComponent();
+            FontFamily = CivilDeliveryTheme.Font;
             UiGuard.Attach(this, "אישור מקור זכות דרך");
             SubjectTitle.Text = $"חתך {record.SectionId ?? record.Cl.SourceHandle} · מקור זכות דרך";
             SubjectDetail.Text =

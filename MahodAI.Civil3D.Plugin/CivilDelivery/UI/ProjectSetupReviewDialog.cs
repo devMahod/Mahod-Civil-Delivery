@@ -32,7 +32,7 @@ internal sealed class ProjectSetupReviewDialog : Window
         "לא קווי חתך לרוחב הדרך. כל סימון יורחב מנקודת החצייה עם הציר לחתך של ± חצי-הרוחב שלהלן, בכיוון הסימון.");
     internal readonly TextBox StationMarkerHalfWidth = new() { MinWidth = 90, MaxWidth = 140, MinHeight = 28,
         HorizontalAlignment = System.Windows.HorizontalAlignment.Left, FlowDirection = System.Windows.FlowDirection.LeftToRight,
-        Foreground = Brushes.Black, Background = Brushes.White, Margin = new Thickness(0, 3, 0, 7) };
+        Foreground = CivilDeliveryTheme.Ink, Background = Brushes.White, Margin = new Thickness(0, 3, 0, 7) };
     internal readonly ScrollViewer BodyScroll;
     internal readonly Expander SurfacePairReview;
     internal sealed record SurfacePairControls(AlignmentCandidateSummary Alignment,
@@ -52,8 +52,8 @@ internal sealed class ProjectSetupReviewDialog : Window
         Width = 820; Height = 760; MinWidth = 560; MinHeight = 430;
         FlowDirection = System.Windows.FlowDirection.RightToLeft;
         WindowStartupLocation = WindowStartupLocation.CenterOwner; ShowInTaskbar = false;
-        Background = new SolidColorBrush(Color.FromRgb(20, 24, 33)); Foreground = Brushes.White;
-        FontFamily = new FontFamily("Segoe UI"); FontSize = 13;
+        Background = CivilDeliveryTheme.Canvas; Foreground = CivilDeliveryTheme.Ink;
+        CivilDeliveryTheme.Apply(this, 13);
         var root = new DockPanel { Margin = new Thickness(14) };
         var footer = new StackPanel(); DockPanel.SetDock(footer, Dock.Bottom);
         footer.Children.Add(Confirm); footer.Children.Add(Validation);
@@ -109,7 +109,7 @@ internal sealed class ProjectSetupReviewDialog : Window
                     string.Equals(r.Kind, source.Kind, StringComparison.OrdinalIgnoreCase)));
         var pairBody = new StackPanel();
         SurfacePairReview = new Expander { Header = Text("4 · זוג משטחים מפורש לכל תוואי — אופציונלי", 16),
-            Content = pairBody, Foreground = Brushes.White,
+            Content = pairBody, Foreground = CivilDeliveryTheme.Ink,
             IsExpanded = profile.Sections.Sources.SurfacePairs.Count > 0 };
         body.Children.Add(SurfacePairReview);
         pairBody.Children.Add(Text("לשמות שאינם לפי המוסכמה הקיימת: בחר משטח קרקע קיימת ומשטח תכנון עבור התוואי. בחירת זוג מוסיפה את שני המקורות לדגימה. ללא סימון נשאר מסלול השמות הקיים; ביטול סימון של זוג קודם מחזיר אותו למסלול זה רק לאחר שמירה."));
@@ -202,7 +202,7 @@ internal sealed class ProjectSetupReviewDialog : Window
         var enabled = Toggle("זוג מפורש לתוואי " + Bidi.Ltr(alignment.Name));
         ComboBox Picker() => new() { ItemsSource = _scan.Sources.Where(s => s.Kind == "surface").ToArray(),
             DisplayMemberPath = nameof(SourceCandidateSummary.Name), MinHeight = 32,
-            Foreground = Brushes.Black, Background = Brushes.White, Margin = new Thickness(0, 3, 0, 7) };
+            Foreground = CivilDeliveryTheme.Ink, Background = Brushes.White, Margin = new Thickness(0, 3, 0, 7) };
         var existing = Picker(); var design = Picker();
         var row = new SurfacePairControls(alignment, enabled, existing, design);
         SurfacePairs.Add(alignment.Name, row);
@@ -272,12 +272,12 @@ internal sealed class ProjectSetupReviewDialog : Window
     private static string Kind(string value) => value switch
     { "surface" => "משטח", "corridor" => "קורידור", "pipe-network" => "רשת צינורות", _ => value };
     private static TextBlock Text(string text, double size = 13) => new()
-    { Text = text, TextWrapping = TextWrapping.Wrap, Foreground = Brushes.White, FontSize = size, Margin = new Thickness(0, 5, 0, 5) };
-    private static CheckBox Toggle(string label) => new() { Content = Text(label), Foreground = Brushes.White,
+    { Text = text, TextWrapping = TextWrapping.Wrap, Foreground = CivilDeliveryTheme.Ink, FontSize = size, Margin = new Thickness(0, 5, 0, 5) };
+    private static CheckBox Toggle(string label) => new() { Content = Text(label), Foreground = CivilDeliveryTheme.Ink,
         HorizontalContentAlignment = System.Windows.HorizontalAlignment.Stretch, Margin = new Thickness(0, 3, 0, 3),
         VerticalContentAlignment = VerticalAlignment.Center };
     private static Button Action(string label) => new() { Content = label, MinHeight = 38,
         Padding = new Thickness(12, 6, 12, 6), Margin = new Thickness(6),
-        Background = new SolidColorBrush(Color.FromRgb(232, 239, 247)),
-        Foreground = new SolidColorBrush(Color.FromRgb(20, 24, 33)) };
+        Background = CivilDeliveryTheme.Panel,
+        Foreground = CivilDeliveryTheme.Ink };
 }

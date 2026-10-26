@@ -41,6 +41,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
             IEnumerable<ClLayerCandidate> candidates)
         {
             InitializeComponent();
+            FontFamily = CivilDeliveryTheme.Font;
             UiGuard.Attach(this, "בחירת שכבת קווי חתך");
 
             FileTitle.Text = Bidi.Ltr(Path.GetFileName(clPath));

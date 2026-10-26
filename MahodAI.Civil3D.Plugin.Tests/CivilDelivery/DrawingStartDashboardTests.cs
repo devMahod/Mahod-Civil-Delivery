@@ -149,7 +149,7 @@ public sealed class DrawingStartDashboardTests
                 var xml = XDocument.Load(Path.Combine(PluginRoot, "CivilDelivery/UI/CivilDeliveryControl.xaml"));
                 foreach (var attribute in xml.Root!.DescendantsAndSelf().Attributes()
                     .Where(a => a.Name.LocalName == "Class" || a.Value.StartsWith("On", StringComparison.Ordinal)).ToArray()) attribute.Remove();
-                var control = (UserControl)XamlReader.Parse(xml.ToString());
+                var control = (UserControl)TestXaml.Parse(xml);
                 ((TextBlock)control.FindName("ProjectLine")).Text = "TEST-ONLY — בדיקת מסך אופליין, ללא שרטוט חי";
                 ((TextBlock)control.FindName("DashboardTitle")).Text = "השרטוט הזה — Drawing1.dwg";
                 var body = (TextBlock)control.FindName("DashboardBody");

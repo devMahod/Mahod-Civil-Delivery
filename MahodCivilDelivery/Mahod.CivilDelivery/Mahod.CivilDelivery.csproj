@@ -46,6 +46,9 @@
   <ItemGroup>
     <Compile Include="..\..\MahodAI.Civil3D.Plugin\CivilDelivery\**\*.cs" Link="CivilDelivery\%(RecursiveDir)%(Filename)%(Extension)" />
     <Page Include="..\..\MahodAI.Civil3D.Plugin\CivilDelivery\**\*.xaml" Link="CivilDelivery\%(RecursiveDir)%(Filename)%(Extension)" />
+    <!-- Rubik (OFL), copied to a Fonts folder beside the DLL for CivilDeliveryTheme.Font. -->
+    <Content Include="..\..\MahodAI.Civil3D.Plugin\CivilDelivery\UI\Fonts\*.ttf" Link="Fonts\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\MahodAI.Civil3D.Plugin\CivilDelivery\UI\Fonts\OFL.txt" Link="Fonts\OFL.txt" CopyToOutputDirectory="PreserveNewest" />
     <!-- The only platform files Civil Delivery uses; each is self-contained (no chat, WebSocket or agent layer). -->
     <Compile Include="..\..\MahodAI.Civil3D.Plugin\Tools\CivilDelivery\CivilDeliverySession.cs" Link="Shared\CivilDeliverySession.cs" />
     <Compile Include="..\..\MahodAI.Civil3D.Plugin\Services\SheetQA\**\*.cs" Link="Shared\SheetQA\%(RecursiveDir)%(Filename)%(Extension)" />
@@ -79,6 +82,8 @@
   <!-- Resource names are what the readers ask for (and what the release verifier pins): unchanged. -->
   <ItemGroup>
     <EmbeddedResource Include="..\..\MahodAI.Civil3D.Plugin\assets\mahod_logo_white.png" LogicalName="MahodAI.Civil3D.Plugin.assets.mahod_logo_white.png" />
+    <!-- The green Mahod mark: the palette header on the light canvas (2026-10). -->
+    <EmbeddedResource Include="..\..\MahodAI.Civil3D.Plugin\assets\mahod_mark.png" LogicalName="MahodAI.Civil3D.Plugin.assets.mahod_mark.png" />
     <EmbeddedResource Include="..\..\MahodAI.Civil3D.Plugin\assets\HW-CARFRBK-01.dwg" LogicalName="MahodAI.Civil3D.Plugin.assets.sections.HW-CARFRBK-01.dwg" />
     <EmbeddedResource Include="..\..\MahodAI.Civil3D.Plugin\assets\HW-CARFRFRW-01.dwg" LogicalName="MahodAI.Civil3D.Plugin.assets.sections.HW-CARFRFRW-01.dwg" />
     <EmbeddedResource Include="..\..\MahodAI.Civil3D.Plugin\assets\HW-ARRW-01.dwg" LogicalName="MahodAI.Civil3D.Plugin.assets.sections.HW-ARRW-01.dwg" />

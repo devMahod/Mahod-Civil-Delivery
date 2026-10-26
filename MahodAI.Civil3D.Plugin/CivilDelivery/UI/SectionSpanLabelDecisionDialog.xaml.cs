@@ -39,6 +39,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
             _model = new SpanLabelDecisionModel(records, initiallyApproveStrongSuggestions,
                 previousDecisions, includeResolvedSpans);
             InitializeComponent();
+            FontFamily = CivilDeliveryTheme.Font;
             UiGuard.Attach(this, "שמות רצועות");
             // Opened behind Civil once (live r9): come to the front on first render; the taskbar button keeps it findable.
             DialogActivation.BringForwardOnFirstRender(this);

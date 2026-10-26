@@ -4,79 +4,51 @@
         Title="אישור מרוכז — סימוני תחנות ועזר" Width="940" Height="680"
         MinWidth="760" MinHeight="520" WindowStartupLocation="CenterOwner"
         FlowDirection="RightToLeft" ShowInTaskbar="False"
-        Background="#FF141821" Foreground="#FFE6E9EF"
-        FontFamily="Segoe UI" FontSize="12">
+        Background="#FFF0F2F5" Foreground="#FF1C2420"
+        FontFamily="./Fonts/#Rubik, Segoe UI, Arial" FontSize="12.5" UseLayoutRounding="True">
   <Window.Resources>
-    <SolidColorBrush x:Key="Panel" Color="#FF1C2230"/>
-    <SolidColorBrush x:Key="Line" Color="#FF2C3444"/>
-    <SolidColorBrush x:Key="Accent" Color="#FF3B82F6"/>
-    <SolidColorBrush x:Key="Muted" Color="#FF9AA4B2"/>
-    <Style TargetType="TextBox">
-      <Setter Property="Background" Value="{StaticResource Panel}"/>
-      <Setter Property="Foreground" Value="#FFE6E9EF"/>
-      <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
-      <Setter Property="Padding" Value="7,5"/>
-    </Style>
-    <Style TargetType="Button">
-      <Setter Property="Padding" Value="14,7"/>
-      <Setter Property="Margin" Value="6,0,0,0"/>
-      <Setter Property="Background" Value="{StaticResource Panel}"/>
-      <Setter Property="Foreground" Value="#FFE6E9EF"/>
-      <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
-    </Style>
-    <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-      <Setter Property="Background" Value="{StaticResource Accent}"/>
-      <Setter Property="Foreground" Value="White"/>
-      <Setter Property="FontWeight" Value="SemiBold"/>
-    </Style>
-    <Style x:Key="CellText" TargetType="TextBlock">
-      <Setter Property="Margin" Value="5,3"/>
-      <Setter Property="TextWrapping" Value="Wrap"/>
-      <Setter Property="VerticalAlignment" Value="Center"/>
-    </Style>
-    <Style x:Key="LtrCellText" TargetType="TextBlock" BasedOn="{StaticResource CellText}">
-      <Setter Property="FlowDirection" Value="LeftToRight"/>
-    </Style>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="CivilDeliveryTheme.xaml"/>
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
   </Window.Resources>
 
-  <DockPanel Margin="14">
+  <DockPanel Margin="16">
     <StackPanel DockPanel.Dock="Top">
-      <TextBlock Text="בדיקה מרוכזת של רעש שרטוט" FontSize="17" FontWeight="SemiBold"/>
-      <TextBlock x:Name="SummaryText" Foreground="{StaticResource Muted}"
+      <TextBlock Text="בדיקה מרוכזת של רעש שרטוט" Style="{StaticResource DialogTitle}"/>
+      <TextBlock x:Name="SummaryText" Style="{StaticResource MutedText}"
                  Margin="0,4,0,10" TextWrapping="Wrap"/>
-      <Border Background="#FF2A2115" BorderBrush="#FFE0A44C" BorderThickness="1"
-              Padding="9" CornerRadius="4" Margin="0,0,0,10">
-        <TextBlock TextWrapping="Wrap"
+      <Border Background="{StaticResource ReviewTint}" Padding="12,9" CornerRadius="12" Margin="0,0,0,10">
+        <TextBlock TextWrapping="Wrap" Foreground="{StaticResource Ink}"
                    Text="ברשימה מופיעות רק קבוצות שהמסווג קבע כסימוני תחנות או כעזר גרפי. תשתיות קיימות, מדידות בהיקף חריג, קבוצות ממופות וכמויות בנייה אינן נכללות. ההחרגה אינה מוחקת מדידה: כל קבוצה נשארת בראיות וב-audit עם המפתח, הכמות, הסיבה, המאשר והזמן."/>
       </Border>
     </StackPanel>
 
     <StackPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
-      <CheckBox x:Name="ConfirmBox" Margin="0,0,0,10"
+      <CheckBox x:Name="ConfirmBox" Margin="2,0,2,10"
                 Checked="OnInputChanged" Unchecked="OnInputChanged">
         <TextBlock TextWrapping="Wrap"
                    Text="בדקתי את הרשימה ואני מאשר לסמן את כל הקבוצות המוצגות כלא־רלוונטיות לאומדן המתומחר."/>
       </CheckBox>
       <DockPanel Margin="0,0,0,8">
-        <TextBlock Text="מאשר:" VerticalAlignment="Center"/>
+        <TextBlock Text="מאשר" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
         <TextBox x:Name="ApproverBox" Margin="8,0,0,0" MinWidth="240"
                  TextChanged="OnInputChanged"/>
       </DockPanel>
       <DockPanel LastChildFill="False">
         <TextBlock x:Name="ValidationText" DockPanel.Dock="Left"
-                   Foreground="#FFE0A44C" VerticalAlignment="Center" TextWrapping="Wrap"/>
-        <Button DockPanel.Dock="Right" Content="ביטול" Click="OnCancel" IsCancel="True"/>
-        <Button x:Name="BtnSave" DockPanel.Dock="Right" Content="אשר ושמור את הרשימה"
+                   Foreground="{StaticResource Warn}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+        <Button DockPanel.Dock="Right" Content="ביטול" Click="OnCancel" IsCancel="True" Margin="6,0,0,0"/>
+        <Button x:Name="BtnSave" DockPanel.Dock="Right" Content="אשר ושמור את הרשימה" Margin="6,0,0,0"
                 Click="OnSave" IsDefault="True" Style="{StaticResource PrimaryButton}"/>
       </DockPanel>
     </StackPanel>
 
+    <Border Style="{StaticResource Card}" Padding="6">
     <DataGrid x:Name="CandidatesGrid" AutoGenerateColumns="False" IsReadOnly="True"
               CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False"
-              HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-              Background="{StaticResource Panel}" Foreground="#FFE6E9EF"
-              BorderBrush="{StaticResource Line}" RowBackground="{StaticResource Panel}"
-              AlternatingRowBackground="#FF202838" HorizontalGridLinesBrush="{StaticResource Line}">
+              HeadersVisibility="Column" GridLinesVisibility="Horizontal" BorderThickness="0">
       <DataGrid.Columns>
         <DataGridTextColumn Header="שכבה / מקור" Binding="{Binding Source}" Width="2*" MinWidth="180"
                             ElementStyle="{StaticResource CellText}"/>
@@ -90,5 +62,6 @@
                             ElementStyle="{StaticResource LtrCellText}"/>
       </DataGrid.Columns>
     </DataGrid>
+    </Border>
   </DockPanel>
 </Window>

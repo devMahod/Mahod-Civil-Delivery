@@ -86,23 +86,23 @@ internal sealed class FindingSourceLocationDialog : Window
         Width = 850; Height = 650; MinWidth = 540; MinHeight = 360;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         FlowDirection = System.Windows.FlowDirection.RightToLeft;
-        FontFamily = new System.Windows.Media.FontFamily("Segoe UI"); FontSize = 13;
-        Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(20, 24, 33));
-        Foreground = System.Windows.Media.Brushes.White;
-        var fieldBackground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(29, 35, 47));
-        var border = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(95, 112, 136));
+        CivilDeliveryTheme.Apply(this, 13);
+        Background = CivilDeliveryTheme.Canvas;
+        Foreground = CivilDeliveryTheme.Ink;
+        var fieldBackground = CivilDeliveryTheme.Panel;
+        var border = CivilDeliveryTheme.Frame;
         foreach (var field in new System.Windows.Controls.Control[] { Search, Targets, Details })
         {
-            field.Background = fieldBackground; field.Foreground = System.Windows.Media.Brushes.White;
+            field.Background = fieldBackground; field.Foreground = CivilDeliveryTheme.Ink;
             field.BorderBrush = border;
         }
-        Search.CaretBrush = Details.CaretBrush = System.Windows.Media.Brushes.White;
+        Search.CaretBrush = Details.CaretBrush = CivilDeliveryTheme.Ink;
         var itemStyle = new Style(typeof(ListBoxItem));
-        itemStyle.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, System.Windows.Media.Brushes.White));
+        itemStyle.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, CivilDeliveryTheme.Ink));
         var selectedStyle = new Trigger { Property = ListBoxItem.IsSelectedProperty, Value = true };
         selectedStyle.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty,
-            new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(37, 83, 132))));
-        selectedStyle.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, System.Windows.Media.Brushes.White));
+            CivilDeliveryTheme.AccentTint));
+        selectedStyle.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, CivilDeliveryTheme.Ink));
         itemStyle.Triggers.Add(selectedStyle); Targets.ItemContainerStyle = itemStyle;
         ShowInTaskbar = false;
         var root = new Grid { Margin = new Thickness(14) };
@@ -121,8 +121,8 @@ internal sealed class FindingSourceLocationDialog : Window
             MinHeight = 38, Margin = new Thickness(6), Padding = new Thickness(12, 6, 12, 6) };
         foreach (var button in new[] { Locate, cancel })
         {
-            button.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(232, 239, 247));
-            button.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(20, 24, 33));
+            button.Background = CivilDeliveryTheme.Panel;
+            button.Foreground = CivilDeliveryTheme.Ink;
             button.BorderBrush = border;
         }
         var actions = new WrapPanel(); actions.Children.Add(Locate); actions.Children.Add(cancel);

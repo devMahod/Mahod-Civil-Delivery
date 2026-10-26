@@ -28,7 +28,7 @@ public sealed partial class ManualMappingReviewDialog
     internal readonly TextBox AiContext = Input();
     internal readonly ComboBox SemanticRole = new() { MinWidth = 150, Width = 170,
         DisplayMemberPath = nameof(SemanticHintPolicy.Role.Label), SelectedValuePath = nameof(SemanticHintPolicy.Role.Id),
-        Foreground = System.Windows.Media.Brushes.Black, Background = System.Windows.Media.Brushes.White,
+        Foreground = CivilDeliveryTheme.Ink, Background = System.Windows.Media.Brushes.White,
         Margin = new Thickness(0, 4, 8, 0), VerticalContentAlignment = VerticalAlignment.Center };
     internal readonly TextBlock AiStatus = Text("");
     internal readonly Button AiSuggest = ActionButton("הצע התאמות חכמות"), AiCancel = ActionButton("עצור חיפוש"),

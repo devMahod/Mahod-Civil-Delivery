@@ -19,7 +19,7 @@ public partial class CivilDeliveryControl
             IsReadOnly = true, IsReadOnlyCaretVisible = false, AcceptsReturn = true,
             TextWrapping = TextWrapping.Wrap, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             Padding = new Thickness(12), FontSize = 13,
-            Background = System.Windows.Media.Brushes.White, Foreground = System.Windows.Media.Brushes.Black,
+            Background = System.Windows.Media.Brushes.White, Foreground = CivilDeliveryTheme.Ink,
         };
         var previous = new Button { Content = "תצפיות קודמות", MinHeight = 38, Margin = new Thickness(4) };
         var next = new Button { Content = "תצפיות הבאות", MinHeight = 38, Margin = new Thickness(4) };
@@ -45,8 +45,9 @@ public partial class CivilDeliveryControl
             Width = 820, Height = 680, MinWidth = 540, MinHeight = 380,
             ResizeMode = ResizeMode.CanResize, ShowInTaskbar = false,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            FlowDirection = System.Windows.FlowDirection.RightToLeft, FontFamily = new System.Windows.Media.FontFamily("Segoe UI"),
+            FlowDirection = System.Windows.FlowDirection.RightToLeft, FontFamily = CivilDeliveryTheme.Font,
         };
+        CivilDeliveryTheme.Apply(dialog, 13);
         var offset = 0;
         void Render(int requested)
         {

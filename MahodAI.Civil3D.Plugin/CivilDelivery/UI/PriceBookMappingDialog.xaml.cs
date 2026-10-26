@@ -44,6 +44,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
         public PriceBookMappingDialog(string path, PriceBookXlsxLoader.Inspection automatic)
         {
             InitializeComponent();
+            FontFamily = CivilDeliveryTheme.Font;
             UiGuard.Attach(this, "טעינת מחירון");
             _path = path;
             _automatic = automatic;

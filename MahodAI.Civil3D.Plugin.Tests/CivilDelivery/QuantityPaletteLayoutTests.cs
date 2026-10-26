@@ -53,7 +53,7 @@ public sealed class QuantityPaletteLayoutTests
                 foreach (var attribute in xml.Root!.DescendantsAndSelf().Attributes().Where(a =>
                              a.Name.LocalName == "Class" || a.Value.StartsWith("On", StringComparison.Ordinal)).ToArray())
                     attribute.Remove();
-                var control = (UserControl)XamlReader.Parse(xml.ToString());
+                var control = (UserControl)TestXaml.Parse(xml);
                 T Find<T>(string name) where T : class => (T)control.FindName(name);
                 Find<TabControl>("Tabs").SelectedIndex = 1;
                 Find<TextBlock>("EstimateFlowProgress").Text = "1 מדידה ← 2 בדיקת כמויות ← 3 היקף אומדן ← 4 תמחור ← 5 Excel";
@@ -123,7 +123,7 @@ public sealed class QuantityPaletteLayoutTests
                 foreach (var attribute in xml.Root!.DescendantsAndSelf().Attributes().Where(a =>
                              a.Name.LocalName == "Class" || a.Value.StartsWith("On", StringComparison.Ordinal)).ToArray())
                     attribute.Remove();
-                var control = (UserControl)XamlReader.Parse(xml.ToString());
+                var control = (UserControl)TestXaml.Parse(xml);
                 T Find<T>(string name) where T : class => (T)control.FindName(name);
                 Find<TabControl>("Tabs").SelectedIndex = 1;
                 var priceBooks = Find<System.Windows.Controls.ComboBox>("PriceBookCombo");

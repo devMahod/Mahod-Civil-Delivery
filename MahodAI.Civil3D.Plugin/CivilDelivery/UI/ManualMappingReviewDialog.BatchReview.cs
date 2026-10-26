@@ -31,7 +31,7 @@ public sealed partial class ManualMappingReviewDialog
         check.SetValue(FrameworkElement.ToolTipProperty, "סימון לשימוש חוזר בסעיף נבחר; אינו שיוך ואינו אישור.");
         check.SetValue(FrameworkElement.HorizontalAlignmentProperty, System.Windows.HorizontalAlignment.Center);
         check.SetValue(FrameworkElement.VerticalAlignmentProperty, System.Windows.VerticalAlignment.Center);
-        check.SetValue(Control.ForegroundProperty, Brushes.White);
+        check.SetValue(Control.ForegroundProperty, CivilDeliveryTheme.Ink);
         GroupsGrid.Columns.Add(new DataGridTemplateColumn
         {
             Header = "סמן", Width = 38, CellTemplate = new DataTemplate { VisualTree = check },

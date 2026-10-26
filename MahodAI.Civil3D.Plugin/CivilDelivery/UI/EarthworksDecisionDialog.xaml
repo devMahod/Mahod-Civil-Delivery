@@ -4,36 +4,14 @@
         Title="החלטת היקף עבודות עפר" Width="580" SizeToContent="Height"
         MinWidth="520" MinHeight="420" WindowStartupLocation="CenterOwner"
         FlowDirection="RightToLeft" ShowInTaskbar="False"
-        Background="#FF141821" Foreground="#FFE6E9EF"
-        FontFamily="Segoe UI" FontSize="12">
+        Background="#FFF0F2F5" Foreground="#FF1C2420"
+        FontFamily="./Fonts/#Rubik, Segoe UI, Arial" FontSize="12.5" UseLayoutRounding="True">
   <Window.Resources>
-    <SolidColorBrush x:Key="Panel" Color="#FF1C2230"/>
-    <SolidColorBrush x:Key="Line" Color="#FF2C3444"/>
-    <SolidColorBrush x:Key="Accent" Color="#FF3B82F6"/>
-    <SolidColorBrush x:Key="Muted" Color="#FF9AA4B2"/>
-    <Style TargetType="TextBox">
-      <Setter Property="Background" Value="{StaticResource Panel}"/>
-      <Setter Property="Foreground" Value="#FFE6E9EF"/>
-      <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
-      <Setter Property="Padding" Value="7,5"/>
-    </Style>
-    <Style TargetType="Button">
-      <Setter Property="Padding" Value="14,7"/>
-      <Setter Property="Margin" Value="6,0,0,0"/>
-      <Setter Property="Background" Value="{StaticResource Panel}"/>
-      <Setter Property="Foreground" Value="#FFE6E9EF"/>
-      <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
-    </Style>
-    <!-- b22 (Codex 06:58): the RadioButton theme sets its own near-black text, which the window Foreground does not
-         reach; the two choice titles were almost invisible on the dark background. Disabled keeps the theme grey. -->
-    <Style TargetType="RadioButton">
-      <Setter Property="Foreground" Value="#FFE6E9EF"/>
-    </Style>
-    <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-      <Setter Property="Background" Value="{StaticResource Accent}"/>
-      <Setter Property="Foreground" Value="White"/>
-      <Setter Property="FontWeight" Value="SemiBold"/>
-    </Style>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="CivilDeliveryTheme.xaml"/>
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
   </Window.Resources>
 
   <!-- Two rows (b20/b21, the same defect as the exclusion dialog: at its minimum size the buttons were cut off).
@@ -41,7 +19,7 @@
        keep their room while the choice above scrolls. The content is declared first, so Tab still goes choice ->
        reason -> approver -> buttons; the ScrollViewer is not a tab stop. SizeToContent opens the window with
        everything visible. -->
-  <Grid Margin="14">
+  <Grid Margin="16">
     <Grid.RowDefinitions>
       <RowDefinition Height="*"/>
       <RowDefinition Height="Auto"/>
@@ -49,36 +27,34 @@
     <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                   Focusable="False" IsTabStop="False">
       <StackPanel>
-        <Border Background="{StaticResource Panel}" Padding="10"
-                BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4"
-                Margin="0,0,0,10">
+        <Border Style="{StaticResource Card}" Margin="0,0,0,10">
           <StackPanel>
-            <TextBlock Text="מצב נוכחי" FontWeight="SemiBold"/>
-            <TextBlock x:Name="CurrentStateText" Foreground="{StaticResource Muted}"
-                       Margin="0,3,0,0" TextWrapping="Wrap"/>
+            <TextBlock Text="מצב נוכחי" Style="{StaticResource CardTitle}"/>
+            <TextBlock x:Name="CurrentStateText" Style="{StaticResource SoftText}"
+                       Margin="0,4,0,0" TextWrapping="Wrap"/>
           </StackPanel>
         </Border>
 
-        <TextBlock Text="בחר החלטה מפורשת:" FontWeight="SemiBold" Margin="0,0,0,6"/>
+        <TextBlock Text="החלטה" Style="{StaticResource MutedText}" Margin="2,0,2,6"/>
         <RadioButton x:Name="IncludeRadio" GroupName="EarthworksScope"
-                     Checked="OnInputChanged" Margin="0,4,0,4">
+                     Checked="OnInputChanged" Margin="2,4,2,4">
           <StackPanel>
             <TextBlock Text="לכלול עבודות עפר באומדן" FontWeight="SemiBold"/>
-            <TextBlock Foreground="{StaticResource Muted}" TextWrapping="Wrap"
+            <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap"
                        Text="הכמויות יחושבו רק מכיסוי חתכים ומקורות קרקע/תכנון מוכחים; חוסר או עמימות יחסמו ייצוא."/>
           </StackPanel>
         </RadioButton>
         <RadioButton x:Name="ExcludeRadio" GroupName="EarthworksScope"
-                     Checked="OnInputChanged" Margin="0,7,0,8">
+                     Checked="OnInputChanged" Margin="2,7,2,10">
           <StackPanel>
             <TextBlock Text="עבודות עפר מחוץ להיקף האומדן" FontWeight="SemiBold"/>
-            <TextBlock Foreground="{StaticResource Muted}" TextWrapping="Wrap"
+            <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap"
                        Text="הכמות לא תוצג כאפס. ההחרגה תישמר כהחלטה הנדסית ניתנת לביקורת."/>
           </StackPanel>
         </RadioButton>
 
-        <TextBlock Text="סיבה הנדסית להחרגה (חובה):" Margin="0,0,0,4"/>
-        <TextBox x:Name="ReasonBox" MinHeight="74" AcceptsReturn="True"
+        <TextBlock Text="סיבה הנדסית להחרגה (חובה)" Style="{StaticResource MutedText}" Margin="2,0,2,4"/>
+        <TextBox x:Name="ReasonBox" MinHeight="74" AcceptsReturn="True" VerticalContentAlignment="Top"
                  TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
                  TextChanged="OnInputChanged"/>
       </StackPanel>
@@ -86,17 +62,17 @@
 
     <StackPanel Grid.Row="1" Margin="0,12,0,0">
       <DockPanel Margin="0,0,0,7">
-        <TextBlock Text="מאשר:" VerticalAlignment="Center"/>
+        <TextBlock Text="מאשר" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
         <TextBox x:Name="ApproverBox" Margin="8,0,0,0" MinWidth="210"
                  TextChanged="OnInputChanged"/>
       </DockPanel>
-      <TextBlock Foreground="{StaticResource Muted}" Margin="0,0,0,8" TextWrapping="Wrap"
+      <TextBlock Style="{StaticResource MutedText}" Margin="2,0,2,8" TextWrapping="Wrap"
                  Text="בעת השמירה יירשמו בפרופיל שם המאשר, זמן UTC, גרסה וגיבוי; כל סריקה ואומדן קודמים יבוטלו."/>
       <DockPanel LastChildFill="False">
         <TextBlock x:Name="ValidationText" DockPanel.Dock="Left"
-                   Foreground="#FFE0A44C" VerticalAlignment="Center" TextWrapping="Wrap"/>
-        <Button DockPanel.Dock="Right" Content="ביטול" Click="OnCancel" IsCancel="True"/>
-        <Button x:Name="BtnSave" DockPanel.Dock="Right" Content="שמור החלטה"
+                   Foreground="{StaticResource Warn}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+        <Button DockPanel.Dock="Right" Content="ביטול" Click="OnCancel" IsCancel="True" Margin="6,0,0,0"/>
+        <Button x:Name="BtnSave" DockPanel.Dock="Right" Content="שמור החלטה" Margin="6,0,0,0"
                 Click="OnSave" IsDefault="True" Style="{StaticResource PrimaryButton}"/>
       </DockPanel>
     </StackPanel>

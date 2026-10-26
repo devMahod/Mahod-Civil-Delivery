@@ -5,36 +5,29 @@
         Title="אישור מקורות האומדן" Width="940" Height="760"
         MinWidth="580" MinHeight="560" ResizeMode="CanResize"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
-        FlowDirection="RightToLeft" Background="#FF141821" Foreground="#FFE6E9EF"
-        FontFamily="Segoe UI" FontSize="13">
+        FlowDirection="RightToLeft" Background="#FFF0F2F5" Foreground="#FF1C2420"
+        FontFamily="./Fonts/#Rubik, Segoe UI, Arial" FontSize="12.5" UseLayoutRounding="True">
   <Window.Resources>
-    <local:SourceGroupCheckConverter x:Key="GroupCheck"/>
-    <SolidColorBrush x:Key="Panel" Color="#FF1C2230"/>
-    <SolidColorBrush x:Key="Line" Color="#FF2C3444"/>
-    <SolidColorBrush x:Key="Accent" Color="#FF3B82F6"/>
-    <SolidColorBrush x:Key="Muted" Color="#FF9AA4B2"/>
-    <Style TargetType="DataGridCell">
-      <Setter Property="Foreground" Value="#FFE6E9EF"/>
-      <Setter Property="Background" Value="{StaticResource Panel}"/>
-      <Setter Property="BorderThickness" Value="0"/>
-      <Setter Property="Padding" Value="5"/>
-    </Style>
-    <Style TargetType="Button">
-      <Setter Property="Padding" Value="16,9"/>
-      <Setter Property="MinHeight" Value="38"/>
-      <Setter Property="Margin" Value="8,0,0,0"/>
-      <Setter Property="Background" Value="{StaticResource Panel}"/>
-      <Setter Property="Foreground" Value="#FFE6E9EF"/>
-      <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
-    </Style>
-    <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-      <Setter Property="Background" Value="{StaticResource Accent}"/>
-      <Setter Property="Foreground" Value="White"/>
-      <Setter Property="FontWeight" Value="SemiBold"/>
-    </Style>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="CivilDeliveryTheme.xaml"/>
+      </ResourceDictionary.MergedDictionaries>
+      <local:SourceGroupCheckConverter x:Key="GroupCheck"/>
+      <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Setter Property="Padding" Value="16,9"/>
+        <Setter Property="MinHeight" Value="38"/>
+        <Setter Property="Margin" Value="8,0,0,0"/>
+      </Style>
+      <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Setter Property="Background" Value="{StaticResource Ink}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource Ink}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+      </Style>
+    </ResourceDictionary>
   </Window.Resources>
 
-  <Grid Margin="18">
+  <Grid Margin="14">
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto"/>
       <RowDefinition Height="*"/>
@@ -44,28 +37,29 @@
     </Grid.RowDefinitions>
 
     <StackPanel Grid.Row="0">
-      <TextBlock Text="אישור מקורות האומדן" FontSize="21" FontWeight="SemiBold"/>
-      <TextBlock Margin="0,6,0,0" TextWrapping="Wrap" Foreground="{StaticResource Muted}"
+      <TextBlock Text="אישור מקורות האומדן" Style="{StaticResource DialogTitle}"/>
+      <TextBlock Margin="0,4,0,0" TextWrapping="Wrap" Style="{StaticResource MutedText}"
                  Text="בחר קבצים וקטגוריות לפני המדידה. הסיווג לפי שם הוא הצעה בלבד; אפשר לשנות אותו בלי לשנות את הסימון."/>
     </StackPanel>
 
-    <Grid Grid.Row="1" Margin="0,8,0,6">
+    <Grid Grid.Row="1" Margin="0,8,0,4">
       <Grid.RowDefinitions>
         <RowDefinition Height="Auto"/>
         <RowDefinition Height="*"/>
         <RowDefinition Height="Auto"/>
       </Grid.RowDefinitions>
-      <TextBlock Text="רשימת המקורות" FontWeight="SemiBold" Margin="0,0,0,7"/>
-      <DataGrid x:Name="SourcesGrid" Grid.Row="1" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+      <TextBlock Text="רשימת המקורות" Style="{StaticResource MutedText}" Margin="2,0,2,6"/>
+      <Border Grid.Row="1" Style="{StaticResource Card}" Padding="6">
+      <DataGrid x:Name="SourcesGrid" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                 CanUserDeleteRows="False" CanUserSortColumns="False" HeadersVisibility="Column" RowHeaderWidth="0"
-                Background="{StaticResource Panel}" BorderBrush="{StaticResource Line}" GridLinesVisibility="Horizontal"
-                HorizontalGridLinesBrush="{StaticResource Line}" HorizontalScrollBarVisibility="Auto"
+                BorderThickness="0" GridLinesVisibility="Horizontal" RowHeight="NaN"
+                HorizontalScrollBarVisibility="Auto"
                 VerticalScrollBarVisibility="Auto" Visibility="Collapsed" SelectionMode="Single">
         <DataGrid.GroupStyle>
           <GroupStyle>
             <GroupStyle.HeaderTemplate>
               <DataTemplate>
-                <CheckBox Content="{Binding Name}" Margin="7,10" Foreground="White" FontWeight="SemiBold"
+                <CheckBox Content="{Binding Name}" Margin="7,10" FontWeight="SemiBold"
                           IsThreeState="True" IsChecked="{Binding Converter={StaticResource GroupCheck}, Mode=OneWay}" Click="OnGroupClick"
                           ToolTip="סימון או ביטול של כל המקורות בקטגוריה זו"/>
               </DataTemplate>
@@ -83,9 +77,9 @@
             <DataGridTemplateColumn.CellTemplate><DataTemplate>
               <StackPanel Margin="5,7" ToolTip="{Binding Path}">
                 <TextBlock Text="{Binding Name}" TextWrapping="Wrap" FlowDirection="LeftToRight" TextAlignment="Right"/>
-                <TextBlock Text="{Binding Path}" FontSize="11" Foreground="#FF9AA4B2" TextTrimming="CharacterEllipsis"
+                <TextBlock Text="{Binding Path}" FontSize="11" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis"
                            FlowDirection="LeftToRight" TextAlignment="Right" Margin="0,5,0,0"/>
-                <TextBlock Text="ישויות: לא ידוע — לפני מדידה" FontSize="11" Foreground="#FF9AA4B2" Margin="0,4,0,0"/>
+                <TextBlock Text="ישויות: לא ידוע — לפני מדידה" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,4,0,0"/>
               </StackPanel>
             </DataTemplate></DataGridTemplateColumn.CellTemplate>
           </DataGridTemplateColumn>
@@ -98,37 +92,35 @@
             <DataGridTemplateColumn.CellTemplate><DataTemplate>
               <ComboBox ItemsSource="{Binding CategoryOptions}" DisplayMemberPath="Value" SelectedValuePath="Key"
                         SelectedValue="{Binding Category, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                        Foreground="Black" Background="White" VerticalAlignment="Center" Margin="4"/>
+                        VerticalAlignment="Center" Margin="4" MinHeight="30" Padding="10,4,8,4"/>
             </DataTemplate></DataGridTemplateColumn.CellTemplate>
           </DataGridTemplateColumn>
         </DataGrid.Columns>
       </DataGrid>
+      </Border>
       <Expander x:Name="InventoryExpander" Grid.Row="2" Header="מצאי מלא וענפים מקוננים — פרטים" IsExpanded="True"
-                Foreground="#FFE6E9EF" Margin="0,8,0,0" MaxHeight="180">
+                Margin="0,8,0,0" MaxHeight="180">
       <TextBox x:Name="InventoryText" MinHeight="80"
                IsReadOnly="True" IsReadOnlyCaretVisible="False" AcceptsReturn="True"
                TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
                HorizontalScrollBarVisibility="Disabled" Padding="12,10"
-               Background="{StaticResource Panel}" Foreground="#FFE6E9EF"
-               BorderBrush="{StaticResource Line}" BorderThickness="1"
                VerticalContentAlignment="Top" SpellCheck.IsEnabled="False"
                AutomationProperties.Name="רשימת מקורות האומדן המלאה"/>
       </Expander>
     </Grid>
 
-    <TextBlock x:Name="SelectionSummary" Grid.Row="2" Margin="0,0,0,8" TextWrapping="Wrap" Foreground="#FFFFD38A"/>
-    <Border Grid.Row="3" Background="{StaticResource Panel}" Padding="10"
-            BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4">
-      <Expander Header="תנאי ההיקף — אינו אישור לכמויות או למחירים" IsExpanded="False" Foreground="#FFE6E9EF">
+    <TextBlock x:Name="SelectionSummary" Grid.Row="2" Margin="2,0,2,8" TextWrapping="Wrap" Foreground="{StaticResource Warn}"/>
+    <Border Grid.Row="3" Style="{StaticResource Card}" Padding="12,5">
+      <Expander Header="תנאי ההיקף — אינו אישור לכמויות או למחירים" IsExpanded="False">
         <ScrollViewer x:Name="ScopeScroll" MaxHeight="120" Margin="0,5,0,0"
                       VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                       AutomationProperties.Name="היקף האישור המלא">
-          <TextBlock x:Name="ScopeText" TextWrapping="Wrap" Foreground="{StaticResource Muted}"/>
+          <TextBlock x:Name="ScopeText" TextWrapping="Wrap" Style="{StaticResource MutedText}"/>
         </ScrollViewer>
       </Expander>
     </Border>
 
-    <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,14,0,0">
+    <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,10,0,0">
       <Button x:Name="BtnApprove" Content="אשר את מקורות האומדן"
               Click="OnApprove" IsDefault="False" Style="{StaticResource PrimaryButton}"/>
       <Button x:Name="BtnCancel" Content="ביטול" Click="OnCancel" IsCancel="True" MinWidth="88"/>

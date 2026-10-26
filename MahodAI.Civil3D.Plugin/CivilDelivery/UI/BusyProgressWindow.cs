@@ -93,7 +93,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
             _title = new TextBlock
             {
                 Text = message,
-                Foreground = System.Windows.Media.Brushes.White,
+                Foreground = CivilDeliveryTheme.Ink,
                 FontSize = 14,
                 FontWeight = FontWeights.SemiBold,
                 TextAlignment = TextAlignment.Center,
@@ -102,7 +102,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
             _step = new TextBlock
             {
                 Text = "מתחיל…",
-                Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x9A, 0xA4, 0xB2)),
+                Foreground = CivilDeliveryTheme.Muted,
                 FontSize = 12,
                 TextAlignment = TextAlignment.Center,
                 TextWrapping = TextWrapping.Wrap,
@@ -117,7 +117,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
                 Margin = new Thickness(0, 10, 0, 0),
             });
             panel.Children.Add(_step);
-            return new Window
+            var window = new Window
             {
                 Title = title,
                 Content = panel,
@@ -130,11 +130,16 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
                 ShowActivated = false,
                 WindowStartupLocation = WindowStartupLocation.CenterScreen,
                 FlowDirection = System.Windows.FlowDirection.RightToLeft,
-                Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x14, 0x18, 0x21)),
-                BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x3B, 0x82, 0xF6)),
+                Background = CivilDeliveryTheme.Canvas,
+                BorderBrush = CivilDeliveryTheme.Accent,
                 BorderThickness = new Thickness(2),
-                FontFamily = new System.Windows.Media.FontFamily("Segoe UI"),
+                FontFamily = CivilDeliveryTheme.Font,
             };
+            CivilDeliveryTheme.Apply(window, 13);
+            window.Background = CivilDeliveryTheme.Panel;
+            window.BorderBrush = CivilDeliveryTheme.Frame;
+            window.BorderThickness = new Thickness(1);
+            return window;
         }
     }
 }

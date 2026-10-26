@@ -86,6 +86,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
         public CivilDeliveryControl()
         {
             InitializeComponent();
+            FontFamily = CivilDeliveryTheme.Font;
 #if MAHOD_CD_STANDALONE && MAHOD_CD_GUIDE
             // Only a build that stages the approved guide PDF shows the button (review GUIDE-1).
             BtnUserGuide.Visibility = Visibility.Visible;
@@ -133,15 +134,17 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
         // ------------------------------------------------------------- branding
 
         /// <summary>
-        /// Loads the official white Mahod logo from the embedded resource. No local
-        /// file path is ever consulted, so the product looks right on any machine.
+        /// Loads the Mahod mark from the embedded resource: the green mark on the light
+        /// canvas (2026-10), with the official white logo kept as the resource of record.
+        /// No local file path is ever consulted, so the product looks right on any machine.
         /// </summary>
         private void LoadBrandLogo()
         {
             try
             {
-                using var stream = typeof(CivilDeliveryControl).Assembly
-                    .GetManifestResourceStream("MahodAI.Civil3D.Plugin.assets.mahod_logo_white.png");
+                var assembly = typeof(CivilDeliveryControl).Assembly;
+                using var stream = assembly.GetManifestResourceStream("MahodAI.Civil3D.Plugin.assets.mahod_mark.png")
+                    ?? assembly.GetManifestResourceStream("MahodAI.Civil3D.Plugin.assets.mahod_logo_white.png");
                 if (stream == null) return;
 
                 var buffer = new MemoryStream();
