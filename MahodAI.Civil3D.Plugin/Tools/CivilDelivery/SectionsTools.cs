@@ -284,7 +284,7 @@ namespace MahodAI.Civil3D.Plugin.Tools.CivilDelivery
                 if (pending == null)
                     throw new InvalidOperationException(
                         "Traffic-direction decision state is unavailable after the read transaction closed.");
-                if (!ReferenceEquals(database, pending.Document.Database))
+                if (!EstimateToolSessionScope.SameDatabase(database, pending.Document.Database))
                     throw new InvalidOperationException(
                         "Traffic-direction decision drawing changed before publication.");
 

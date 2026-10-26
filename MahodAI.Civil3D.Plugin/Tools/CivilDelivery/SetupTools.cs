@@ -146,7 +146,7 @@ namespace MahodAI.Civil3D.Plugin.Tools.CivilDelivery
         public void OnReadOnlyTransactionClosed(Database database, ToolResult result)
         {
             if (result.Data is not SetupScanPayload pending ||
-                !ReferenceEquals(database, pending.Document.Database))
+                !EstimateToolSessionScope.SameDatabase(database, pending.Document.Database))
                 throw new InvalidOperationException(
                     "Setup scan completed without matching post-transaction evidence.");
             try
@@ -338,7 +338,7 @@ namespace MahodAI.Civil3D.Plugin.Tools.CivilDelivery
         public void OnReadOnlyTransactionClosed(Database database, ToolResult result)
         {
             if (result.Data is not SetupSavePayload pending ||
-                !ReferenceEquals(database, pending.Document.Database))
+                !EstimateToolSessionScope.SameDatabase(database, pending.Document.Database))
                 throw new InvalidOperationException(
                     "Setup decision completed without matching post-transaction state.");
             try
