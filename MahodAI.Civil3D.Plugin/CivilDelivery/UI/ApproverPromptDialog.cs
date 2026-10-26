@@ -16,7 +16,7 @@ internal sealed class ApproverPromptDialog : Window
     internal readonly TextBox NameInput = new()
     {
         MinHeight = 32, Padding = new Thickness(7), Margin = new Thickness(0, 4, 0, 8), MaxLength = 200,
-        Foreground = Brushes.Black, Background = Brushes.White,
+        Foreground = CivilDeliveryTheme.Ink, Background = Brushes.White,
     };
     internal readonly Button Confirm = Action("אשר שם"), Cancel = Action("ביטול");
     internal string? ConfirmedName { get; private set; }
@@ -27,8 +27,8 @@ internal sealed class ApproverPromptDialog : Window
         Width = 520; SizeToContent = SizeToContent.Height; MinWidth = 340;
         FlowDirection = System.Windows.FlowDirection.RightToLeft;
         WindowStartupLocation = WindowStartupLocation.CenterOwner; ShowInTaskbar = false;
-        Background = new SolidColorBrush(Color.FromRgb(20, 24, 33)); Foreground = Brushes.White;
-        FontFamily = new FontFamily("Segoe UI"); FontSize = 13;
+        Background = CivilDeliveryTheme.Canvas; Foreground = CivilDeliveryTheme.Ink;
+        CivilDeliveryTheme.Apply(this, 13);
         var body = new StackPanel { Margin = new Thickness(14) };
         body.Children.Add(Text(action == null
             ? "מי מאשר בהפעלה הזו?"
@@ -55,12 +55,12 @@ internal sealed class ApproverPromptDialog : Window
     }
 
     private static TextBlock Text(string text) => new()
-    { Text = text, TextWrapping = TextWrapping.Wrap, Foreground = Brushes.White, Margin = new Thickness(0, 2, 0, 4) };
+    { Text = text, TextWrapping = TextWrapping.Wrap, Foreground = CivilDeliveryTheme.Ink, Margin = new Thickness(0, 2, 0, 4) };
 
     private static Button Action(string label) => new()
     {
         Content = label, MinHeight = 34, MinWidth = 90, Padding = new Thickness(12, 4, 12, 4),
-        Margin = new Thickness(0, 4, 8, 0), Foreground = new SolidColorBrush(Color.FromRgb(20, 24, 33)),
-        Background = new SolidColorBrush(Color.FromRgb(232, 239, 247)),
+        Margin = new Thickness(0, 4, 8, 0), Foreground = CivilDeliveryTheme.Ink,
+        Background = CivilDeliveryTheme.Panel,
     };
 }

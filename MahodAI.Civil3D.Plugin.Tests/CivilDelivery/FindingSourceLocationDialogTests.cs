@@ -128,8 +128,8 @@ public sealed class FindingSourceLocationDialogTests
         dialog.Locate.ActualHeight.Should().BeGreaterThanOrEqualTo(38);
         var foreground = ((System.Windows.Media.SolidColorBrush)dialog.Search.Foreground).Color;
         var background = ((System.Windows.Media.SolidColorBrush)dialog.Search.Background).Color;
-        foreground.Should().Be(System.Windows.Media.Colors.White);
-        background.Should().Be(System.Windows.Media.Color.FromRgb(29, 35, 47));
+        foreground.Should().Be(MahodAI.Civil3D.Plugin.CivilDelivery.UI.CivilDeliveryTheme.InkColor);
+        background.Should().Be(MahodAI.Civil3D.Plugin.CivilDelivery.UI.CivilDeliveryTheme.PanelColor);
         dialog.Details.Foreground.Should().BeSameAs(dialog.Search.Foreground);
         dialog.Targets.Foreground.Should().BeSameAs(dialog.Search.Foreground);
         RenderOffline(dialog, 510, 300, "finding-context-510x300.png");

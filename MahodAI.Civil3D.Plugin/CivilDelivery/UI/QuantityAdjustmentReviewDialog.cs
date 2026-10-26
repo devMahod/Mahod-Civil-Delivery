@@ -26,7 +26,7 @@ public sealed class QuantityAdjustmentReviewDialog : Window
     internal TextBox Approver { get; } = new();
     internal CheckBox Confirm { get; } = new() { Content = "בדקתי את ההיקף וההצטברות; אני מאשר את השינוי המפורש בלבד." };
     internal TextBlock Preview { get; } = new() { TextWrapping = TextWrapping.Wrap };
-    internal TextBlock Validation { get; } = new() { TextWrapping = TextWrapping.Wrap, Foreground = Brushes.DarkRed };
+    internal TextBlock Validation { get; } = new() { TextWrapping = TextWrapping.Wrap, Foreground = CivilDeliveryTheme.Blocked };
     internal Button Save { get; } = new() { Content = "אשר ושמור מקדם" };
     internal Button Remove { get; } = new() { Content = "הסר מקדם זה" };
     internal Button Cancel { get; } = new() { Content = "ביטול — ללא שינוי", IsCancel = true };
@@ -38,8 +38,8 @@ public sealed class QuantityAdjustmentReviewDialog : Window
         Title = "מקדם כמות לקבוצה — סקירה ואישור";
         Width = 800; Height = 810; MinWidth = 540; MinHeight = 510;
         FlowDirection = System.Windows.FlowDirection.RightToLeft;
-        FontFamily = new FontFamily("Segoe UI"); FontSize = 14;
-        Background = Brushes.White; Foreground = Brushes.Black;
+        CivilDeliveryTheme.Apply(this, 14);
+        Background = CivilDeliveryTheme.Canvas; Foreground = CivilDeliveryTheme.Ink;
         ShowInTaskbar = false; WindowStartupLocation = WindowStartupLocation.CenterOwner;
         var body = new StackPanel { Margin = new Thickness(14) };
         var contextHeading = Text($"הקבוצה בלבד: {Bidi.Ltr(context.RuleKey)}\n" +

@@ -17,7 +17,7 @@ internal sealed class ProjectProfileSelectionDialog : Window
     internal readonly CheckBox Confirm = new() { Content = "בדקתי: השרטוט הזה שייך לפרויקט הנבחר, והבנתי אילו החלטות קיימות בו.", Margin = new Thickness(0, 12, 0, 8) };
     internal readonly Button SelectButton = new() { Content = "השתמש בפרופיל לשרטוט הזה", MinHeight = 38, Padding = new Thickness(14, 6, 14, 6), Margin = new Thickness(5) };
     internal readonly Button CancelButton = new() { Content = "ביטול — ללא שינוי", IsCancel = true, MinHeight = 38, Margin = new Thickness(5) };
-    internal readonly TextBlock Validation = new() { TextWrapping = TextWrapping.Wrap, Foreground = System.Windows.Media.Brushes.DarkRed };
+    internal readonly TextBlock Validation = new() { TextWrapping = TextWrapping.Wrap, Foreground = CivilDeliveryTheme.Blocked };
     internal readonly ScrollViewer BodyScroll = new() { VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
 
     internal ProjectProfileSelectionDialog(ExistingProjectProfileSelection.Preview preview, string drawingPath)
@@ -26,8 +26,8 @@ internal sealed class ProjectProfileSelectionDialog : Window
         Width = 790; Height = 730; MinWidth = 560; MinHeight = 470;
         WindowStartupLocation = WindowStartupLocation.CenterOwner; ShowInTaskbar = false;
         FlowDirection = System.Windows.FlowDirection.RightToLeft;
-        FontFamily = new System.Windows.Media.FontFamily("Segoe UI"); FontSize = 14;
-        Background = System.Windows.Media.Brushes.White; Foreground = System.Windows.Media.Brushes.Black;
+        CivilDeliveryTheme.Apply(this, 14);
+        Background = CivilDeliveryTheme.Canvas; Foreground = CivilDeliveryTheme.Ink;
         var root = new DockPanel { Margin = new Thickness(16) };
         var footer = new StackPanel(); DockPanel.SetDock(footer, Dock.Bottom);
         Confirm.Content = Text("בדקתי: השרטוט הזה שייך לפרויקט הנבחר, והבנתי אילו החלטות קיימות בו.");

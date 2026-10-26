@@ -60,6 +60,13 @@
     <Compile Include="..\MahodAI.Civil3D.Plugin\CivilDelivery\UI\CatalogPickerDialog.xaml.cs" Link="CivilDelivery\UI\CatalogPickerDialog.xaml.cs" />
   </ItemGroup>
 
+  <!-- The shared theme (CivilDeliveryTheme.xaml, 2026-10) that every palette window merges by a relative Source.
+       The dialogs compiled below find it beside them; the layout tests that parse markup from disk load it from the
+       source folder (TestXaml.cs). -->
+  <ItemGroup>
+    <Page Include="..\MahodAI.Civil3D.Plugin\CivilDelivery\UI\CivilDeliveryTheme.xaml" Link="CivilDelivery\UI\CivilDeliveryTheme.xaml" />
+  </ItemGroup>
+
   <!-- Same unmodified production XAML/handlers, compiled here for unshown editor
        interaction and layout tests. This does not stand in for native CAD loading. -->
   <ItemGroup>

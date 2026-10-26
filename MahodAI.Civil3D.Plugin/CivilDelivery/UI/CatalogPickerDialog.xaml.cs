@@ -50,6 +50,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
             IEnumerable<MappingProposal> proposals)
         {
             InitializeComponent();
+            FontFamily = CivilDeliveryTheme.Font;
             UiGuard.Attach(this, "שיוך שכבה לסעיף מחירון");
             _catalog = catalog;
             _measuredUnit = measuredUnit;

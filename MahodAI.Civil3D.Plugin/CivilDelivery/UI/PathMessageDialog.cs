@@ -68,9 +68,9 @@ public sealed class PathMessageDialog : Window
 
         Title = caption;
         FlowDirection = System.Windows.FlowDirection.RightToLeft;
-        FontFamily = new System.Windows.Media.FontFamily("Segoe UI"); FontSize = 14;
+        CivilDeliveryTheme.Apply(this, 14);
         WindowStartupLocation = WindowStartupLocation.CenterOwner; ShowInTaskbar = false;
-        Background = System.Windows.Media.Brushes.White;
+        Background = CivilDeliveryTheme.Canvas;
         Width = PreferredWidth; MinWidth = NarrowestWidth; SizeToContent = SizeToContent.Height;
         ResizeMode = ResizeMode.CanResize;
 
@@ -133,8 +133,8 @@ public sealed class PathMessageDialog : Window
         texts.Children.Add(new Border
         {
             Child = PathField, Margin = new Thickness(0, 8, 0, 0), BorderThickness = new Thickness(1),
-            BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xAB, 0xAD, 0xB3)),
-            Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF4, 0xF5, 0xF7)),
+            BorderBrush = CivilDeliveryTheme.Frame,
+            Background = CivilDeliveryTheme.Panel2,
         });
         CopyButton = new Button
         {

@@ -45,7 +45,7 @@ public sealed class FamilyAssistantBatchDialog : Window
     {
         public required FamilyDecisionRow Row;
         public readonly CheckBox Send = Check("כלול בבקשת ההצעות");
-        public readonly TextBox Context = new() { TextWrapping = TextWrapping.Wrap, MinHeight = 28, Margin = new Thickness(0, 3, 0, 3), Background = Brushes.White, Foreground = Brushes.Black };
+        public readonly TextBox Context = new() { TextWrapping = TextWrapping.Wrap, MinHeight = 28, Margin = new Thickness(0, 3, 0, 3), Background = Brushes.White, Foreground = CivilDeliveryTheme.Ink };
         public readonly CheckBox Choose = Check("בדקתי את ההצעה; העבר אותה כבחירה לסקירת המשפחות — עדיין לא אישור.");
         public readonly TextBlock Status = Label("");
         public VisionImage? Image;
@@ -59,7 +59,7 @@ public sealed class FamilyAssistantBatchDialog : Window
         Title = "הצעות משפחה לכל הקבוצות — מניפסט ובדיקה";
         Width = 900; Height = 780; MinWidth = 640; MinHeight = 520;
         FlowDirection = System.Windows.FlowDirection.RightToLeft; WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        Background = new SolidColorBrush(Color.FromRgb(29, 35, 47)); Foreground = Brushes.White;
+        Background = CivilDeliveryTheme.Panel; Foreground = CivilDeliveryTheme.Ink;
         var root = new DockPanel { Margin = new Thickness(14) };
         var header = new StackPanel(); DockPanel.SetDock(header, Dock.Top);
         var eligible = rows.Where(r => r.CanAskAi).ToArray();
@@ -122,7 +122,7 @@ public sealed class FamilyAssistantBatchDialog : Window
         card.Context.TextChanged += (_, _) => ScopeChanged();
         card.Send.Checked += (_, _) => ScopeChanged(); card.Send.Unchecked += (_, _) => ScopeChanged();
         card.Choose.IsEnabled = false; panel.Children.Add(card.Status); panel.Children.Add(card.Choose);
-        _cards.Children.Add(new Border { BorderBrush = Brushes.SlateGray, BorderThickness = new Thickness(1),
+        _cards.Children.Add(new Border { BorderBrush = CivilDeliveryTheme.Frame, BorderThickness = new Thickness(1),
             Margin = new Thickness(0, 5, 0, 5), Child = panel });
     }
 
@@ -265,10 +265,10 @@ public sealed class FamilyAssistantBatchDialog : Window
     private static string State(string state) => state switch {
         "sending" => "שולח בקשה", "answered" => "התקבלה תשובה", "blocked" => "חסרה ראיה/הרשאה", "not-sent" => "לא נשלח",
         "cancelled" => "בוטל", "stale" => "הראיות השתנו", _ => "העוזר אינו זמין" };
-    private static TextBlock Label(string text) => new() { Text = text, Foreground = Brushes.White, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 3) };
-    private static CheckBox Check(string text) => new() { Content = Label(text), Foreground = Brushes.White, Margin = new Thickness(0, 4, 0, 4) };
-    private static Button Action(string text) => new() { Content = text, Foreground = Brushes.White,
-        Background = new SolidColorBrush(Color.FromRgb(42, 57, 74)), Padding = new Thickness(9, 5, 9, 5), Margin = new Thickness(3) };
+    private static TextBlock Label(string text) => new() { Text = text, Foreground = CivilDeliveryTheme.Ink, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 3) };
+    private static CheckBox Check(string text) => new() { Content = Label(text), Foreground = CivilDeliveryTheme.Ink, Margin = new Thickness(0, 4, 0, 4) };
+    private static Button Action(string text) => new() { Content = text, Foreground = CivilDeliveryTheme.Ink,
+        Background = CivilDeliveryTheme.Panel2, Padding = new Thickness(9, 5, 9, 5), Margin = new Thickness(3) };
 }
 
 public sealed partial class FamilyDecisionRow

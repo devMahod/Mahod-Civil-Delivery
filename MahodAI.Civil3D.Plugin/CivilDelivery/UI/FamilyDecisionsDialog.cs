@@ -36,11 +36,11 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI;
 /// </summary>
 public sealed partial class FamilyDecisionsDialog : Window
 {
-    private static readonly Brush PanelBrush = FrozenBrush(29, 35, 47);
-    private static readonly Brush LineBrush = FrozenBrush(60, 69, 85);
-    private static readonly Brush MutedBrush = FrozenBrush(185, 208, 231);
-    private static readonly Brush WarningBrush = FrozenBrush(224, 164, 76);
-    private static readonly Brush PrimaryBrush = FrozenBrush(47, 125, 222);
+    private static readonly Brush PanelBrush = CivilDeliveryTheme.Panel;
+    private static readonly Brush LineBrush = CivilDeliveryTheme.Frame;
+    private static readonly Brush MutedBrush = CivilDeliveryTheme.Muted;
+    private static readonly Brush WarningBrush = CivilDeliveryTheme.Review;
+    private static readonly Brush PrimaryBrush = CivilDeliveryTheme.Ink;
     private readonly FamilyDecisionReviewModel _model;
     private readonly EngineerBoqLibrary _library;
     private readonly FamilyAssistant? _assistant;
@@ -71,8 +71,8 @@ public sealed partial class FamilyDecisionsDialog : Window
     internal readonly Image PreviewImage = new() { Width = 96, Height = 96, Margin = new Thickness(8, 0, 0, 0), Visibility = Visibility.Collapsed };
     internal readonly Expander AssistExpander = new()
     {
-        Header = new TextBlock { Text = "עוזר AI לקבוצות שלא הוכרעו (לא חובה)", Foreground = Brushes.White },
-        IsExpanded = false, Foreground = Brushes.White, Margin = new Thickness(0, 0, 0, 6),
+        Header = new TextBlock { Text = "עוזר AI לקבוצות שלא הוכרעו (לא חובה)", Foreground = CivilDeliveryTheme.Ink },
+        IsExpanded = false, Foreground = CivilDeliveryTheme.Ink, Margin = new Thickness(0, 0, 0, 6),
     };
     internal readonly ItemsControl StaleList = new() { Margin = new Thickness(0, 0, 0, 6) };
 
@@ -119,22 +119,22 @@ public sealed partial class FamilyDecisionsDialog : Window
         Title = "זיהוי שכבות ואישור משפחות";
         Width = 1240; Height = 760; MinWidth = 940; MinHeight = 580;
         WindowStartupLocation = WindowStartupLocation.CenterOwner; ShowInTaskbar = false;
-        FlowDirection = FlowDirection.RightToLeft; FontFamily = new FontFamily("Segoe UI"); FontSize = 12;
-        Background = new SolidColorBrush(Color.FromRgb(20, 24, 33)); Foreground = Brushes.White;
+        FlowDirection = FlowDirection.RightToLeft; CivilDeliveryTheme.Apply(this, 12);
+        Background = CivilDeliveryTheme.Canvas; Foreground = CivilDeliveryTheme.Ink;
 
         var root = new DockPanel { Margin = new Thickness(14) };
         var heading = new StackPanel(); DockPanel.SetDock(heading, Dock.Top);
         var title = Text("זיהוי שכבות ואישור משפחות", 17);
-        title.Foreground = Brushes.White;
+        title.Foreground = CivilDeliveryTheme.Ink;
         heading.Children.Add(title);
         heading.Children.Add(SummaryText);
         heading.Children.Add(_approvalBanner = new Border
         {
-            Background = new SolidColorBrush(Color.FromRgb(42, 33, 21)), BorderBrush = WarningBrush, BorderThickness = new Thickness(1),
+            Background = CivilDeliveryTheme.ReviewTint, BorderBrush = WarningBrush, BorderThickness = new Thickness(1),
             Padding = new Thickness(9), CornerRadius = new CornerRadius(4), Margin = new Thickness(0, 4, 0, 8),
             Child = new TextBlock
             {
-                TextWrapping = TextWrapping.Wrap, Foreground = Brushes.White,
+                TextWrapping = TextWrapping.Wrap, Foreground = CivilDeliveryTheme.Ink,
                 Text = "ההצעות מבוססות על ראיות מהשרטוט (בלוק, תכונות, מקרא, PropertySet, טקסט סמוך, רוחב) ולא על שם השכבה. " +
                        "אישור משפחה קובע מה הקבוצות המסומנות — החלטה אחת לכל משפחה, לכל הקבוצות יחד. הוא לא מאשר סעיפים או מחירים: " +
                        "שורות המתכון נשארות הצעה בטיוטה. אם הראיות של קבוצה ישתנו, ההחלטה תסומן 'לא בתוקף' ולא תוחל.",
@@ -495,14 +495,14 @@ public sealed partial class FamilyDecisionsDialog : Window
     {
         var panel = new StackPanel { Margin = new Thickness(8, 6, 8, 8) };
         var heading = Text("פרטי השורה שנבחרה בטבלה", 13);
-        heading.Foreground = Brushes.White;
+        heading.Foreground = CivilDeliveryTheme.Ink;
         heading.FontWeight = FontWeights.SemiBold;
         panel.Children.Add(heading);
-        RowDetailTitle.Foreground = Brushes.White;
+        RowDetailTitle.Foreground = CivilDeliveryTheme.Ink;
         panel.Children.Add(RowDetailTitle);
         panel.Children.Add(RowDetailState);
         // A partition rule's scope comes first: it is what the approval will cover, now and on later scans.
-        RowDetailScope.Foreground = Brushes.White;
+        RowDetailScope.Foreground = CivilDeliveryTheme.Ink;
         panel.Children.Add(_rowDetailScopeBox);
         panel.Children.Add(DetailCaption("מה חסר להכרעה"));
         panel.Children.Add(RowDetailMissing);
@@ -518,7 +518,7 @@ public sealed partial class FamilyDecisionsDialog : Window
     private static TextBlock DetailCaption(string value)
     {
         var caption = Text(value);
-        caption.Foreground = Brushes.White;
+        caption.Foreground = CivilDeliveryTheme.Ink;
         caption.FontWeight = FontWeights.SemiBold;
         caption.Margin = new Thickness(0, 8, 0, 0);
         return caption;
@@ -642,7 +642,7 @@ public sealed partial class FamilyDecisionsDialog : Window
             Bindings = { new Binding("Name"), new Binding("ItemCount") },
         });
         text.SetValue(TextBlock.FontWeightProperty, FontWeights.SemiBold);
-        text.SetValue(TextBlock.ForegroundProperty, Brushes.White);
+        text.SetValue(TextBlock.ForegroundProperty, CivilDeliveryTheme.Ink);
         text.SetValue(MarginProperty, new Thickness(6, 8, 6, 4));
         return new GroupStyle { HeaderTemplate = new DataTemplate { VisualTree = text } };
     }
@@ -670,12 +670,12 @@ public sealed partial class FamilyDecisionsDialog : Window
     { Text = value, TextWrapping = TextWrapping.Wrap, FontSize = size, Foreground = MutedBrush, Margin = new Thickness(0, 3, 0, 3) };
 
     private static TextBox Input() => new()
-    { Background = PanelBrush, Foreground = Brushes.White, BorderBrush = LineBrush, Padding = new Thickness(7, 5, 7, 5), MinHeight = 30 };
+    { Background = PanelBrush, Foreground = CivilDeliveryTheme.Ink, BorderBrush = LineBrush, Padding = new Thickness(7, 5, 7, 5), MinHeight = 30 };
 
     private static CheckBox Toggle(string value) => new()
     {
-        Content = new TextBlock { Text = value, TextWrapping = TextWrapping.Wrap, Foreground = Brushes.White },
-        Foreground = Brushes.White, Margin = new Thickness(0, 4, 0, 6),
+        Content = new TextBlock { Text = value, TextWrapping = TextWrapping.Wrap, Foreground = CivilDeliveryTheme.Ink },
+        Foreground = CivilDeliveryTheme.Ink, Margin = new Thickness(0, 4, 0, 6),
     };
 
     private static Button ActionButton(string value, bool primary = false)
@@ -700,7 +700,7 @@ public sealed partial class FamilyDecisionsDialog : Window
         {
             Content = value, Style = style,
             Background = primary ? PrimaryBrush : PanelBrush,
-            Foreground = Brushes.White, BorderBrush = LineBrush, Padding = new Thickness(12, 7, 12, 7), Margin = new Thickness(6, 4, 0, 0),
+            Foreground = CivilDeliveryTheme.Ink, BorderBrush = LineBrush, Padding = new Thickness(12, 7, 12, 7), Margin = new Thickness(6, 4, 0, 0),
         };
     }
 
@@ -710,14 +710,14 @@ public sealed partial class FamilyDecisionsDialog : Window
         {
             AutoGenerateColumns = false, IsReadOnly = false, CanUserAddRows = false, CanUserDeleteRows = false,
             CanUserReorderColumns = false, CanUserSortColumns = false, SelectionMode = DataGridSelectionMode.Single,
-            HeadersVisibility = DataGridHeadersVisibility.Column, Background = PanelBrush, Foreground = Brushes.White,
-            BorderBrush = LineBrush, RowBackground = PanelBrush, AlternatingRowBackground = new SolidColorBrush(Color.FromRgb(37, 44, 57)),
+            HeadersVisibility = DataGridHeadersVisibility.Column, Background = PanelBrush, Foreground = CivilDeliveryTheme.Ink,
+            BorderBrush = LineBrush, RowBackground = PanelBrush, AlternatingRowBackground = CivilDeliveryTheme.Panel2,
             GridLinesVisibility = DataGridGridLinesVisibility.Horizontal, HorizontalGridLinesBrush = LineBrush,
         };
         ScrollViewer.SetHorizontalScrollBarVisibility(grid, ScrollBarVisibility.Auto);
         var header = new Style(typeof(System.Windows.Controls.Primitives.DataGridColumnHeader));
         header.Setters.Add(new Setter(Control.BackgroundProperty, LineBrush));
-        header.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
+        header.Setters.Add(new Setter(Control.ForegroundProperty, CivilDeliveryTheme.Ink));
         header.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(6)));
         grid.ColumnHeaderStyle = header;
         return grid;

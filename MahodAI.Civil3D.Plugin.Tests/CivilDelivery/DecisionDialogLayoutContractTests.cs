@@ -39,10 +39,19 @@ public sealed class DecisionDialogLayoutContractTests
             if (double.TryParse(width, NumberStyles.Number, CultureInfo.InvariantCulture, out var fixedWidth))
                 minimum.Should().BeGreaterThanOrEqualTo(fixedWidth);
         }
-        var buttonStyle = document.Descendants().Single(e => e.Name.LocalName == "Style" &&
+        // 2026-10: the dialogs merge the shared theme (CivilDeliveryTheme.xaml); the implicit Button style and its
+        // disabled trigger live there, so a dialog that merges it is covered by the theme's own template.
+        var themed = document.Descendants().Any(e => e.Name.LocalName == "ResourceDictionary" &&
+            (string?)e.Attribute("Source") == "CivilDeliveryTheme.xaml");
+        var styleHost = themed ? XDocument.Parse(Source("CivilDeliveryTheme.xaml")) : document;
+        var buttonStyle = styleHost.Descendants().Single(e => e.Name.LocalName == "Style" &&
             (string?)e.Attribute("TargetType") == "Button" && e.Attribute(X + "Key") == null);
-        buttonStyle.Descendants().Should().Contain(e => e.Name.LocalName == "ControlTemplate" && (string?)e.Attribute("TargetType") == "Button");
-        buttonStyle.Descendants().Should().Contain(e => e.Name.LocalName == "Trigger" &&
+        var buttonTemplate = buttonStyle.Descendants().Any(e => e.Name.LocalName == "ControlTemplate")
+            ? buttonStyle
+            : styleHost.Descendants().Single(e => e.Name.LocalName == "ControlTemplate" &&
+                (string?)e.Attribute(X + "Key") == "ButtonTemplate");
+        buttonTemplate.DescendantsAndSelf().Should().Contain(e => e.Name.LocalName == "ControlTemplate" && (string?)e.Attribute("TargetType") == "Button");
+        buttonTemplate.Descendants().Should().Contain(e => e.Name.LocalName == "Trigger" &&
             (string?)e.Attribute("Property") == "IsEnabled" && (string?)e.Attribute("Value") == "False");
         document.Descendants().Single(e => e.Name.LocalName == "DataGrid")
             .Attribute("ScrollViewer.HorizontalScrollBarVisibility")!.Value.Should().Be("Auto");
@@ -70,7 +79,7 @@ public sealed class DecisionDialogLayoutContractTests
     {
         var document = XDocument.Parse(Source("ProvenMappingBatchDecisionDialog.xaml"));
         var confirmation = Named(document, "ConfirmBox");
-        confirmation.Attribute("Foreground")!.Value.Should().Be("#FFE6E9EF");
+        confirmation.Attribute("Foreground")!.Value.Should().Be("#FF1C2420");
         confirmation.Attribute("IsChecked").Should().BeNull();
         confirmation.Attribute("Checked")!.Value.Should().Be("OnInputChanged");
         confirmation.Attribute("Unchecked")!.Value.Should().Be("OnInputChanged");

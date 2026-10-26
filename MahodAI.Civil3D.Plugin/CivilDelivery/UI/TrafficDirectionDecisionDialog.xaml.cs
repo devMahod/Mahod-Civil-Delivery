@@ -108,6 +108,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
             _includeResolvedDirections = includeResolvedDirections;
             _sourceSnapshots = records.Select(record => (record, JsonSerializer.Serialize(record))).ToArray();
             InitializeComponent();
+            FontFamily = CivilDeliveryTheme.Font;
             UiGuard.Attach(this, "כיווני נסיעה לאצוות חתכים");
             _rows = records
                 .OrderBy(record => record.Station ?? double.MaxValue)

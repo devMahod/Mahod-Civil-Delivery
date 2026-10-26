@@ -145,7 +145,7 @@ public sealed class SectionPaletteLayoutTests
             "CivilDelivery", "UI", "CivilDeliveryControl.xaml"));
         // Exact production XAML, without an HWND, event handlers or Autodesk host.
         foreach (var a in xml.Root!.DescendantsAndSelf().Attributes().Where(a => a.Name.LocalName == "Class" || a.Value.StartsWith("On", StringComparison.Ordinal)).ToArray()) a.Remove();
-        return (UserControl)XamlReader.Parse(xml.ToString());
+        return (UserControl)TestXaml.Parse(xml);
     }
 
     [Theory]

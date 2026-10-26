@@ -14,6 +14,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
             string? suggestedReason = null)
         {
             InitializeComponent();
+            FontFamily = CivilDeliveryTheme.Font;
             UiGuard.Attach(this, "אישור החרגת קבוצת כמות");
             QuantitySummaryText.Text =
                 $"שכבה: {layer}\nכמות: {quantityDisplay} · {objectCount} עצמים\nחוק: {ruleKey}";

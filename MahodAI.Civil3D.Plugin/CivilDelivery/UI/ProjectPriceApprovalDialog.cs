@@ -18,7 +18,7 @@ public sealed class ProjectPriceApprovalDialog : Window
     public ProjectPriceApprovalPolicy.Approval? Approval { get; private set; }
     private readonly ProjectPriceApprovalPolicy.Context _context;
     private readonly TextBox _price = new(), _source = new(), _reason = new(), _approver = new();
-    private readonly TextBlock _validation = new() { TextWrapping = TextWrapping.Wrap, Foreground = System.Windows.Media.Brushes.DarkRed };
+    private readonly TextBlock _validation = new() { TextWrapping = TextWrapping.Wrap, Foreground = CivilDeliveryTheme.Blocked };
 
     public ProjectPriceApprovalDialog(ProjectPriceApprovalPolicy.Context context,
         IEnumerable<ProjectProfile.EstimateProfile.PriceOverride> previous)
@@ -27,9 +27,9 @@ public sealed class ProjectPriceApprovalDialog : Window
         Title = "אישור מחיר פרויקט — החלטה מפורשת";
         Width = 760; Height = 740; MinWidth = 540; MinHeight = 460;
         FlowDirection = System.Windows.FlowDirection.RightToLeft;
-        FontFamily = new System.Windows.Media.FontFamily("Segoe UI"); FontSize = 14;
+        CivilDeliveryTheme.Apply(this, 14);
         WindowStartupLocation = WindowStartupLocation.CenterOwner; ShowInTaskbar = false;
-        Background = System.Windows.Media.Brushes.White;
+        Background = CivilDeliveryTheme.Canvas;
         var body = new StackPanel { Margin = new Thickness(16) };
         body.Children.Add(new TextBlock
         {

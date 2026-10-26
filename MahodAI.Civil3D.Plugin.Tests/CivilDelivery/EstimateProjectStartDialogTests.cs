@@ -119,7 +119,8 @@ public sealed class EstimateProjectStartDialogTests
             bounds.Right.Should().BeLessThanOrEqualTo(frame.ActualWidth + 0.1);
             bounds.Bottom.Should().BeLessThanOrEqualTo(frame.ActualHeight + 0.1);
         }
-        ((System.Windows.Media.SolidColorBrush)dialog.ProjectNameInput.Foreground).Color.Should().Be(System.Windows.Media.Colors.White);
+        ((System.Windows.Media.SolidColorBrush)dialog.ProjectNameInput.Foreground).Color.Should().Be(
+            MahodAI.Civil3D.Plugin.CivilDelivery.UI.CivilDeliveryTheme.InkColor);
         var directory = Environment.GetEnvironmentVariable("MHD_SEMANTIC_UI_CAPTURE_DIR");
         if (!string.IsNullOrWhiteSpace(directory))
         {

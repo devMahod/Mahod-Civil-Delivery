@@ -17,6 +17,7 @@ public partial class EstimateSourceReviewDialog : Window
     public EstimateSourceReviewDialog(string inventoryText, string scopeText)
     {
         InitializeComponent();
+        FontFamily = CivilDeliveryTheme.Font;
         UiGuard.Attach(this, "אישור מקורות האומדן");
         // Preserve the complete inventory and its existing Bidi.Ltr filename runs.
         InventoryText.Text = inventoryText ?? string.Empty;

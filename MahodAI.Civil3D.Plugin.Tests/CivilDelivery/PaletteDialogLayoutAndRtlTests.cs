@@ -494,7 +494,7 @@ public sealed class PaletteDialogLayoutAndRtlTests
         foreach (var attribute in xml.Root!.DescendantsAndSelf().Attributes().Where(a =>
                      a.Name.LocalName == "Class" || a.Value.StartsWith("On", StringComparison.Ordinal)).ToArray())
             attribute.Remove();
-        return (Window)XamlReader.Parse(xml.ToString());
+        return (Window)TestXaml.Parse(xml);
     }
 
     private static IEnumerable<Button> Buttons(DependencyObject root) =>

@@ -22,7 +22,15 @@
     <Product>MahodAI Civil 3D Platform</Product>
   </PropertyGroup>
 
+  <!-- Rubik, the Mahod house font (OFL, CivilDelivery\UI\Fonts\OFL.txt), copied to a Fonts folder beside the DLL:
+       WPF loads fonts from a folder on disk inside any host, and the Civil Delivery windows take the family from
+       CivilDeliveryTheme.Font (Segoe UI without the folder). -->
   <ItemGroup>
+    <Content Include="CivilDelivery\UI\Fonts\*.ttf" Link="Fonts\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="CivilDelivery\UI\Fonts\OFL.txt" Link="Fonts\OFL.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="MahodAI.Civil3D.Plugin.Tests" />
     <InternalsVisibleTo Include="MahodAI.Core.Tests" />
   </ItemGroup>

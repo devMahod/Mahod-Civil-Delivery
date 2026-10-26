@@ -75,9 +75,9 @@ public sealed partial class ManualMappingReviewDialog : Window
         public event PropertyChangedEventHandler? PropertyChanged;
     }
 
-    private static readonly Brush PanelBrush = FrozenBrush(29, 35, 47);
-    private static readonly Brush LineBrush = FrozenBrush(60, 69, 85);
-    private static readonly Brush MutedBrush = FrozenBrush(185, 208, 231);
+    private static readonly Brush PanelBrush = CivilDeliveryTheme.Panel;
+    private static readonly Brush LineBrush = CivilDeliveryTheme.Frame;
+    private static readonly Brush MutedBrush = CivilDeliveryTheme.Muted;
     private readonly CatalogSnapshot _catalog;
     private readonly Action<IReadOnlyList<Choice>, string>? _saveReviewed;
     private readonly List<GroupRow> _rows;
@@ -121,8 +121,8 @@ public sealed partial class ManualMappingReviewDialog : Window
         Width = 1180; Height = 780; MinWidth = 900; MinHeight = 680;
         WindowStartupLocation = WindowStartupLocation.CenterOwner; ShowInTaskbar = false;
         SourceInitialized += (_, _) => FitReviewWindowToMonitor();
-        FlowDirection = FlowDirection.RightToLeft; FontFamily = new FontFamily("Segoe UI"); FontSize = 13;
-        Background = new SolidColorBrush(Color.FromRgb(20, 24, 33)); Foreground = Brushes.White;
+        FlowDirection = FlowDirection.RightToLeft; CivilDeliveryTheme.Apply(this, 13);
+        Background = CivilDeliveryTheme.Canvas; Foreground = CivilDeliveryTheme.Ink;
         var root = new DockPanel { Margin = new Thickness(14) };
         var heading = new StackPanel(); DockPanel.SetDock(heading, Dock.Top);
         var title = Text("1 בחר קבוצה · 2 בחר סעיף · 3 הוסף לבחירות · 4 אשר ושמור", 16);
@@ -148,7 +148,7 @@ public sealed partial class ManualMappingReviewDialog : Window
         ReviewerLabel.Margin = new Thickness(0, 0, 8, 0); ReviewerLabel.VerticalAlignment = VerticalAlignment.Center;
         approval.Children.Add(ReviewerLabel);
         Approver.MinWidth = 170; Grid.SetColumn(Approver, 1); approval.Children.Add(Approver); footer.Children.Add(approval);
-        _validation.Foreground = Brushes.Orange; footer.Children.Add(_validation); root.Children.Add(footer);
+        _validation.Foreground = CivilDeliveryTheme.Review; footer.Children.Add(_validation); root.Children.Add(footer);
 
         var body = new Grid { Margin = new Thickness(0, 10, 0, 0) };
         body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.0, GridUnitType.Star) });
@@ -413,9 +413,9 @@ public sealed partial class ManualMappingReviewDialog : Window
     private static TextBlock Text(string value, double size = 13) => new()
     { Text = value, TextWrapping = TextWrapping.Wrap, FontSize = size, Foreground = MutedBrush, Margin = new Thickness(0, 3, 0, 3) };
     private static TextBox Input() => new()
-    { Background = PanelBrush, Foreground = Brushes.White, BorderBrush = LineBrush, Padding = new Thickness(7), MinHeight = 32 };
+    { Background = PanelBrush, Foreground = CivilDeliveryTheme.Ink, BorderBrush = LineBrush, Padding = new Thickness(7), MinHeight = 32 };
     private static CheckBox Toggle(string value) => new()
-    { Content = Text(value), Foreground = Brushes.White, Margin = new Thickness(0, 4, 0, 3) };
+    { Content = Text(value), Foreground = CivilDeliveryTheme.Ink, Margin = new Thickness(0, 4, 0, 3) };
     private static Button ActionButton(string value, bool primary = false)
     {
         var border = new FrameworkElementFactory(typeof(Border));
@@ -436,8 +436,8 @@ public sealed partial class ManualMappingReviewDialog : Window
         var hover = new Trigger { Property = IsMouseOverProperty, Value = true };
         hover.Setters.Add(new Setter(OpacityProperty, 0.85)); style.Triggers.Add(hover);
         return new Button { Content = value, Style = style,
-            Background = primary ? new SolidColorBrush(Color.FromRgb(47, 125, 222)) : PanelBrush,
-            Foreground = Brushes.White, BorderBrush = LineBrush, Padding = new Thickness(10, 7, 10, 7), Margin = new Thickness(0, 4, 6, 0) };
+            Background = primary ? CivilDeliveryTheme.Ink : PanelBrush,
+            Foreground = CivilDeliveryTheme.Ink, BorderBrush = LineBrush, Padding = new Thickness(10, 7, 10, 7), Margin = new Thickness(0, 4, 6, 0) };
     }
     private static DataGrid CreateGrid()
     {
@@ -445,13 +445,13 @@ public sealed partial class ManualMappingReviewDialog : Window
         {
             AutoGenerateColumns = false, IsReadOnly = true, CanUserAddRows = false, CanUserDeleteRows = false,
             SelectionMode = DataGridSelectionMode.Single, HeadersVisibility = DataGridHeadersVisibility.Column,
-            Background = PanelBrush, Foreground = Brushes.White, BorderBrush = LineBrush, RowBackground = PanelBrush,
-            AlternatingRowBackground = new SolidColorBrush(Color.FromRgb(37, 44, 57)), GridLinesVisibility = DataGridGridLinesVisibility.Horizontal,
+            Background = PanelBrush, Foreground = CivilDeliveryTheme.Ink, BorderBrush = LineBrush, RowBackground = PanelBrush,
+            AlternatingRowBackground = CivilDeliveryTheme.Panel2, GridLinesVisibility = DataGridGridLinesVisibility.Horizontal,
             HorizontalGridLinesBrush = LineBrush, EnableRowVirtualization = true,
         };
         var header = new Style(typeof(System.Windows.Controls.Primitives.DataGridColumnHeader));
         header.Setters.Add(new Setter(Control.BackgroundProperty, LineBrush));
-        header.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
+        header.Setters.Add(new Setter(Control.ForegroundProperty, CivilDeliveryTheme.Ink));
         header.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(6)));
         result.ColumnHeaderStyle = header;
         return result;

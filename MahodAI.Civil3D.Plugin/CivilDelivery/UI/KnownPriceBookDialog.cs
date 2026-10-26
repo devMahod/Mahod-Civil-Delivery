@@ -23,15 +23,15 @@ internal sealed class KnownPriceBookDialog : Window
     internal readonly CheckBox Confirm = new() { Margin = new Thickness(0, 10, 0, 5) };
     internal readonly Button UseButton = new() { Content = "רשום בפרויקט והפעל", MinHeight = 38, Padding = new Thickness(12, 5, 12, 5), Margin = new Thickness(4) };
     internal readonly Button CancelButton = new() { Content = "ביטול — ללא שינוי", IsCancel = true, MinHeight = 38, Margin = new Thickness(4) };
-    internal readonly TextBlock Validation = new() { Foreground = Brushes.DarkRed, TextWrapping = TextWrapping.Wrap };
+    internal readonly TextBlock Validation = new() { Foreground = CivilDeliveryTheme.Blocked, TextWrapping = TextWrapping.Wrap };
     internal readonly ScrollViewer BodyScroll = new() { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
     internal KnownPriceBookIndex.Offer? Accepted { get; private set; }
 
     internal KnownPriceBookDialog(IReadOnlyList<KnownPriceBookIndex.Offer> offers, string project)
     {
         Title = "מחירונים שנרשמו בעבר במחשב זה"; Width = 790; Height = 670; MinWidth = 550; MinHeight = 480;
-        FlowDirection = System.Windows.FlowDirection.RightToLeft; FontFamily = new FontFamily("Segoe UI"); FontSize = 14;
-        Background = Brushes.White; Foreground = Brushes.Black; ShowInTaskbar = false; WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        FlowDirection = System.Windows.FlowDirection.RightToLeft; CivilDeliveryTheme.Apply(this, 14);
+        Background = CivilDeliveryTheme.Canvas; Foreground = CivilDeliveryTheme.Ink; ShowInTaskbar = false; WindowStartupLocation = WindowStartupLocation.CenterOwner;
         var root = new DockPanel { Margin = new Thickness(16) };
         var footer = new StackPanel(); DockPanel.SetDock(footer, Dock.Bottom);
         Confirm.Content = Text("בדקתי את המהדורה ואת קריאת העמודות; המחירון מתאים לפרויקט ויש לי הרשאה להשתמש בו.");

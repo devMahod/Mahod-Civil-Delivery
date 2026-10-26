@@ -17,7 +17,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI;
 internal sealed class EstimateProjectStartDialog : Window
 {
     internal readonly TextBox ProjectNameInput = Input(), ApproverInput = Input();
-    internal readonly CheckBox ConfirmSources = new() { IsChecked = false, Foreground = Brushes.White,
+    internal readonly CheckBox ConfirmSources = new() { IsChecked = false, Foreground = CivilDeliveryTheme.Ink,
         Margin = new Thickness(0, 10, 0, 4), VerticalContentAlignment = VerticalAlignment.Center };
     internal readonly Button Start = Action("אשר, שמור והתחל מדידה"), Cancel = Action("ביטול — ללא שמירה");
     // The engineer declares the discipline; nothing is preselected and nothing is guessed from layer names.
@@ -33,8 +33,8 @@ internal sealed class EstimateProjectStartDialog : Window
         Width = 780; Height = 720; MinWidth = 540; MinHeight = 360;
         WindowStartupLocation = WindowStartupLocation.CenterOwner; ShowInTaskbar = false;
         FlowDirection = System.Windows.FlowDirection.RightToLeft;
-        FontFamily = new FontFamily("Segoe UI"); FontSize = 13;
-        Background = new SolidColorBrush(Color.FromRgb(20, 24, 33)); Foreground = Brushes.White;
+        CivilDeliveryTheme.Apply(this, 13);
+        Background = CivilDeliveryTheme.Canvas; Foreground = CivilDeliveryTheme.Ink;
         var root = new DockPanel { Margin = new Thickness(14) };
         var footer = new StackPanel(); DockPanel.SetDock(footer, Dock.Bottom);
         ConfirmSources.Content = Text(completingExistingProfile
@@ -105,17 +105,17 @@ internal sealed class EstimateProjectStartDialog : Window
 
     private static RadioButton Choice(string text) => new()
     {
-        Content = new TextBlock { Text = text, Foreground = Brushes.White, TextWrapping = TextWrapping.Wrap },
-        GroupName = "estimate-discipline", Foreground = Brushes.White, Margin = new Thickness(0, 4, 18, 4),
+        Content = new TextBlock { Text = text, Foreground = CivilDeliveryTheme.Ink, TextWrapping = TextWrapping.Wrap },
+        GroupName = "estimate-discipline", Foreground = CivilDeliveryTheme.Ink, Margin = new Thickness(0, 4, 18, 4),
         VerticalContentAlignment = VerticalAlignment.Center, MinHeight = 28,
     };
 
     private static TextBlock Text(string text, double size = 13) => new()
-    { Text = text, TextWrapping = TextWrapping.Wrap, Foreground = Brushes.White, FontSize = size, Margin = new Thickness(0, 5, 0, 5) };
+    { Text = text, TextWrapping = TextWrapping.Wrap, Foreground = CivilDeliveryTheme.Ink, FontSize = size, Margin = new Thickness(0, 5, 0, 5) };
 
     private static TextBox Input() => new() { MinHeight = 32, Padding = new Thickness(8, 5, 8, 5),
-        Background = new SolidColorBrush(Color.FromRgb(29, 35, 47)), Foreground = Brushes.White,
-        CaretBrush = Brushes.White, BorderBrush = new SolidColorBrush(Color.FromRgb(95, 112, 136)),
+        Background = CivilDeliveryTheme.Panel, Foreground = CivilDeliveryTheme.Ink,
+        CaretBrush = CivilDeliveryTheme.Ink, BorderBrush = CivilDeliveryTheme.Frame,
         Margin = new Thickness(0, 0, 0, 6) };
 
     private static TextBox PathBox(string text)
@@ -128,11 +128,11 @@ internal sealed class EstimateProjectStartDialog : Window
 
     private static TextBox ReadOnly(string text) => new() { Text = text, IsReadOnly = true, TextWrapping = TextWrapping.Wrap,
         AcceptsReturn = true, Padding = new Thickness(8), BorderThickness = new Thickness(1),
-        Background = new SolidColorBrush(Color.FromRgb(29, 35, 47)), Foreground = Brushes.White,
-        BorderBrush = new SolidColorBrush(Color.FromRgb(95, 112, 136)), Margin = new Thickness(0, 4, 0, 6) };
+        Background = CivilDeliveryTheme.Panel, Foreground = CivilDeliveryTheme.Ink,
+        BorderBrush = CivilDeliveryTheme.Frame, Margin = new Thickness(0, 4, 0, 6) };
 
     private static Button Action(string text) => new() { Content = text, MinHeight = 38,
         Padding = new Thickness(12, 6, 12, 6), Margin = new Thickness(6),
-        Background = new SolidColorBrush(Color.FromRgb(232, 239, 247)),
-        Foreground = new SolidColorBrush(Color.FromRgb(20, 24, 33)) };
+        Background = CivilDeliveryTheme.Panel,
+        Foreground = CivilDeliveryTheme.Ink };
 }

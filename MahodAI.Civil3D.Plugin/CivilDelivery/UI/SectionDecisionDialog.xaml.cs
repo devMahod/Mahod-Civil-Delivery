@@ -43,6 +43,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
             DecisionKind initialKind)
         {
             InitializeComponent();
+            FontFamily = CivilDeliveryTheme.Font;
             UiGuard.Attach(this, "הכרעת רשומת חתך");
             SubjectTitle.Text = $"חתך {record.SectionId ?? record.Cl.SourceHandle}";
             SubjectDetail.Text =

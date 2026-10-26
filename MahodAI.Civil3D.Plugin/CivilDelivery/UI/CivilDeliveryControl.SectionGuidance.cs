@@ -74,6 +74,7 @@ public partial class CivilDeliveryControl
                 status == DeliveryStatus.Verified && IsAuthoritativeVerify(_lastVerifyResult),
             PlanRecordCount = _plan?.Records.Count ?? 0,
         });
+        ShowSectionStage(_sectionGuidedAction.Stage);
         SectionStepTitle.Text = (row == null || !string.IsNullOrWhiteSpace(globalBlock)
             ? "" : "חתך " + row.SectionId + " · ") + _sectionGuidedAction.Title;
         SectionStepDetail.Text = _sectionGuidedAction.Detail;
@@ -91,6 +92,26 @@ public partial class CivilDeliveryControl
             SectionStepTitle.Text = "ממתין לשמירת השרטוט";
             SectionStepDetail.Text = "לאחר סיום השמירה נחזור לפעולה שאישרת. ביטול השמירה מבטל את ההמשך.";
         }
+    }
+
+    /// <summary>
+    /// The four step tiles of the sections card (2026-10): the stage the guided action belongs to is the current
+    /// tile, the stages before it are done. Recovery keeps whatever was lit; it is not a step of its own.
+    /// </summary>
+    private void ShowSectionStage(SectionGuidedStage stage)
+    {
+        var current = stage switch
+        {
+            SectionGuidedStage.Setup or SectionGuidedStage.Planning => 1,
+            SectionGuidedStage.Review => 2,
+            SectionGuidedStage.Creation => 3,
+            SectionGuidedStage.Verification or SectionGuidedStage.Result => 4,
+            _ => 0,
+        };
+        if (current == 0) return;
+        var tiles = new[] { SectionStage1, SectionStage2, SectionStage3, SectionStage4 };
+        for (var i = 0; i < tiles.Length; i++)
+            tiles[i].Tag = i + 1 < current ? "done" : i + 1 == current ? "current" : null;
     }
 
     private void OnSectionNext(object sender, RoutedEventArgs e)

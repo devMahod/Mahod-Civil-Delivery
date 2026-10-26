@@ -36,7 +36,7 @@ public sealed class PriceBookLiveRefreshContractTests
             foreach (var attribute in xml.Root!.DescendantsAndSelf().Attributes().Where(a =>
                          a.Name.LocalName == "Class" || a.Value.StartsWith("On", StringComparison.Ordinal)).ToArray())
                 attribute.Remove();
-            var control = (System.Windows.Controls.UserControl)XamlReader.Parse(xml.ToString());
+            var control = (System.Windows.Controls.UserControl)TestXaml.Parse(xml);
             ((System.Windows.Controls.TabControl)control.FindName("Tabs")).SelectedIndex = 1;
             var box = (System.Windows.Controls.ComboBox)control.FindName("PriceBookCombo");
             control.Width = 720; control.Height = 980;

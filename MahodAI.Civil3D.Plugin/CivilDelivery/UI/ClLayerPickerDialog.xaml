@@ -5,67 +5,43 @@
         Width="720" Height="520" MinWidth="600" MinHeight="420"
         WindowStartupLocation="CenterOwner"
         FlowDirection="RightToLeft"
-        Background="#FF141821" Foreground="#FFE6E9EF"
-        FontFamily="Segoe UI" FontSize="12"
+        Background="#FFF0F2F5" Foreground="#FF1C2420"
+        FontFamily="./Fonts/#Rubik, Segoe UI, Arial" FontSize="12.5" UseLayoutRounding="True"
         ShowInTaskbar="False">
 
   <Window.Resources>
-    <SolidColorBrush x:Key="Panel"  Color="#FF1C2230"/>
-    <SolidColorBrush x:Key="Line"   Color="#FF2C3444"/>
-    <SolidColorBrush x:Key="Accent" Color="#FF3B82F6"/>
-    <SolidColorBrush x:Key="Muted"  Color="#FF9AA4B2"/>
-
-    <Style TargetType="Button">
-      <Setter Property="Background" Value="{StaticResource Panel}"/>
-      <Setter Property="Foreground" Value="#FFE6E9EF"/>
-      <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
-      <Setter Property="BorderThickness" Value="1"/>
-      <Setter Property="Padding" Value="14,6"/>
-      <Setter Property="Margin" Value="6,0,0,0"/>
-      <Setter Property="MinWidth" Value="96"/>
-    </Style>
-    <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-      <Setter Property="Background" Value="{StaticResource Accent}"/>
-      <Setter Property="Foreground" Value="White"/>
-    </Style>
-    <Style x:Key="MutedText" TargetType="TextBlock">
-      <Setter Property="Foreground" Value="{StaticResource Muted}"/>
-    </Style>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="CivilDeliveryTheme.xaml"/>
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
   </Window.Resources>
 
-  <DockPanel Margin="14">
+  <DockPanel Margin="16">
 
     <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-      <TextBlock x:Name="FileTitle" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+      <TextBlock x:Name="FileTitle" Style="{StaticResource DialogTitle}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
       <TextBlock x:Name="ScanSummary" Style="{StaticResource MutedText}" Margin="0,3,0,0" TextWrapping="Wrap"/>
     </StackPanel>
 
     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,10,0,0">
-      <Button Content="ביטול" IsCancel="True" Click="OnCancel"/>
-      <Button x:Name="BtnOk" Content="אישור" Style="{StaticResource PrimaryButton}" IsDefault="True" Click="OnOk"/>
+      <Button Content="ביטול" IsCancel="True" Click="OnCancel" Margin="6,0,0,0"/>
+      <Button x:Name="BtnOk" Content="אישור" Style="{StaticResource PrimaryButton}" IsDefault="True" Click="OnOk" Margin="6,0,0,0"/>
     </StackPanel>
 
-    <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource MutedText}" Margin="0,8,0,0" TextWrapping="Wrap"
+    <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource MutedText}" Margin="2,8,2,0" TextWrapping="Wrap"
                Text="הדירוג מבוסס על ראיות מהשרטוט בלבד — כמה קווים ישרים יש בשכבה, כמה מהם באמת חוצים תוואי תכנון, ומה האורך האופייני. הבחירה שלך, והיא נשמרת לפרויקט."/>
 
-    <Border Background="{StaticResource Panel}" BorderBrush="{StaticResource Line}" BorderThickness="1"
-            CornerRadius="4">
-      <ListView x:Name="Candidates" Background="Transparent" BorderThickness="0" Foreground="#FFE6E9EF"
-                SelectionMode="Single" MouseDoubleClick="OnRowDoubleClick">
-        <ListView.ItemContainerStyle>
-          <Style TargetType="ListViewItem">
-            <Setter Property="Padding" Value="8"/>
-            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-          </Style>
-        </ListView.ItemContainerStyle>
+    <Border Style="{StaticResource Card}" Padding="6">
+      <ListView x:Name="Candidates" SelectionMode="Single" MouseDoubleClick="OnRowDoubleClick">
         <ListView.ItemTemplate>
           <DataTemplate>
             <StackPanel>
               <StackPanel Orientation="Horizontal">
                 <TextBlock Text="{Binding Layer}" FontWeight="SemiBold" FontSize="14"/>
-                <TextBlock Text="{Binding ScoreDisplay}" Foreground="#FF3B82F6" Margin="10,0,0,0" FontSize="13"/>
+                <TextBlock Text="{Binding ScoreDisplay}" Foreground="{StaticResource AccentInk}" Margin="10,0,0,0" FontSize="12.5"/>
               </StackPanel>
-              <TextBlock Text="{Binding Evidence}" Foreground="#FF9AA4B2" TextWrapping="Wrap" Margin="0,2,0,0"/>
+              <TextBlock Text="{Binding Evidence}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,2,0,0"/>
             </StackPanel>
           </DataTemplate>
         </ListView.ItemTemplate>

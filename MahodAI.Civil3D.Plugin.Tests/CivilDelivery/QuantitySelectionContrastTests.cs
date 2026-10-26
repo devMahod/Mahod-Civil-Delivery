@@ -38,7 +38,7 @@ public sealed class QuantitySelectionContrastTests
                 foreach (var attribute in xml.Root!.DescendantsAndSelf().Attributes().Where(a =>
                              a.Name.LocalName == "Class" || a.Value.StartsWith("On", StringComparison.Ordinal)).ToArray())
                     attribute.Remove();
-                var control = (UserControl)XamlReader.Parse(xml.ToString());
+                var control = (UserControl)TestXaml.Parse(xml);
                 ((TabControl)control.FindName("Tabs")).SelectedIndex = 1;
                 ((TextBlock)control.FindName("EstimateNextAction")).Text =
                     "בדיקת תצוגה בלבד: שורה נבחרת כשהמיקוד מחוץ לטבלה. אין אישור הנדסי.";

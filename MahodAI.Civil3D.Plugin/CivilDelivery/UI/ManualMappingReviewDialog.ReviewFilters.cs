@@ -16,7 +16,7 @@ public sealed partial class ManualMappingReviewDialog
     {
         DisplayMemberPath = nameof(ReviewFilter.Label), SelectedValuePath = nameof(ReviewFilter.Id),
         MinWidth = 110, Margin = new Thickness(0, 3, 6, 3),
-        Foreground = System.Windows.Media.Brushes.Black, Background = System.Windows.Media.Brushes.White,
+        Foreground = CivilDeliveryTheme.Ink, Background = System.Windows.Media.Brushes.White,
         VerticalContentAlignment = VerticalAlignment.Center,
     };
 
