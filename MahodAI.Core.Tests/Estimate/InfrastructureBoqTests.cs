@@ -27,6 +27,20 @@ public sealed class InfrastructureBoqTests : IDisposable
     private static InfrastructureGroup Group() => InfrastructureBoq.Group(new[] { Line() }).Single();
 
     [Fact]
+    public void Reviewed_category_reaches_drawing_layer_and_trace_without_changing_measurement()
+    {
+        var line = Line() with { OutputLayer = "BOQ_WATER__12345678__WT-DN200" };
+        var group = Group(); group.Topic = "גז";
+        var reviewed = InfrastructureBoq.ReviewedLine(line, group);
+        Assert.Equal("BOQ_GAS__12345678__WT-DN200", reviewed.OutputLayer);
+        Assert.Equal("גז", reviewed.Topic);
+        Assert.Equal(line.LengthMetres, reviewed.LengthMetres);
+        Assert.Equal(line.Handle, reviewed.Handle);
+        Assert.Equal("מים", line.Topic);
+        Assert.Throws<ArgumentException>(() => InfrastructureBoq.ReviewedLine(Line("other.dwg"), group));
+    }
+
+    [Fact]
     public void Bundled_book_is_the_verified_official_download_including_the_corrected_rate()
     {
         var offer = Assert.Single(BundledPriceBooks.Offers(_dir, new MahodAI.CivilDelivery.Shared.ProjectProfile()));

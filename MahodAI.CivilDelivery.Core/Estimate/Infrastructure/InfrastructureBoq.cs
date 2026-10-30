@@ -71,6 +71,17 @@ public static class InfrastructureBoq
             LengthMetres=g.Sum(l=>l.LengthMetres),ClosedCount=g.Count(l=>l.Closed),Evidence=g.First().Evidence})
         .OrderBy(g=>Array.IndexOf(Topics,g.Topic)).ThenByDescending(g=>g.LengthMetres).ToArray();
 
+    /// <summary>Apply reviewed categories consistently to the workbook, DWG and source receipt.</summary>
+    public static InfrastructureLine ReviewedLine(InfrastructureLine line, InfrastructureGroup group)
+    {
+        if (line.Source != group.Source || line.Layer != group.Layer)
+            throw new ArgumentException("The review belongs to a different source layer");
+        var code = Signals.FirstOrDefault(s => s.Topic == group.Topic).Code ?? "UNCLASSIFIED";
+        var suffix = line.OutputLayer.IndexOf("__", StringComparison.Ordinal);
+        return line with { Topic = group.Topic, OutputLayer = "BOQ_" + code +
+            (suffix >= 0 ? line.OutputLayer[suffix..] : "__" + line.OutputLayer) };
+    }
+
     public static void Export(string path, IReadOnlyList<InfrastructureGroup> groups, IReadOnlyList<InfrastructureLine> lines,
         CatalogSnapshot catalog, IReadOnlyList<string> findings, string drawing, string drawingHash, string measurementEngine)
     {

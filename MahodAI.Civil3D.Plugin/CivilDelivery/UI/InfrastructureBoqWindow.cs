@@ -27,7 +27,8 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI;
 internal sealed class InfrastructureBoqWindow : Window
 {
     private readonly InfrastructureDrawingService _scan;
-    private readonly CatalogSnapshot _catalog;
+    private CatalogSnapshot _catalog;
+    private readonly TextBlock _catalogLabel = new() { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(4) };
     private readonly List<InfrastructureGroup> _groups;
     private readonly HashSet<InfrastructureGroup> _excluded = new();
     private readonly DataGrid _grid = new() { AutoGenerateColumns = false, IsReadOnly = true, SelectionMode = DataGridSelectionMode.Single };
@@ -47,10 +48,13 @@ internal sealed class InfrastructureBoqWindow : Window
         var top = new StackPanel(); DockPanel.SetDock(top, Dock.Top); root.Children.Add(top);
         top.Children.Add(new TextBlock { Text = "תשתיות | מדידה ← בדיקת מפרט ← חיפוש סעיף ← Excel ושרטוט", FontSize = 21, Margin = new Thickness(4) });
         top.Children.Add(new TextBlock { Text = "הסריקה כוללת את כל Model Space ומופעי המקורות הטעונים, ללא חיתוך לפוליגון. שמות השכבות מציעים נושא בלבד. קווים סגורים, כפולים, מצב קיים וקווי עזר מחייבים בדיקה.", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(4) });
-        top.Children.Add(new TextBlock { Text = $"מחירון נתיבי ישראל: יולי 2026 · {_catalog.Items.Count:N0} סעיפים · אומת מול הפרסום באתר הרשמי ב־30.10.2026", Margin = new Thickness(4) });
+        top.Children.Add(_catalogLabel); UpdateCatalogLabel();
         var bar = new WrapPanel { Margin = new Thickness(0, 8, 0, 8) }; top.Children.Add(bar);
         _filter.ItemsSource = new[] { "כל התשתיות" }.Concat(InfrastructureBoq.Topics); _filter.SelectedIndex = 0;
         _filter.SelectionChanged += (_, _) => Refresh(); bar.Children.Add(_filter);
+        Button(bar, "בחר מחירון Excel…", ChooseCatalog);
+        Button(bar, "בדיקת כלי איגור", AuditIgor);
+        Button(bar, "ממצאי הסריקה", () => MessageBox.Show(_scan.Findings.Count == 0 ? "לא נרשמו ממצאים" : string.Join("\n", _scan.Findings), "ממצאי מדידה"));
         Button(bar, "הסר מהרשימה", () => { if (_grid.SelectedItem is InfrastructureGroup g) { _excluded.Add(g); Refresh(); } });
         Button(bar, "החזר מוסרות", () => { _excluded.Clear(); Refresh(); });
         Button(bar, "ייצא Excel ו־DWG…", Export);
@@ -70,6 +74,27 @@ internal sealed class InfrastructureBoqWindow : Window
         _grid.SelectionChanged += (_, _) => { if (_grid.SelectedItem is InfrastructureGroup g) { _topic.SelectedItem = g.Topic; _status.SelectedItem = g.WorkStatus; _spec.Text = g.Specification; } };
         root.Children.Add(_grid); Refresh();
     }
+    private void UpdateCatalogLabel() => _catalogLabel.Text = $"מחירון פעיל: {_catalog.SnapshotId} · {_catalog.PublicationNote} · {_catalog.Items.Count:N0} סעיפים";
+    private void ChooseCatalog()
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "Excel price book (*.xlsx;*.xls)|*.xlsx;*.xls", CheckFileExists = true };
+        if (dialog.ShowDialog(this) != true) return;
+        var candidate = PriceBookXlsxLoader.Load(dialog.FileName, Path.GetFileNameWithoutExtension(dialog.FileName));
+        if (candidate.Items.Count == 0) throw new InvalidOperationException("לא נמצאו סעיפים במחירון");
+        if (MessageBox.Show($"{candidate.SnapshotId}\n{candidate.PublicationNote}\n{candidate.Items.Count:N0} סעיפים.\nודא מקור רשמי ומהדורה מתאימה לפרויקט. החלפה תבטל את כל אישורי התמחור הקיימים. להחליף?", "בחירת מחירון", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
+        if (!string.Equals(candidate.FileHash, _catalog.FileHash, StringComparison.OrdinalIgnoreCase))
+            foreach (var group in _groups) group.Withdraw();
+        _catalog = candidate; UpdateCatalogLabel(); _grid.Items.Refresh();
+    }
+    private void AuditIgor()
+    {
+        var doc = AcadApp.DocumentManager.MdiActiveDocument;
+        if (doc == null || doc.Name != _scan.Drawing) throw new InvalidOperationException("שרטוט המקור אינו פעיל");
+        var audit = IgorPolylineAudit.Capture(doc.Database);
+        _message.Text = $"בדיקת איגור: {audit.Status} · {audit.Layers.Count:N0} שכבות · LWPOLYLINE במודל בלבד. {audit.Error}";
+        _igorAudit = audit;
+    }
+    private IgorPolylineAudit.Result? _igorAudit;
     private static void Label(Panel panel, string label, Control input)
     { panel.Children.Add(new TextBlock { Text = label, Margin = new Thickness(6), VerticalAlignment = VerticalAlignment.Center }); panel.Children.Add(input); }
     private static void Button(Panel panel, string text, Action action)
@@ -106,8 +131,10 @@ internal sealed class InfrastructureBoqWindow : Window
         var dialog = new Microsoft.Win32.SaveFileDialog { Filter = "Excel (*.xlsx)|*.xlsx", FileName = "כתב כמויות תשתיות", AddExtension = true };
         if (dialog.ShowDialog(this) != true) return;
         var selected = _groups.Where(g => !_excluded.Contains(g)).ToArray();
-        var keys = selected.Select(g => (g.Source, g.Layer)).ToHashSet();
-        var lines = _scan.Measurements.Select(m => m.Line).Where(l => keys.Contains((l.Source, l.Layer))).ToArray();
+        if (selected.Length == 0) throw new InvalidOperationException("אין קבוצות פעילות לייצוא");
+        var keys = selected.ToDictionary(g => (g.Source, g.Layer));
+        var lines = _scan.Measurements.Select(m => m.Line).Where(l => keys.ContainsKey((l.Source, l.Layer)))
+            .Select(l => InfrastructureBoq.ReviewedLine(l, keys[(l.Source, l.Layer)])).ToArray();
         // Each export gets a new directory: never overwrite an existing drawing or its trace.
         var directory = Path.Combine(Path.GetDirectoryName(dialog.FileName)!, Path.GetFileNameWithoutExtension(dialog.FileName) + "-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + "-" + Guid.NewGuid().ToString("N")[..6]);
         Directory.CreateDirectory(directory);
@@ -116,6 +143,8 @@ internal sealed class InfrastructureBoqWindow : Window
             "AutoCAD Curve.GetDistanceAtParameter; same native geometry basis as MAHOD CalcPolylines; original DLL not invoked");
         _scan.SaveDrawing(Path.Combine(directory, "Infrastructure-lines.dwg"), selected);
         File.WriteAllText(Path.Combine(directory, "review.json"), JsonSerializer.Serialize(selected, new JsonSerializerOptions { WriteIndented = true }));
+        File.WriteAllText(Path.Combine(directory, "igor-audit.json"), JsonSerializer.Serialize(_igorAudit ??
+            new IgorPolylineAudit.Result("not-run", "", "Model Space LWPOLYLINE only", Array.Empty<IgorPolylineAudit.Comparison>(), "Run the Igor comparison before relying on it"), new JsonSerializerOptions { WriteIndented = true }));
         _message.Text = "נשמרו Excel, DWG ומדידות מקור בתיקייה: " + directory;
     }
     internal static void Run()

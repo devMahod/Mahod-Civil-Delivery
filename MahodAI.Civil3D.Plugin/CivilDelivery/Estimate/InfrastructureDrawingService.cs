@@ -122,31 +122,64 @@ internal sealed class InfrastructureDrawingService : IDisposable
     }
     internal void SaveDrawing(string path, IEnumerable<InfrastructureGroup> included)
     {
-        var keys = included.Select(g => (g.Source, g.Layer)).ToHashSet();
+        var groups = included.ToDictionary(g => (g.Source, g.Layer));
+        var selected = Measurements.Where(m => groups.ContainsKey((m.Line.Source, m.Line.Layer)))
+            .Select(m => new Measured(InfrastructureBoq.ReviewedLine(m.Line, groups[(m.Line.Source, m.Line.Layer)]), m.Geometry)).ToArray();
         using var output = new Database(true, true);
+        // A bare database otherwise inherits imperial defaults. Civil 3D can
+        // initialize drawing settings from MEASUREMENT when opening this DWG.
+        output.Measurement = MeasurementValue.Metric;
         output.Insunits = UnitsValue.Meters;
+        output.TileMode = true;
         using (var tr = output.TransactionManager.StartTransaction())
         {
             var layers = (LayerTable)tr.GetObject(output.LayerTableId, OpenMode.ForWrite);
             var bt = (BlockTable)tr.GetObject(output.BlockTableId, OpenMode.ForRead);
             var model = (BlockTableRecord)tr.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
-            foreach (var measured in Measurements.Where(m => keys.Contains((m.Line.Source, m.Line.Layer))))
+            Extents3d? bounds = null;
+            foreach (var measured in selected)
             {
                 var name = measured.Line.OutputLayer;
-                if (!layers.Has(name)) { var layer = new LayerTableRecord { Name = name }; layers.Add(layer); tr.AddNewlyCreatedDBObject(layer, true); }
+                if (!layers.Has(name))
+                {
+                    short colour = name.Split(new[] { "__" }, StringSplitOptions.None)[0] switch
+                    {
+                        "BOQ_WATER" => 5, "BOQ_SEWER" => 3, "BOQ_DRAINAGE" => 4,
+                        "BOQ_GAS" => 2, "BOQ_ELECTRIC" => 1, "BOQ_TELECOM" => 6, _ => 7
+                    };
+                    var layer = new LayerTableRecord { Name = name,
+                        Color = Autodesk.AutoCAD.Colors.Color.FromColorIndex(Autodesk.AutoCAD.Colors.ColorMethod.ByAci, colour) };
+                    layers.Add(layer); tr.AddNewlyCreatedDBObject(layer, true);
+                }
                 var clone = (Curve)measured.Geometry.Clone();
                 clone.SetDatabaseDefaults(output);
                 if (_metres != 1) clone.TransformBy(Matrix3d.Scaling(_metres, Point3d.Origin));
                 clone.Layer = name;
                 model.AppendEntity(clone); tr.AddNewlyCreatedDBObject(clone, true);
+                var extents = clone.GeometricExtents;
+                if (bounds is { } accumulated) { accumulated.AddExtents(extents); bounds = accumulated; }
+                else bounds = extents;
+            }
+            if (bounds is { } drawingBounds)
+            {
+                var viewports = (ViewportTable)tr.GetObject(output.ViewportTableId, OpenMode.ForRead);
+                var view = (ViewportTableRecord)tr.GetObject(viewports["*Active"], OpenMode.ForWrite);
+                view.ViewDirection = Vector3d.ZAxis; view.Target = Point3d.Origin; view.ViewTwist = 0;
+                view.CenterPoint = new Point2d((drawingBounds.MinPoint.X + drawingBounds.MaxPoint.X) / 2,
+                    (drawingBounds.MinPoint.Y + drawingBounds.MaxPoint.Y) / 2);
+                view.Height = Math.Max(1, Math.Max(drawingBounds.MaxPoint.Y - drawingBounds.MinPoint.Y,
+                    (drawingBounds.MaxPoint.X - drawingBounds.MinPoint.X) / 1.5)) * 1.15;
             }
             tr.Commit();
         }
+        output.UpdateExt(true);
         output.SaveAs(path, DwgVersion.Current);
         using (var verification = new Database(false, true))
         {
             verification.ReadDwgFile(path, FileOpenMode.OpenForReadAndAllShare, true, "");
             verification.CloseInput(true);
+            if (verification.Insunits != UnitsValue.Meters || verification.Measurement != MeasurementValue.Metric)
+                throw new InvalidOperationException("Output DWG did not preserve metric unit metadata; do not use this drawing");
             using var tr = verification.TransactionManager.StartTransaction();
             var bt = (BlockTable)tr.GetObject(verification.BlockTableId, OpenMode.ForRead);
             var model = (BlockTableRecord)tr.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForRead);
@@ -157,13 +190,13 @@ internal sealed class InfrastructureDrawingService : IDisposable
                 var value = actual.GetValueOrDefault(curve.Layer);
                 actual[curve.Layer] = (value.Count + 1, value.Length + curve.GetDistanceAtParameter(curve.EndParam) - curve.GetDistanceAtParameter(curve.StartParam));
             }
-            var expected = Measurements.Where(m => keys.Contains((m.Line.Source, m.Line.Layer))).GroupBy(m => m.Line.OutputLayer)
+            var expected = selected.GroupBy(m => m.Line.OutputLayer)
                 .ToDictionary(g => g.Key, g => (Count: g.Count(), Length: g.Sum(m => m.Line.LengthMetres)));
             if (actual.Count != expected.Count || expected.Any(e => !actual.TryGetValue(e.Key, out var a) || a.Count != e.Value.Count ||
                 Math.Abs(a.Length - e.Value.Length) > Math.Max(1e-7, e.Value.Length * 1e-10)))
                 throw new InvalidOperationException("Output DWG did not preserve measured counts and lengths; do not use this drawing");
         }
-        File.WriteAllText(path + ".sources.json", JsonSerializer.Serialize(Measurements.Where(m => keys.Contains((m.Line.Source, m.Line.Layer)))
+        File.WriteAllText(path + ".sources.json", JsonSerializer.Serialize(selected
             .Select(m => m.Line), new JsonSerializerOptions { WriteIndented = true }));
     }
     public void Dispose() { foreach (var m in Measurements) m.Geometry.Dispose(); }
