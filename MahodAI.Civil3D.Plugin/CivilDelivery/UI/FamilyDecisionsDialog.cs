@@ -291,7 +291,7 @@ public sealed partial class FamilyDecisionsDialog : Window
         SendPreview.Checked += (_, _) => RefreshAssist();
         SendPreview.Unchecked += (_, _) => RefreshAssist();
         BtnCancel.IsCancel = true;
-        UiGuard.Attach(this, "זיהוי שכבות ואישור משפחות");
+        NamelessDecisionField.Attach(this, ApproverBox); UiGuard.Attach(this, "זיהוי שכבות ואישור משפחות");
         ShowView(saved: model.Rows.Count == 0 && model.SavedDecisions.Count > 0);
         RefreshState();
         RefreshAssist();

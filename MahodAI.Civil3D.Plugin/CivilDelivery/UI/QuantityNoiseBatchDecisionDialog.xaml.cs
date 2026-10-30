@@ -25,7 +25,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
                     "The review dialog received a group outside the closed drawing-noise policy.");
 
             InitializeComponent();
-            UiGuard.Attach(this, "אישור מרוכז — סימוני תחנות ועזר");
+            NamelessDecisionField.Attach(this, ApproverBox); UiGuard.Attach(this, "אישור מרוכז — סימוני תחנות ועזר");
             CandidatesGrid.ItemsSource = candidates;
             var stations = candidates.Count(candidate =>
                 candidate.Verdict?.Kind == QuantitySignificance.Kind.StationGeometry);

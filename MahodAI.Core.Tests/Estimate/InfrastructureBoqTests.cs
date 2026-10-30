@@ -53,14 +53,64 @@ public sealed class InfrastructureBoqTests : IDisposable
         Assert.All(groups, g => { Assert.False(g.Approved); Assert.Null(g.Total); Assert.Equal("טרם נבדק", g.WorkStatus); });
     }
     [Fact]
-    public void Approval_requires_specification_and_work_status_and_metres()
+    public void Mapping_needs_only_a_catalogue_item_and_compatible_metres_not_a_name_or_form()
     {
         var catalog = Catalog(); var g = Group();
-        Assert.Throws<InvalidOperationException>(() => g.Approve(catalog, "57.01.0001", "TEST"));
-        g.Specification = "TEST ONLY DN200"; g.WorkStatus = "תכנון לביצוע";
-        Assert.Throws<InvalidOperationException>(() => g.Approve(catalog, "57.01.0002", "TEST"));
-        g.Approve(catalog, "57.01.0001", "TEST"); Assert.Equal(120m, g.Total);
+        Assert.Throws<InvalidOperationException>(() => g.Assign(catalog, "57.01.0002"));
+        Assert.Throws<InvalidOperationException>(() => g.Assign(catalog, "missing"));
+        g.Assign(catalog, "57.01.0001"); Assert.Equal(120m, g.Total);
+        Assert.Null(g.ApprovedBy); Assert.True(g.Approved);
         g.Specification = "TEST ONLY DN300"; Assert.False(g.Approved); Assert.Null(g.Price);
+    }
+
+    [Fact]
+    public void Saved_choices_restore_only_for_the_same_drawing_catalogue_and_measurements()
+    {
+        var c = Catalog(); var g = Group(); g.Assign(c, "57.01.0001");
+        var excluded = Group(); var groups = new[] { g, InfrastructureBoq.Group(new[] { Line("other.dwg") }).Single() };
+        var path = Path.Combine(_dir, "review.json");
+        InfrastructureReviewStore.Save(path, "DRAWING", c, groups, new System.Collections.Generic.HashSet<InfrastructureGroup> { groups[1] });
+        var fresh = new[] { Group(), InfrastructureBoq.Group(new[] { Line("other.dwg") }).Single() };
+        var restoredExcluded = new System.Collections.Generic.HashSet<InfrastructureGroup>();
+        Assert.Equal(1, InfrastructureReviewStore.Restore(path, "DRAWING", c, fresh, restoredExcluded));
+        Assert.Equal(120m, fresh[0].Total); Assert.Contains(fresh[1], restoredExcluded);
+        Assert.Equal(0, InfrastructureReviewStore.Restore(path, "CHANGED", c, new[] { Group() }, restoredExcluded));
+        Assert.Equal(0, InfrastructureReviewStore.Restore(path, "DRAWING", new CatalogSnapshot { SnapshotId = "new", FileHash = "different", Items = c.Items, Prices = c.Prices }, new[] { Group() }, restoredExcluded));
+        var changed = InfrastructureBoq.Group(new[] { Line(length: 11) }).Single();
+        Assert.Equal(0, InfrastructureReviewStore.Restore(path, "DRAWING", c, new[] { changed }, restoredExcluded));
+        Assert.False(changed.Approved);
+    }
+
+    [Fact]
+    public void Real_drawing_layers_get_ranked_official_items_and_hebrew_search_without_prior_approval()
+    {
+        var offer = Assert.Single(BundledPriceBooks.Offers(_dir, new MahodAI.CivilDelivery.Shared.ProjectProfile()));
+        var c = PriceBookXlsxLoader.Load(offer.Entry.Path, "official"); var search = new InfrastructureCatalogSearch(c);
+        var sewer = InfrastructureBoq.Group(new[] { Line(layer: "6422-UT-SW-DE-West-MHD|SW-DE-315") with { Topic = "ביוב" } }).Single();
+        var suggestions = search.Find(sewer);
+        Assert.NotEmpty(suggestions);
+        Assert.All(suggestions.Take(5), x => { Assert.StartsWith("57.03", x.Code); Assert.Contains("315", x.Description); });
+        Assert.False(sewer.Approved); Assert.Null(sewer.Price);
+        var query = search.Find(sewer, "צנרת ביוב 315");
+        Assert.NotEmpty(query); Assert.All(query, x => Assert.True(c.Items[x.Code].Unit.SameUnit(Units.Parse("מטר"))));
+        var drain = InfrastructureBoq.Group(new[] { Line(layer: "6422-DR-WEST|DR-PIPE-40") with { Topic = "ניקוז" } }).Single();
+        Assert.Contains(search.Find(drain).Take(8), x => x.Description.Contains("40 ס"));
+        Assert.Contains("לא צוינה", InfrastructureCatalogSearch.LayerNote(drain));
+        Assert.Null(InfrastructureCatalogSearch.LayerDiameter("DR-BL-TX"));
+        Assert.Contains("מצב קיים", InfrastructureCatalogSearch.LayerNote(sewer = InfrastructureBoq.Group(new[] { Line(layer: "SW-EX") }).Single()));
+        Assert.Contains("סימון עזר", InfrastructureCatalogSearch.LayerNote(InfrastructureBoq.Group(new[] { Line(layer: "DR-BL-TX") }).Single()));
+        var exact = search.Find(drain, "51.05.0715"); Assert.Equal("51.05.0715", exact.First().Code);
+    }
+
+    [Theory]
+    [InlineData("WT-DN200", 200, "מ״מ")]
+    [InlineData("W-DE-8", 8, null)]
+    [InlineData("SW-DE-315", 315, null)]
+    [InlineData("DR-PIPE-40", 40, null)]
+    public void Layer_diameter_never_invents_an_unspecified_unit(string layer, double value, string? unit)
+    {
+        var d = InfrastructureCatalogSearch.LayerDiameter(layer); Assert.NotNull(d);
+        Assert.Equal(value, d.Value.Value); Assert.Equal(unit, d.Value.Unit);
     }
     [Fact]
     public void Existing_state_or_topic_change_withdraws_price()

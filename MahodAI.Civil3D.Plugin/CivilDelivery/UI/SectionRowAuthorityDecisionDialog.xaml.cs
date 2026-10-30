@@ -28,7 +28,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
         public SectionRowAuthorityDecisionDialog(SectionPlanRecord record)
         {
             InitializeComponent();
-            UiGuard.Attach(this, "אישור מקור זכות דרך");
+            NamelessDecisionField.Attach(this, ApproverBox); UiGuard.Attach(this, "אישור מקור זכות דרך");
             SubjectTitle.Text = $"חתך {record.SectionId ?? record.Cl.SourceHandle} · מקור זכות דרך";
             SubjectDetail.Text =
                 $"מצב נוכחי: {record.PresentationCoverage.RowAuthorityState ?? "לא ידוע"} · " +

@@ -2,6 +2,8 @@
 
 כלי ל־Civil 3D 2026 ו־2027: חתכים לפי CL, מדידת כמויות, שיוך למחירון וייצוא כתב כמויות ל־Excel.
 
+עדכון מקור 1.5.1 מוסיף מסך תשתיות פשוט עם הצעות סעיפים, חיפוש בעברית ושיוך ללא הזנת שם מאשר. [פרטי העדכון והמדריך](release/1.5.1/README.md). קובצי ההפצה המקומיים נוצרים תחת `MahodCivilDelivery/out/distribution`; קישורי ההורדה להלן מפנים לגרסת ה־Release שפורסמה.
+
 ## הורדה והתקנה
 
 [הורדת החבילה המלאה: מתקין ומדריך בעברית](https://github.com/devMahod/Mahod-Civil-Delivery/releases/download/v1.4.2-r20261008/Mahod_Civil_Delivery_1.4.2.zip)

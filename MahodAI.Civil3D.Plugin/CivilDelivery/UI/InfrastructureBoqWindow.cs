@@ -6,6 +6,8 @@ using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Input;
+using System.Windows.Media;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using MahodAI.Civil3D.Plugin.CivilDelivery.Estimate;
@@ -21,6 +23,14 @@ using Button = System.Windows.Controls.Button;
 using MessageBox = System.Windows.MessageBox;
 using Orientation = System.Windows.Controls.Orientation;
 using Binding = System.Windows.Data.Binding;
+using Brush = System.Windows.Media.Brush;
+using Brushes = System.Windows.Media.Brushes;
+using Color = System.Windows.Media.Color;
+using KeyEventArgs = System.Windows.Input.KeyEventArgs;
+using ContextMenu = System.Windows.Controls.ContextMenu;
+using MenuItem = System.Windows.Controls.MenuItem;
+using ScrollViewer = System.Windows.Controls.ScrollViewer;
+using Cursors = System.Windows.Input.Cursors;
 
 namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI;
 
@@ -30,76 +40,170 @@ internal sealed class InfrastructureBoqWindow : Window
     private readonly CatalogSnapshot _catalog;
     private readonly List<InfrastructureGroup> _groups;
     private readonly HashSet<InfrastructureGroup> _excluded = new();
-    private readonly DataGrid _grid = new() { AutoGenerateColumns = false, IsReadOnly = true, SelectionMode = DataGridSelectionMode.Single };
-    private readonly ComboBox _filter = new() { MinWidth = 130 };
-    private readonly ComboBox _topic = new() { ItemsSource = InfrastructureBoq.Topics, MinWidth = 120 };
-    private readonly ComboBox _status = new() { ItemsSource = new[] { "טרם נבדק", "תכנון לביצוע", "מצב קיים", "קווי עזר" }, MinWidth = 135 };
-    private readonly TextBox _spec = new() { MinWidth = 300 };
-    private readonly TextBox _approver = new() { MinWidth = 110 };
-    private readonly TextBlock _message = new() { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(8) };
+    private readonly InfrastructureCatalogSearch _search;
+    private readonly string _reviewPath;
+    private readonly DataGrid _grid = Table(), _items = Table();
+    private readonly ComboBox _filter = new() { MinWidth = 130, Margin = new Thickness(0, 0, 8, 0), Padding = new Thickness(6) };
+    private readonly ComboBox _topic = new() { ItemsSource = InfrastructureBoq.Topics, MinWidth = 110 };
+    private readonly TextBox _layerSearch = Input(), _catalogSearch = Input();
+    private readonly TextBlock _message = Text(""), _subject = Text("בחר שכבה"), _note = Text(""), _results = Text(""), _detail = Text("");
+    private readonly TextBlock _source = Text("");
+    private readonly Button _assign = ActionButton("שייך לשכבה", true), _undo = ActionButton("החזר שורות שהוסרו");
+    private readonly System.Windows.Threading.DispatcherTimer _queryTimer = new() { Interval = TimeSpan.FromMilliseconds(180) };
+    private bool _loading;
     internal InfrastructureBoqWindow(InfrastructureDrawingService scan, CatalogSnapshot catalog)
     {
         _scan = scan; _catalog = catalog; _groups = InfrastructureBoq.Group(scan.Measurements.Select(m => m.Line)).ToList();
-        Title = "Mahod Delivery — כתב כמויות תשתיות"; Width = 1250; Height = 760;
+        _search = new InfrastructureCatalogSearch(catalog);
+        _reviewPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MahodCivilDelivery", "infrastructure-reviews", InfrastructureReviewStore.FileName(scan.Drawing));
+        string? restoreError = null;
+        try { InfrastructureReviewStore.Restore(_reviewPath, scan.DrawingHash, catalog, _groups, _excluded); }
+        catch (System.Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException) { restoreError = "לא ניתן לטעון שיוכים קודמים: " + ex.Message; }
+        Title = "Mahod Delivery — כתב כמויות תשתיות"; Width = 1240; Height = 800; MinWidth = 920; MinHeight = 650;
+        MaxHeight = SystemParameters.WorkArea.Height; MaxWidth = SystemParameters.WorkArea.Width;
         FlowDirection = System.Windows.FlowDirection.RightToLeft; FontFamily = new System.Windows.Media.FontFamily("Segoe UI");
-        WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        var root = new DockPanel { Margin = new Thickness(12) }; Content = root;
+        FontSize = 13; Background = Brushes.White; Foreground = Brushes.Black;
+        WindowStartupLocation = WindowStartupLocation.CenterOwner; UiGuard.Attach(this, "כתב כמויות תשתיות");
+        var root = new DockPanel { Margin = new Thickness(18) }; Content = root;
         var top = new StackPanel(); DockPanel.SetDock(top, Dock.Top); root.Children.Add(top);
-        top.Children.Add(new TextBlock { Text = "תשתיות | מדידה ← בדיקת מפרט ← חיפוש סעיף ← Excel ושרטוט", FontSize = 21, Margin = new Thickness(4) });
-        top.Children.Add(new TextBlock { Text = "הסריקה כוללת את כל Model Space ומופעי המקורות הטעונים, ללא חיתוך לפוליגון. שמות השכבות מציעים נושא בלבד. קווים סגורים, כפולים, מצב קיים וקווי עזר מחייבים בדיקה.", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(4) });
-        top.Children.Add(new TextBlock { Text = $"מחירון נתיבי ישראל: יולי 2026 · {_catalog.Items.Count:N0} סעיפים · אומת מול הפרסום באתר הרשמי ב־30.10.2026", Margin = new Thickness(4) });
-        var bar = new WrapPanel { Margin = new Thickness(0, 8, 0, 8) }; top.Children.Add(bar);
+        var header = new DockPanel(); top.Children.Add(header);
+        var export = ActionButton("ייצא Excel ושרטוט…", true); export.Click += (_, _) => UiGuard.Run("ייצוא תשתיות", Export);
+        DockPanel.SetDock(export, Dock.Left); header.Children.Add(export);
+        header.Children.Add(new TextBlock { Text = "כתב כמויות תשתיות", FontSize = 24, FontWeight = FontWeights.SemiBold });
+        top.Children.Add(Text("בחר שכבה, בחר סעיף — וייצא. אפשר לייצא גם כתב כמויות חלקי."));
+        var scope = Text($"נת״י אחוד 07.2026 · {_catalog.Items.Count:N0} סעיפים · {scan.MetresPerHostUnit:G} מטר ליחידת שרטוט · כל המודל והמקורות, ללא חיתוך לפוליגון");
+        top.Children.Add(scope);
+        var bottom = new DockPanel { Margin = new Thickness(0, 10, 0, 0) }; DockPanel.SetDock(bottom, Dock.Bottom); root.Children.Add(bottom);
+        _undo.Click += (_, _) => UiGuard.Run("החזרת שורות", () => { _excluded.Clear(); Persist(); Refresh(); });
+        DockPanel.SetDock(_undo, Dock.Left); bottom.Children.Add(_undo); bottom.Children.Add(_message);
+        var body = new System.Windows.Controls.Grid { Margin = new Thickness(0, 14, 0, 0) };
+        body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(0.45, GridUnitType.Star) });
+        body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(0.55, GridUnitType.Star) }); root.Children.Add(body);
+        var layers = new DockPanel { Margin = new Thickness(0, 0, 14, 0) }; body.Children.Add(layers);
+        var layerHead = new StackPanel(); DockPanel.SetDock(layerHead, Dock.Top); layers.Children.Add(layerHead);
+        layerHead.Children.Add(Heading("1  שכבות בשרטוט"));
+        var filters = new DockPanel { Margin = new Thickness(0, 5, 0, 8) }; layerHead.Children.Add(filters);
         _filter.ItemsSource = new[] { "כל התשתיות" }.Concat(InfrastructureBoq.Topics); _filter.SelectedIndex = 0;
-        _filter.SelectionChanged += (_, _) => Refresh(); bar.Children.Add(_filter);
-        Button(bar, "הסר מהרשימה", () => { if (_grid.SelectedItem is InfrastructureGroup g) { _excluded.Add(g); Refresh(); } });
-        Button(bar, "החזר מוסרות", () => { _excluded.Clear(); Refresh(); });
-        Button(bar, "ייצא Excel ו־DWG…", Export);
-        var bottom = new StackPanel(); DockPanel.SetDock(bottom, Dock.Bottom); root.Children.Add(bottom);
-        bottom.Children.Add(new TextBlock { Text = "בחר שורה, בדוק נושא ומצב, וכתוב מפרט (קוטר / חומר / עומק לפי הצורך). לאחר מכן חפש סעיף בעברית.", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(4) });
-        var edit = new WrapPanel(); bottom.Children.Add(edit);
-        Label(edit, "נושא", _topic); Label(edit, "מצב", _status); Label(edit, "מפרט", _spec); Label(edit, "מאשר", _approver);
-        Button(edit, "שמור פרטי שורה", SaveDetails);
-        Button(edit, "חפש סעיף במחירון…", Assign);
-        bottom.Children.Add(_message);
-        foreach (var col in new[] { ("נושא","Topic",90d), ("שכבה","Layer",240d), ("מקור","Source",200d),
-            ("קווים","Count",65d), ("אורך במטרים","LengthMetres",110d), ("סגורים","ClosedCount",65d),
-            ("מצב עבודה","WorkStatus",110d), ("מפרט","Specification",180d), ("סעיף","Code",110d),
-            ("תיאור","Description",260d), ("מחיר ₪","Price",100d), ("סכום ₪","Total",120d), ("בדיקה","Status",180d) })
-            _grid.Columns.Add(new DataGridTextColumn { Header = col.Item1, Binding = new Binding(col.Item2) {
-                StringFormat = col.Item2 is "LengthMetres" or "Price" or "Total" ? "N2" : null }, Width = col.Item3 });
-        _grid.SelectionChanged += (_, _) => { if (_grid.SelectedItem is InfrastructureGroup g) { _topic.SelectedItem = g.Topic; _status.SelectedItem = g.WorkStatus; _spec.Text = g.Specification; } };
-        root.Children.Add(_grid); Refresh();
+        _filter.SelectionChanged += (_, _) => Refresh(); DockPanel.SetDock(_filter, Dock.Right); filters.Children.Add(_filter);
+        _layerSearch.ToolTip = "סינון לפי שם שכבה"; _layerSearch.TextChanged += (_, _) => Refresh(); filters.Children.Add(_layerSearch);
+        Column(_grid, "שכבה", "ShortLayer", new DataGridLength(1, DataGridLengthUnitType.Star));
+        Column(_grid, "מטרים", "LengthMetres", 85, "N2"); Column(_grid, "סעיף", "MappingDisplay", 105);
+        _grid.SelectionChanged += (_, _) => SelectLayer();
+        _grid.PreviewKeyDown += (_, e) => { if (e.Key == Key.Delete && _grid.SelectedItem is InfrastructureGroup g) { Remove(g); e.Handled = true; } };
+        var menu = new ContextMenu();
+        AddMenu(menu, "הסר מהתוצר (אפשר להחזיר)", () => { if (_grid.SelectedItem is InfrastructureGroup g) Remove(g); });
+        AddMenu(menu, "בטל שיוך", () => { if (_grid.SelectedItem is InfrastructureGroup g) { g.Withdraw(); Persist(); _grid.Items.Refresh(); SelectLayer(); } });
+        _grid.ContextMenu = menu;
+        var layerFooter = Text("להסרה: קליק ימני על השורה או Delete. הסינון משנה תצוגה בלבד.");
+        DockPanel.SetDock(layerFooter, Dock.Bottom); layers.Children.Add(layerFooter); layers.Children.Add(_grid);
+
+        var editor = new DockPanel(); System.Windows.Controls.Grid.SetColumn(editor, 1); body.Children.Add(editor);
+        var editHead = new StackPanel(); DockPanel.SetDock(editHead, Dock.Top); editor.Children.Add(editHead);
+        editHead.Children.Add(Heading("2  סעיף מהמחירון"));
+        _subject.FontWeight = FontWeights.SemiBold; _subject.TextTrimming = TextTrimming.CharacterEllipsis; _subject.TextWrapping = TextWrapping.NoWrap; editHead.Children.Add(_subject);
+        _note.Foreground = new SolidColorBrush(Color.FromRgb(133, 84, 15)); editHead.Children.Add(_note);
+        editHead.Children.Add(Text("חיפוש בעברית או מספר סעיף, לדוגמה: צינור ביוב 315"));
+        _queryTimer.Tick += (_, _) => { _queryTimer.Stop(); UiGuard.Run("חיפוש סעיפים", Search); };
+        Closed += (_, _) => _queryTimer.Stop();
+        _catalogSearch.TextChanged += (_, _) => { _queryTimer.Stop(); if (!_loading) _queryTimer.Start(); }; editHead.Children.Add(_catalogSearch);
+        _results.FontSize = 11; editHead.Children.Add(_results);
+        var choice = new StackPanel { Margin = new Thickness(0, 8, 0, 0) }; DockPanel.SetDock(choice, Dock.Bottom); editor.Children.Add(choice);
+        _detail.MinHeight = 55; _detail.MaxHeight = 100;
+        choice.Children.Add(new ScrollViewer { Content = _detail, MaxHeight = 100, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
+        _assign.IsEnabled = false; _assign.Click += (_, _) => UiGuard.Run("שיוך שכבה", Assign); choice.Children.Add(_assign);
+        var sourceBody = new StackPanel(); sourceBody.Children.Add(_source); sourceBody.Children.Add(_topic);
+        _topic.SelectionChanged += (_, _) => { if (!_loading && _grid.SelectedItem is InfrastructureGroup g) { g.Topic = _topic.SelectedItem as string ?? InfrastructureBoq.Unknown; Persist(); _grid.Items.Refresh(); Search(); } };
+        choice.Children.Add(new Expander { Header = "פרטי המקור ושינוי נושא", Content = new ScrollViewer { Content = sourceBody, MaxHeight = 140, VerticalScrollBarVisibility = ScrollBarVisibility.Auto }, Margin = new Thickness(0, 8, 0, 0) });
+        Column(_items, "סעיף", "Code", 95); Column(_items, "תיאור", "Description", new DataGridLength(1, DataGridLengthUnitType.Star)); Column(_items, "₪ למטר", "PriceDisplay", 80);
+        _items.SelectionChanged += (_, _) => SelectItem();
+        _items.MouseDoubleClick += (_, e) => { if (e.OriginalSource is DependencyObject d && FindRow(d) != null && _assign.IsEnabled) UiGuard.Run("שיוך שכבה", Assign); };
+        _items.PreviewKeyDown += (_, e) => { if (e.Key == Key.Enter && _assign.IsEnabled) { UiGuard.Run("שיוך שכבה", Assign); e.Handled = true; } };
+        editor.Children.Add(_items); Refresh();
+        if (restoreError != null) _message.Text = restoreError;
     }
-    private static void Label(Panel panel, string label, Control input)
-    { panel.Children.Add(new TextBlock { Text = label, Margin = new Thickness(6), VerticalAlignment = VerticalAlignment.Center }); panel.Children.Add(input); }
-    private static void Button(Panel panel, string text, Action action)
+    private static TextBlock Text(string value) => new() { Text = value, TextWrapping = TextWrapping.Wrap, Foreground = new SolidColorBrush(Color.FromRgb(76, 86, 104)), Margin = new Thickness(0, 4, 0, 4) };
+    private static TextBlock Heading(string value) => new() { Text = value, FontSize = 17, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 6) };
+    private static TextBox Input() => new() { Padding = new Thickness(7), VerticalContentAlignment = VerticalAlignment.Center };
+    private static Button ActionButton(string text, bool primary = false) => new() { Content = text, Padding = new Thickness(14, 9, 14, 9), Margin = new Thickness(0, 3, 0, 3),
+        Background = primary ? new SolidColorBrush(Color.FromRgb(35, 104, 169)) : new SolidColorBrush(Color.FromRgb(236, 240, 245)), Foreground = primary ? Brushes.White : Brushes.Black, BorderThickness = new Thickness(0), Cursor = Cursors.Hand };
+    private static DataGrid Table()
     {
-        var button = new Button { Content = text, Padding = new Thickness(10, 6, 10, 6), Margin = new Thickness(5) };
-        button.Click += (_, _) => { try { action(); } catch (System.Exception ex) { MessageBox.Show(ex.Message, "כתב כמויות תשתיות"); } };
-        panel.Children.Add(button);
+        var table = new DataGrid { AutoGenerateColumns = false, IsReadOnly = true, SelectionMode = DataGridSelectionMode.Single,
+            SelectionUnit = DataGridSelectionUnit.FullRow, CanUserAddRows = false, CanUserDeleteRows = false, CanUserResizeRows = false,
+            HeadersVisibility = DataGridHeadersVisibility.Column, GridLinesVisibility = DataGridGridLinesVisibility.Horizontal,
+            HorizontalGridLinesBrush = new SolidColorBrush(Color.FromRgb(231, 236, 242)), BorderBrush = new SolidColorBrush(Color.FromRgb(218, 225, 234)),
+            Background = Brushes.White, RowBackground = Brushes.White, AlternatingRowBackground = new SolidColorBrush(Color.FromRgb(247, 249, 252)), RowHeight = 49, FontSize = 12 };
+        ScrollViewer.SetHorizontalScrollBarVisibility(table, ScrollBarVisibility.Disabled);
+        return table;
     }
+    private static void Column(DataGrid grid, string title, string path, DataGridLength width, string? format = null)
+    {
+        var style = new Style(typeof(TextBlock)); style.Setters.Add(new Setter(TextBlock.TextWrappingProperty, TextWrapping.Wrap));
+        style.Setters.Add(new Setter(FrameworkElement.MarginProperty, new Thickness(5)));
+        style.Setters.Add(new Setter(FrameworkElement.ToolTipProperty, new Binding(path)));
+        grid.Columns.Add(new DataGridTextColumn { Header = title, Binding = new Binding(path) { StringFormat = format }, Width = width, ElementStyle = style });
+    }
+    private static DataGridRow? FindRow(DependencyObject? child)
+    { while (child != null && child is not DataGridRow) child = child is Visual ? VisualTreeHelper.GetParent(child) : LogicalTreeHelper.GetParent(child); return child as DataGridRow; }
+    private static void AddMenu(ContextMenu menu, string text, Action action)
+    { var item = new MenuItem { Header = text }; item.Click += (_, _) => UiGuard.Run(text, action); menu.Items.Add(item); }
+    private void Remove(InfrastructureGroup group) { _excluded.Add(group); Persist(); Refresh(); }
+    private void Persist() => InfrastructureReviewStore.Save(_reviewPath, _scan.DrawingHash, _catalog, _groups, _excluded);
     private void Refresh()
     {
         var topic = _filter.SelectedItem as string;
-        _grid.ItemsSource = _groups.Where(g => !_excluded.Contains(g) && (topic is null or "כל התשתיות" || g.Topic == topic)).ToArray();
-        _message.Text = $"{_groups.Count - _excluded.Count:N0} קבוצות פעילות · {_excluded.Count:N0} הוסרו מהתוצר בלבד · {_scan.Findings.Count:N0} ממצאי מדידה · ניתן לייצא גם לפני שכל השורות שויכו";
+        var selected = _grid.SelectedItem as InfrastructureGroup;
+        var visible = _groups.Where(g => !_excluded.Contains(g) && (topic is null or "כל התשתיות" || g.Topic == topic) &&
+            g.Layer.Contains(_layerSearch.Text.Trim(), StringComparison.OrdinalIgnoreCase)).ToArray();
+        _grid.ItemsSource = visible; _grid.SelectedItem = selected != null && visible.Contains(selected) ? selected : visible.FirstOrDefault();
+        _undo.Visibility = _excluded.Count > 0 ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+        UpdateSummary();
     }
-    private void SaveDetails()
+    private void UpdateSummary()
     {
-        if (_grid.SelectedItem is not InfrastructureGroup g) throw new InvalidOperationException("בחר שורה בטבלה");
-        g.Topic = _topic.SelectedItem as string ?? InfrastructureBoq.Unknown;
-        g.WorkStatus = _status.SelectedItem as string ?? "טרם נבדק"; g.Specification = _spec.Text.Trim();
-        _grid.Items.Refresh();
+        var active = _groups.Where(g => !_excluded.Contains(g)).ToArray();
+        _message.Text = $"{active.Length} שכבות פעילות · {active.Count(g => g.Approved)} שויכו · {_excluded.Count} הוסרו · השיוכים נשמרים אוטומטית במחשב זה";
+    }
+    private void SelectLayer()
+    {
+        _loading = true;
+        try
+        {
+            _catalogSearch.Clear();
+            if (_grid.SelectedItem is InfrastructureGroup g)
+            {
+                _subject.Text = g.ShortLayer + $" · {g.LengthMetres:N2} מטר";
+                _subject.ToolTip = g.Layer; _topic.SelectedItem = g.Topic;
+                _note.Text = InfrastructureCatalogSearch.LayerNote(g);
+                _source.Text = $"מקור: {g.Source}\nשכבה: {g.Layer}\n{g.Count} קווים · {g.ClosedCount} סגורים\n{g.Evidence}\n{_scan.Findings.Count} ממצאי סריקה — הפירוט נכלל ב־Excel";
+            }
+            else { _subject.Text = "אין שכבות בתצוגה"; _note.Text = ""; _source.Text = ""; }
+        }
+        finally { _loading = false; }
+        Search(); UpdateSummary();
+    }
+    private void Search()
+    {
+        if (_grid.SelectedItem is not InfrastructureGroup g) { _items.ItemsSource = null; _assign.IsEnabled = false; _detail.Text = ""; _results.Text = ""; return; }
+        var options = _search.Find(g, _catalogSearch.Text);
+        _items.ItemsSource = options;
+        _items.SelectedItem = options.FirstOrDefault(o => o.Code == g.Code);
+        _results.Text = options.Count == 0 ? "לא נמצאו סעיפים. נסה מילים אחרות או מספר סעיף." :
+            $"{options.Count}{(options.Count == 100 ? "+" : "")} {(_catalogSearch.Text.Trim().Length > 0 ? "תוצאות" : "הצעות לפי השכבה")} · יחידת מטר בלבד";
+        SelectItem();
+    }
+    private void SelectItem()
+    {
+        _assign.IsEnabled = _grid.SelectedItem is InfrastructureGroup && _items.SelectedItem is InfrastructureCatalogOption;
+        _detail.Text = _items.SelectedItem is InfrastructureCatalogOption item
+            ? $"{item.Code} · {item.PriceDisplay} ₪ למטר\n{item.Description}\n{item.Reason}"
+            : _grid.SelectedItem is InfrastructureGroup { Code: not null } g ? $"שויך לסעיף {g.Code}: {g.Description}" : "בחר סעיף כדי לראות את התיאור המלא ולשייך אותו לשכבה.";
     }
     private void Assign()
     {
-        SaveDetails(); var g = (InfrastructureGroup)_grid.SelectedItem;
-        if (g.Topic == InfrastructureBoq.Unknown || g.WorkStatus != "תכנון לביצוע" || string.IsNullOrWhiteSpace(g.Specification) || string.IsNullOrWhiteSpace(_approver.Text))
-            throw new InvalidOperationException("לפני שיוך: בחר סוג תשתית, מצב תכנון לביצוע, מפרט ושם מאשר");
-        var picker = new CatalogPickerDialog("infrastructure", g.Layer, "length", "מטר", g.LengthMetres, g.Count, _catalog, Array.Empty<MappingProposal>());
-        picker.Owner = this;
-        if (picker.ShowDialog() == true && picker.SelectedCode is { } code) g.Approve(_catalog, code, _approver.Text);
-        _grid.Items.Refresh();
+        if (_grid.SelectedItem is not InfrastructureGroup g || _items.SelectedItem is not InfrastructureCatalogOption item) return;
+        g.Assign(_catalog, item.Code); Persist(); _grid.Items.Refresh(); UpdateSummary();
+        _message.Text = $"נשמר: {g.ShortLayer} ← {item.Code} · {(g.Total is { } total ? total.ToString("N2") + " ₪" : "חסר מחיר במחירון")}";
     }
     private void Export()
     {
@@ -128,7 +232,6 @@ internal sealed class InfrastructureBoqWindow : Window
             var raw = (int)doc.Database.Insunits;
             var factor = MahodAI.CivilDelivery.Shared.PhysicalDrawingUnitPolicy.StandardMetresPerUnit(raw);
             if (factor == null) throw new InvalidOperationException("יחידות השרטוט אינן מוגדרות. יש לבדוק ולהגדיר INSUNITS לפני מדידה במטרים");
-            if (MessageBox.Show($"INSUNITS={doc.Database.Insunits}; מקדם למטרים {factor.Value:G}.\nהאם אלה יחידות הגאומטריה בפועל? הסריקה כוללת את כל המודל והמקורות הטעונים.", "בדיקת יחידות והיקף", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
             using var scan = new InfrastructureDrawingService(doc.Database, doc.Name, factor.Value);
             var path = BundledPriceBooks.Offers(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MahodAI_Civil3D", "civil-delivery", "price-books"),
                 new MahodAI.CivilDelivery.Shared.ProjectProfile()).Single().Entry.Path;

@@ -23,21 +23,24 @@ public sealed class InfrastructureGroup
     public string? CatalogHash { get; private set; }
     public string? ApprovedBy { get; private set; }
     public DateTime? ApprovedAtUtc { get; private set; }
-    public bool Approved => Code != null && ApprovedBy != null;
+    public bool Approved => Code != null && CatalogHash != null;
+    public string ShortLayer => Layer.Split('|').Last();
+    public string MappingDisplay => Code ?? "בחר סעיף";
     public decimal? Total => Approved && Price is { } p ? (decimal)LengthMetres * p : null;
-    public string Status => Approved ? Price == null ? "שויך — חסר מחיר" : "שויך ואושר" : "נדרשת בדיקת מפרט וסעיף";
-    public void Approve(CatalogSnapshot catalog, string code, string approver)
+    public string Status => Approved ? Price == null ? "שויך — חסר מחיר" : "שויך" : "טרם שויך";
+    /// <summary>Selecting an item is the mapping decision. No name or unrelated form is required.</summary>
+    public void Assign(CatalogSnapshot catalog, string code)
     {
-        if (!InfrastructureBoq.Topics.Contains(Topic) || Topic == InfrastructureBoq.Unknown || WorkStatus != "תכנון לביצוע" ||
-            string.IsNullOrWhiteSpace(Specification) || string.IsNullOrWhiteSpace(approver))
-            throw new InvalidOperationException("יש לאשר סוג תשתית, מצב תכנון לביצוע, מפרט ושם מאשר לפני שיוך");
         if (!double.IsFinite(LengthMetres) || LengthMetres <= 0 ||
             !catalog.Items.TryGetValue(code, out var item) || !item.Unit.SameUnit(Units.Parse("מטר")))
             throw new InvalidOperationException("הסעיף חייב להיות קיים במחירון ויחידתו מטר; אין המרת אורך לכמות אחרת");
         Code = item.Code; Description = item.Description;
         Price = catalog.Prices.TryGetValue(code, out var price) ? price.Price : null;
-        CatalogHash = catalog.FileHash; ApprovedBy = approver.Trim(); ApprovedAtUtc = DateTime.UtcNow;
+        CatalogHash = catalog.FileHash; ApprovedBy = null; ApprovedAtUtc = DateTime.UtcNow;
     }
+    // Compatibility for callers with historical named decisions; never manufacture a person's identity.
+    public void Approve(CatalogSnapshot catalog, string code, string approver)
+    { Assign(catalog, code); ApprovedBy = string.IsNullOrWhiteSpace(approver) ? null : approver.Trim(); }
     public void Withdraw()
     { Code = Description = CatalogHash = ApprovedBy = null; Price = null; ApprovedAtUtc = null; }
 }
@@ -62,7 +65,7 @@ public static class InfrastructureBoq
         var fromLayer=Matches(layer); var fromSource=Matches(source);
         var hits=fromLayer.Length>0?fromLayer:fromSource;
         if(hits.Length!=1) return (Unknown,hits.Length>1?"סימנים סותרים — לבדיקה":"ללא זיהוי מוכח", "UNCLASSIFIED");
-        return (hits[0],fromLayer.Length>0?"הצעה לפי שם השכבה — טעון אישור":"הצעה לפי מקור השרטוט — טעון אישור",
+        return (hits[0],fromLayer.Length>0?"זיהוי נושא לפי שם השכבה":"זיהוי נושא לפי מקור השרטוט",
             Signals.Single(s=>s.Topic==hits[0]).Code);
     }
     public static IReadOnlyList<InfrastructureGroup> Group(IEnumerable<InfrastructureLine> lines) => lines
@@ -84,7 +87,7 @@ public static class InfrastructureBoq
             w.ColumnWidths.Add((width.Item1[0]-'A'+1,width.Item2));
         w.Rows.Add(new MiniXlsx.OutRow(1){HeightPoints=28}.Text("A","כתב כמויות לתשתיות — טיוטה לבדיקה",1));
         w.SingleRowMerges.Add("A1:K1");
-        w.Rows.Add(new MiniXlsx.OutRow(2){HeightPoints=42}.Text("A","שורות ללא שיוך מאושר נשארות ללא מחיר וסכום. אין להסיק קוטר, חומר, עומק או תכנון לביצוע משם שכבה בלבד. צורות סגורות וסימוני עזר דורשים בדיקה.",5));
+        w.Rows.Add(new MiniXlsx.OutRow(2){HeightPoints=42}.Text("A","שורות ללא שיוך נשארות ללא מחיר וסכום. בחירת סעיף אינה אישור המדידה או המפרט. אין להסיק קוטר, חומר, עומק או תכנון לביצוע משם שכבה בלבד.",5));
         w.SingleRowMerges.Add("A2:K2");
         w.Rows.Add(new MiniXlsx.OutRow(3).Text("A","מחירון: "+catalog.SnapshotId+" | "+catalog.PublicationNote,3)); w.SingleRowMerges.Add("A3:K3");
         var headers=new[]{"מס׳","נושא","סעיף","תיאור הסעיף / המפרט","יחידה","אורך נמדד","מחיר יחידה ₪","סכום ₪","מצב","שכבת מקור","קובץ מקור"};
@@ -96,14 +99,14 @@ public static class InfrastructureBoq
         {
             var row=new MiniXlsx.OutRow(n){HeightPoints=42};
             row.Number("A",(double)(n-5),4).Text("B",g.Topic,3).Text("C",g.Code??"",3)
-                .Text("D",g.Description??(g.Specification.Length>0?g.Specification:"נדרש מפרט ושיוך לסעיף"),3)
+                .Text("D",g.Description??(g.Specification.Length>0?g.Specification:"טרם נבחר סעיף"),3)
                 .Text("E","מטר",3).Number("F",g.LengthMetres,4).Text("I",g.Status+(g.ClosedCount>0?$" · {g.ClosedCount} קווים סגורים":""),5)
                 .Text("J",g.Layer,3).Text("K",g.Source,3);
-            if(g.Approved && g.CatalogHash!=catalog.FileHash) throw new InvalidOperationException("המחירון השתנה — יש לאשר את השיוך מחדש");
+            if(g.Approved && g.CatalogHash!=catalog.FileHash) throw new InvalidOperationException("המחירון השתנה — יש לבחור סעיף מהמחירון הפעיל");
             if(g.Approved && g.Price is { } price) row.Number("G",price,4).Formula("H",$"F{n}*G{n}",4);
             w.Rows.Add(row); n++;
         }
-        w.Rows.Add(new MiniXlsx.OutRow(n+1).Text("D","סכום חלקי של שורות מאושרות עם מחיר בלבד — ללא מע״מ",2)
+        w.Rows.Add(new MiniXlsx.OutRow(n+1).Text("D","סכום חלקי של שורות משויכות עם מחיר בלבד — ללא מע״מ",2)
             .Formula("H",n>6?$"SUM(H6:H{n-1})":"0",4));
         var trace=new MiniXlsx.Worksheet{SheetName="מדידות מקור",RightToLeft=true};
         foreach(var c in new[]{"A","B","C","D","E","F","G"})trace.ColumnWidths.Add((c[0]-'A'+1,c=="A"||c=="C"?38:22));
@@ -116,7 +119,7 @@ public static class InfrastructureBoq
         var notes=new List<(string,string)> {("שרטוט",drawing),("SHA-256 מקור",drawingHash),("מחירון",catalog.SnapshotId),
             ("SHA-256 מחירון",catalog.FileHash),("מנוע מדידה",measurementEngine),("תחום הסריקה","כל Model Space והמקורות הטעונים; מקרא הוחרג. לא הוחל תחום פוליגון במסלול התשתיות."),
             ("אורך","אורך גאומטרי תלת־ממדי של הקווים, במטרים; לא כולל תוספות ביצוע, חפירה, אביזרים או שוחות"),
-            ("ביקורת",$"{lines.Count} קווים, {groups.Count} קבוצות; שורות מתומחרות רק לאחר אישור מפורש"),
+            ("ביקורת",$"{lines.Count} קווים, {groups.Count} קבוצות; מחיר מופיע רק לשורות שנבחר עבורן סעיף. שיוך אינו אישור מדידה או מפרט."),
             ("אזהרה","זו אינה הוכחה שכל קו הוא צינור לביצוע. נדרש לבדוק קווים מקבילים, כפילויות, מצב קיים, מידות ומפרט.")};
         notes.AddRange(findings.Select(f=>("ממצא",f)));
         for(var i=0;i<notes.Count;i++)checks.Rows.Add(new MiniXlsx.OutRow(i+1){HeightPoints=38}.Text("A",notes[i].Item1,2).Text("B",notes[i].Item2,3));

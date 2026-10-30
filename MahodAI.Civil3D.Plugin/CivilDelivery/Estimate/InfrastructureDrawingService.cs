@@ -19,6 +19,7 @@ internal sealed class InfrastructureDrawingService : IDisposable
     internal string Drawing { get; }
     internal string DrawingHash { get; }
     private readonly double _metres;
+    internal double MetresPerHostUnit => _metres;
     private readonly Dictionary<string, int> _unsupported = new();
     private int _symbolBlocks;
     internal InfrastructureDrawingService(Database db, string drawing, double metresPerHostUnit)

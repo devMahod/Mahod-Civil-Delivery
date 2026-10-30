@@ -141,6 +141,7 @@ public sealed class EditionLinksDialog : Window
             list.Children.Add(new TextBlock { Text = "כל סעיפי הספרייה נמצאים במחירון הפעיל; אין מה לקשר.", Margin = new Thickness(4) });
         root.Children.Add(new ScrollViewer { Content = list, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
         Content = root;
+        NamelessDecisionField.Attach(this, _approver);
     }
 
     private UIElement Section(EditionLinkProposal proposal)

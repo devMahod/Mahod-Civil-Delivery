@@ -89,7 +89,7 @@ public sealed class QuantityAdjustmentReviewDialog : Window
         Save.Click += (_, _) => { if (TryAccept(false)) DialogResult = true; };
         Remove.Click += (_, _) => { if (TryAccept(true)) DialogResult = true; };
         Cancel.Click += (_, _) => { Decision = null; Close(); };
-        UiGuard.Attach(this, "מקדם כמות לקבוצה");
+        NamelessDecisionField.Attach(this, Approver); UiGuard.Attach(this, "מקדם כמות לקבוצה");
         Refresh();
     }
 
