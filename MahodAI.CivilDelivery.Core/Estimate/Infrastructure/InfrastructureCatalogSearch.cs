@@ -42,6 +42,8 @@ public sealed class InfrastructureCatalogSearch
             var topic = InfrastructureLayerNames.Classify(term, "").Topic;
             return topic == InfrastructureBoq.Unknown ? term : Normalize(topic);
         }).Distinct(StringComparer.Ordinal).ToArray();
+        var requestedTopics = terms.Where(TopicTerms.Contains).ToArray();
+        var rankingTopic = requestedTopics.Length == 1 ? requestedTopics[0] : group.Topic;
         var diameter = LayerDiameter(group.ShortLayer);
         var material = MaterialOf(group.ShortLayer);
         var hasQuery = terms.Length > 0;
@@ -52,11 +54,11 @@ public sealed class InfrastructureCatalogSearch
             var codeMatch = hasQuery && e.Item.Code.Contains(query.Trim(), StringComparison.OrdinalIgnoreCase);
             if (hasQuery && !codeMatch && !terms.All(t => MatchesTerm(e.Text, t) ||
                 (TopicTerms.Contains(t) ? e.ContextTopics.Contains(t) : MatchesTerm(e.Context, t)))) continue;
-            var topic = TopicRank(group.Topic, e.Item, e.Text, e.ContextTopics);
+            var topic = TopicRank(rankingTopic, e.Item, e.Text, e.ContextTopics);
             if (!hasQuery && topic == 0) continue;
             var rank = topic;
             var reasons = new List<string>();
-            if (topic > 0) reasons.Add(group.Topic);
+            if (topic > 0) reasons.Add(rankingTopic);
             if (e.Item.Code.Equals(query.Trim(), StringComparison.OrdinalIgnoreCase)) rank += 10000;
             if (codeMatch) rank += 500;
             if (diameter is { } d && DiameterMatches(e.Item.Description, d.Value, d.Unit))

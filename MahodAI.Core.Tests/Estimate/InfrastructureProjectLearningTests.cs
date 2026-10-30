@@ -132,6 +132,21 @@ public sealed class InfrastructureProjectLearningTests : IDisposable
     }
 
     [Fact]
+    public void An_explicit_manual_query_topic_outranks_the_automatically_recognized_layer_topic()
+    {
+        var c = Catalog("a", 1);
+        c.Items.Clear();
+        c.Items["57.03.0010"] = new() { Code = "57.03.0010", Description = "TEST ONLY צינור PVC בקוטר 315 מ״מ", UnitRaw = "מטר" };
+        c.Items["18.08.0010"] = new() { Code = "18.08.0010", Description = "TEST ONLY עטיפת חול לצינורות בקוטר 315 מ״מ", UnitRaw = "מטר" };
+        var chapters = new Dictionary<string,string> { ["57.03.0010"] = "מערכות מים וביוב > מערכות ביוב", ["18.08.0010"] = "תעלות לצנרת מים וביוב" };
+        var s = new InfrastructureCatalogSearch(new InfrastructurePriceBook("TEST NTI", "TEST edition", c, chapters, true));
+        var result = s.Find(Group(), "צינור ביוב 315");
+        Assert.Equal("57.03.0010", result.First().Code);
+        Assert.Contains("ביוב", result.First().Reason); Assert.DoesNotContain(" · מים", result.First().Reason);
+        Assert.Equal("מים", Group().Topic);
+    }
+
+    [Fact]
     public void Two_publishers_with_the_same_code_preserve_prices_on_switch_restore_and_export()
     {
         var a = Catalog("a", 10); var b = Catalog("b", 25);
