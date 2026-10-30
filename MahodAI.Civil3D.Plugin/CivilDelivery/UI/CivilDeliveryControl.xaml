@@ -678,6 +678,14 @@
       </TabItem>
 
       <!-- ==================== PROJECT ==================== -->
+      <TabItem Header="תשתיות">
+        <StackPanel Margin="16">
+          <TextBlock Text="כתב כמויות לתשתיות" Style="{StaticResource SectionTitle}"/>
+          <TextBlock Text="מים, ביוב, ניקוז, גז, חשמל ותקשורת — ריכוז קווים לפי שכבה ומקור, חיפוש סעיף בעברית, וייצוא Excel ושרטוט שכבות נפרד." TextWrapping="Wrap" Margin="0,8"/>
+          <TextBlock Text="הסריקה כוללת את כל המודל והמקורות הטעונים. יש לבדוק יחידות, מצב קיים/תכנון ומפרט לפני שיוך. תחום פוליגון של מסך האומדן אינו מוחל במסך זה." TextWrapping="Wrap" Margin="0,8"/>
+          <Button Content="פתח כתב כמויות תשתיות…" Click="OnInfrastructureBoq" HorizontalAlignment="Right"/>
+        </StackPanel>
+      </TabItem>
       <TabItem Header="פרויקט">
         <ScrollViewer Margin="4" VerticalScrollBarVisibility="Auto">
           <StackPanel>
