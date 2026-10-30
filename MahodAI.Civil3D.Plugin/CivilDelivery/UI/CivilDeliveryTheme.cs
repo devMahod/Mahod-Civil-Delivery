@@ -96,7 +96,13 @@ internal static class CivilDeliveryTheme
     private static ResourceDictionary Load()
     {
         var assembly = typeof(CivilDeliveryTheme).Assembly.GetName().Name;
-        var uri = new Uri($"/{assembly};component/CivilDelivery/UI/CivilDeliveryTheme.xaml", UriKind.Relative);
+        var path =
+#if MAHOD_CD_STANDALONE
+            "CivilDelivery/UI/CivilDeliveryTheme.xaml";
+#else
+            "Ported/CivilDelivery/UI/CivilDeliveryTheme.xaml";
+#endif
+        var uri = new Uri($"/{assembly};component/{path}", UriKind.Relative);
         return (ResourceDictionary)System.Windows.Application.LoadComponent(uri);
     }
 
