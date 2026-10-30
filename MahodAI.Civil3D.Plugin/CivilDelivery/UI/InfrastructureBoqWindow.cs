@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Globalization;
 using System.Linq;
 using System.Text.Json;
 using System.Windows;
@@ -49,6 +50,9 @@ internal sealed class InfrastructureBoqWindow : Window
     private readonly ComboBox _topic = new() { ItemsSource = InfrastructureBoq.Topics, MinWidth = 110 };
     private readonly ComboBox _bookPicker = new() { Padding = new Thickness(6), Margin = new Thickness(0, 4, 0, 6), DisplayMemberPath = "Label" };
     private readonly TextBox _layerSearch = Input(), _catalogSearch = Input();
+    private readonly ComboBox _measurement = new() { ItemsSource = new[] { "מטר", "מ״ר", "מ״ק", "יח׳", "דונם", "טון", "ק״ג", "קומפ׳" }, Padding = new Thickness(5), MinWidth = 90 };
+    private readonly TextBox _manualQuantity = Input();
+    private readonly StackPanel _manualPanel = new();
     private readonly TextBlock _message = Text(""), _subject = Text("בחר שכבה"), _note = Text(""), _results = Text(""), _detail = Text("");
     private readonly TextBlock _source = Text("");
     private readonly Button _assign = ActionButton("שייך לשכבה", true), _undo = ActionButton("החזר שורות שהוסרו");
@@ -67,19 +71,19 @@ internal sealed class InfrastructureBoqWindow : Window
         string? restoreError = null;
         try { InfrastructureReviewStore.Restore(_reviewPath, scan.DrawingHash, _books.Select(b => b.Catalog).ToArray(), _groups, _excluded); }
         catch (System.Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException) { restoreError = "לא ניתן לטעון שיוכים קודמים: " + ex.Message; }
-        Title = "Mahod Delivery — כתב כמויות תשתיות"; Width = 1240; Height = 800; MinWidth = 920; MinHeight = 650;
+        Title = "Mahod Delivery — כתב כמויות"; Width = 1240; Height = 800; MinWidth = 920; MinHeight = 650;
         MaxHeight = SystemParameters.WorkArea.Height; MaxWidth = SystemParameters.WorkArea.Width;
         FlowDirection = System.Windows.FlowDirection.RightToLeft; FontFamily = new System.Windows.Media.FontFamily("Segoe UI");
         FontSize = 13; Background = Brushes.White; Foreground = Brushes.Black;
-        WindowStartupLocation = WindowStartupLocation.CenterOwner; UiGuard.Attach(this, "כתב כמויות תשתיות");
+        WindowStartupLocation = WindowStartupLocation.CenterOwner; UiGuard.Attach(this, "כתב כמויות");
         var root = new DockPanel { Margin = new Thickness(18) }; Content = root;
         var top = new StackPanel(); DockPanel.SetDock(top, Dock.Top); root.Children.Add(top);
         var header = new DockPanel(); top.Children.Add(header);
         var export = ActionButton("ייצא Excel ושרטוט…", true); export.Click += (_, _) => UiGuard.Run("ייצוא תשתיות", Export);
         DockPanel.SetDock(export, Dock.Left); header.Children.Add(export);
-        header.Children.Add(new TextBlock { Text = "כתב כמויות תשתיות", FontSize = 24, FontWeight = FontWeights.SemiBold });
+        header.Children.Add(new TextBlock { Text = "כתב כמויות", FontSize = 24, FontWeight = FontWeights.SemiBold });
         top.Children.Add(Text("בחר שכבה, בחר סעיף — וייצא. אפשר לייצא גם כתב כמויות חלקי."));
-        var scope = Text($"{_books.Count} מהדורות מחירונים לפי גופים · {scan.MetresPerHostUnit:G} מטר ליחידת שרטוט · כל המודל והמקורות, ללא חיתוך לפוליגון");
+        var scope = Text($"{_books.Count} מהדורות מחירונים לפי גופים · ניסיון מ־{_usage.ProjectCount} פרויקטים · {scan.MetresPerHostUnit:G} מטר ליחידת שרטוט · כל המודל והמקורות");
         top.Children.Add(scope);
         var bottom = new DockPanel { Margin = new Thickness(0, 10, 0, 0) }; DockPanel.SetDock(bottom, Dock.Bottom); root.Children.Add(bottom);
         _undo.Click += (_, _) => UiGuard.Run("החזרת שורות", () => { _excluded.Clear(); Persist(); Refresh(); });
@@ -91,11 +95,13 @@ internal sealed class InfrastructureBoqWindow : Window
         var layerHead = new StackPanel(); DockPanel.SetDock(layerHead, Dock.Top); layers.Children.Add(layerHead);
         layerHead.Children.Add(Heading("1  שכבות בשרטוט"));
         var filters = new DockPanel { Margin = new Thickness(0, 5, 0, 8) }; layerHead.Children.Add(filters);
-        _filter.ItemsSource = new[] { "כל התשתיות" }.Concat(InfrastructureBoq.Topics); _filter.SelectedIndex = 0;
-        _filter.SelectionChanged += (_, _) => Refresh(); DockPanel.SetDock(_filter, Dock.Right); filters.Children.Add(_filter);
+        _filter.DisplayMemberPath = "Label"; _filter.MaxDropDownHeight = 440; _filter.MaxWidth = 270;
+        _filter.ToolTip = "בחירת תחום מתוך הפרקים ותתי הפרקים במחירון. הסינון חל על הסעיפים בלבד.";
+        _filter.ItemsSource = BoqCatalogCategories.For(_books[0]); _filter.SelectedIndex = 0;
+        _filter.SelectionChanged += (_, _) => { if (!_loading) Search(); }; DockPanel.SetDock(_filter, Dock.Right); filters.Children.Add(_filter);
         _layerSearch.ToolTip = "סינון לפי שם שכבה"; _layerSearch.TextChanged += (_, _) => Refresh(); filters.Children.Add(_layerSearch);
         Column(_grid, "שכבה", "ShortLayer", new DataGridLength(1, DataGridLengthUnitType.Star));
-        Column(_grid, "מטרים", "LengthMetres", 85, "N2"); Column(_grid, "סעיף", "MappingDisplay", 105);
+        Column(_grid, "כמות", "Quantity", 85, "N2"); Column(_grid, "יחידה", "MeasurementUnit", 55); Column(_grid, "סעיף", "MappingDisplay", 105);
         _grid.SelectionChanged += (_, _) => SelectLayer();
         _grid.PreviewKeyDown += (_, e) => { if (e.Key == Key.Delete && _grid.SelectedItem is InfrastructureGroup g) { Remove(g); e.Handled = true; } };
         var menu = new ContextMenu();
@@ -116,6 +122,13 @@ internal sealed class InfrastructureBoqWindow : Window
         _bookPicker.SelectedItem = _books[0];
         _bookPicker.SelectionChanged += (_, _) => { if (!_loading && _bookPicker.SelectedItem is InfrastructurePriceBook book) { UseBook(book); Search(); } };
         editHead.Children.Add(_bookPicker);
+        var measurementRow = new DockPanel { Margin = new Thickness(0, 3, 0, 4) };
+        measurementRow.Children.Add(Text("יחידת מדידה:")); measurementRow.Children.Add(_measurement); editHead.Children.Add(measurementRow);
+        _measurement.SelectionChanged += (_, _) => { if (!_loading && _grid.SelectedItem is InfrastructureGroup g && _measurement.SelectedItem is string unit) { g.MeasurementUnit = unit; _loading = true; _manualQuantity.Clear(); _loading = false; UpdateMeasurementInput(g); Persist(); _grid.Items.Refresh(); Search(); UpdateSummary(); } };
+        _manualPanel.Children.Add(Text("אין מדידה מהשרטוט ביחידה זו. כמות להזנת המהנדס:")); _manualPanel.Children.Add(_manualQuantity); editHead.Children.Add(_manualPanel);
+        _manualQuantity.TextChanged += (_, _) => { if (_loading || _grid.SelectedItem is not InfrastructureGroup g) return;
+            g.ManualQuantity = double.TryParse(_manualQuantity.Text, NumberStyles.Number, CultureInfo.CurrentCulture, out var n) && double.IsFinite(n) && n > 0 ? n : null;
+            UpdateMeasurementInput(g); Persist(); _grid.Items.Refresh(); SelectItem(); UpdateSummary(); };
         _subject.FontWeight = FontWeights.SemiBold; _subject.TextTrimming = TextTrimming.CharacterEllipsis; _subject.TextWrapping = TextWrapping.NoWrap; editHead.Children.Add(_subject);
         _note.Foreground = new SolidColorBrush(Color.FromRgb(133, 84, 15)); editHead.Children.Add(_note);
         editHead.Children.Add(Text("חיפוש בעברית או מספר סעיף, לדוגמה: צינור ביוב 315"));
@@ -130,7 +143,7 @@ internal sealed class InfrastructureBoqWindow : Window
         var sourceBody = new StackPanel(); sourceBody.Children.Add(_source); sourceBody.Children.Add(_topic);
         _topic.SelectionChanged += (_, _) => { if (!_loading && _grid.SelectedItem is InfrastructureGroup g) { g.Topic = _topic.SelectedItem as string ?? InfrastructureBoq.Unknown; Persist(); _grid.Items.Refresh(); Search(); } };
         choice.Children.Add(new Expander { Header = "פרטי המקור ושינוי נושא", Content = new ScrollViewer { Content = sourceBody, MaxHeight = 140, VerticalScrollBarVisibility = ScrollBarVisibility.Auto }, Margin = new Thickness(0, 8, 0, 0) });
-        Column(_items, "סעיף", "Code", 95); Column(_items, "תיאור", "Description", new DataGridLength(1, DataGridLengthUnitType.Star)); Column(_items, "₪ למטר", "PriceDisplay", 80);
+        Column(_items, "סעיף", "Code", 95); Column(_items, "תיאור", "Description", new DataGridLength(1, DataGridLengthUnitType.Star)); Column(_items, "₪ ליחידה", "PriceDisplay", 80);
         _items.SelectionChanged += (_, _) => SelectItem();
         _items.MouseDoubleClick += (_, e) => { if (e.OriginalSource is DependencyObject d && FindRow(d) != null && _assign.IsEnabled) UiGuard.Run("שיוך שכבה", Assign); };
         _items.PreviewKeyDown += (_, e) => { if (e.Key == Key.Enter && _assign.IsEnabled) { UiGuard.Run("שיוך שכבה", Assign); e.Handled = true; } };
@@ -170,12 +183,14 @@ internal sealed class InfrastructureBoqWindow : Window
         _catalog = book.Catalog; _search = new InfrastructureCatalogSearch(book, _usage);
         _bookPicker.ToolTip = _catalog.PublicationNote;
         if (!Equals(_bookPicker.SelectedItem, book)) _bookPicker.SelectedItem = book;
+        var loading = _loading; _loading = true;
+        try { _filter.ItemsSource = BoqCatalogCategories.For(book); _filter.SelectedIndex = 0; }
+        finally { _loading = loading; }
     }
     private void Refresh()
     {
-        var topic = _filter.SelectedItem as string;
         var selected = _grid.SelectedItem as InfrastructureGroup;
-        var visible = _groups.Where(g => !_excluded.Contains(g) && (topic is null or "כל התשתיות" || g.Topic == topic) &&
+        var visible = _groups.Where(g => !_excluded.Contains(g) &&
             g.Layer.Contains(_layerSearch.Text.Trim(), StringComparison.OrdinalIgnoreCase)).ToArray();
         _grid.ItemsSource = visible; _grid.SelectedItem = selected != null && visible.Contains(selected) ? selected : visible.FirstOrDefault();
         _undo.Visibility = _excluded.Count > 0 ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
@@ -196,7 +211,8 @@ internal sealed class InfrastructureBoqWindow : Window
             {
                 var mappedBook = _books.FirstOrDefault(b => b.Catalog.FileHash == g.CatalogHash);
                 if (mappedBook != null && _catalog.FileHash != mappedBook.Catalog.FileHash) UseBook(mappedBook);
-                _subject.Text = g.ShortLayer + $" · {g.LengthMetres:N2} מטר";
+                _subject.Text = g.ShortLayer + $" · {g.Quantity:N2} {g.MeasurementUnit}";
+                _measurement.SelectedItem = g.MeasurementUnit; _manualQuantity.Text = g.ManualQuantity?.ToString("G", CultureInfo.CurrentCulture) ?? ""; UpdateMeasurementInput(g);
                 _subject.ToolTip = g.Layer; _topic.SelectedItem = g.Topic;
                 _note.Text = g.Evidence + "\n" + InfrastructureCatalogSearch.LayerNote(g);
                 _source.Text = $"מקור: {g.Source}\nשכבה: {g.Layer}\n{g.Count} קווים · {g.ClosedCount} סגורים\n{g.Evidence}\n{_scan.Findings.Count} ממצאי סריקה — הפירוט נכלל ב־Excel";
@@ -209,18 +225,18 @@ internal sealed class InfrastructureBoqWindow : Window
     private void Search()
     {
         if (_grid.SelectedItem is not InfrastructureGroup g) { _items.ItemsSource = null; _assign.IsEnabled = false; _detail.Text = ""; _results.Text = ""; return; }
-        var options = _search.Find(g, _catalogSearch.Text);
+        var options = _search.Find(g, _catalogSearch.Text, category: _filter.SelectedItem as BoqCatalogCategory);
         _items.ItemsSource = options;
         _items.SelectedItem = options.FirstOrDefault(o => o.Code == g.Code && g.CatalogHash == _catalog.FileHash);
         _results.Text = options.Count == 0 ? "לא נמצאו סעיפים. נסה מילים אחרות או מספר סעיף." :
-            $"{options.Count}{(options.Count == 100 ? "+" : "")} {(_catalogSearch.Text.Trim().Length > 0 ? "תוצאות" : "הצעות לפי השכבה")} · יחידת מטר בלבד";
+            $"{options.Count}{(options.Count == 100 ? "+" : "")} {(_catalogSearch.Text.Trim().Length > 0 ? "תוצאות" : "הצעות לפי השכבה")} · {g.MeasurementUnit}";
         SelectItem();
     }
     private void SelectItem()
     {
-        _assign.IsEnabled = _grid.SelectedItem is InfrastructureGroup && _items.SelectedItem is InfrastructureCatalogOption;
+        _assign.IsEnabled = _grid.SelectedItem is InfrastructureGroup { Quantity: > 0 } && _items.SelectedItem is InfrastructureCatalogOption;
         _detail.Text = _items.SelectedItem is InfrastructureCatalogOption item
-            ? $"{item.Code} · {item.PriceDisplay} ₪ למטר\n{item.Description}\n{item.Reason}\n{_catalog.SnapshotId}"
+            ? $"{item.Code} · {item.PriceDisplay} ₪ ל{item.Unit}\n{item.Description}\n{item.Reason}\n{_catalog.SnapshotId}"
             : _grid.SelectedItem is InfrastructureGroup { Code: not null } g ? $"שויך לסעיף {g.Code}: {g.Description}" : "בחר סעיף כדי לראות את התיאור המלא ולשייך אותו לשכבה.";
     }
     private void Assign()
@@ -229,13 +245,18 @@ internal sealed class InfrastructureBoqWindow : Window
         g.Assign(_catalog, item.Code); Persist(); _grid.Items.Refresh(); UpdateSummary();
         _message.Text = $"נשמר: {g.ShortLayer} ← {item.Code} · {(g.Total is { } total ? total.ToString("N2") + " ₪" : "חסר מחיר במחירון")}";
     }
+    private void UpdateMeasurementInput(InfrastructureGroup g)
+    {
+        _manualPanel.Visibility = g.MeasuredQuantity <= 0 ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+        _subject.Text = g.ShortLayer + $" · {g.Quantity:N2} {g.MeasurementUnit}";
+    }
     private void Export()
     {
-        var dialog = new Microsoft.Win32.SaveFileDialog { Filter = "Excel (*.xlsx)|*.xlsx", FileName = "כתב כמויות תשתיות", AddExtension = true };
+        var dialog = new Microsoft.Win32.SaveFileDialog { Filter = "Excel (*.xlsx)|*.xlsx", FileName = "כתב כמויות", AddExtension = true };
         if (dialog.ShowDialog(this) != true) return;
         var selected = _groups.Where(g => !_excluded.Contains(g)).ToArray();
-        var keys = selected.Select(g => (g.Source, g.Layer)).ToHashSet();
-        var lines = _scan.Measurements.Select(m => m.Line).Where(l => keys.Contains((l.Source, l.Layer))).ToArray();
+        var keys = selected.Select(g => (g.Source, g.Layer, g.GroupPart)).ToHashSet();
+        var lines = _scan.Measurements.Select(m => m.Line).Where(l => keys.Contains((l.Source, l.Layer, l.GroupPart))).ToArray();
         // Each export gets a new directory: never overwrite an existing drawing or its trace.
         var directory = Path.Combine(Path.GetDirectoryName(dialog.FileName)!, Path.GetFileNameWithoutExtension(dialog.FileName) + "-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + "-" + Guid.NewGuid().ToString("N")[..6]);
         Directory.CreateDirectory(directory);

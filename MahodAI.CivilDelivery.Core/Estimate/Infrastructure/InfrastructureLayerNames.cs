@@ -21,6 +21,18 @@ public static class InfrastructureLayerNames
         new("תקשורת", "TELECOM", new[] { "תקשורת", "בזק", "סלקום", "פרטנר", "אורנג", "BEZEQ", "BEZEK", "BEZEC", "BZQ", "TIKSHORET", "TIKSHORRET", "TAKSHORET", "TAKSHORAT", "TIQSHORET", "TIKSHHORET", "TIKSORET", "TKSORET", "TIKSHOR", "TIK RAKEVET", "TELECOM", "COMMUNICATION", "COMMUNICATIONS", "COMM", "TC", "CELLCOM", "PARTNER", "PARTENER", "ORANGE", "HOT CABLE", "HOT COMM", "M4015 HOT", "4 HOT", "HOT NEW", "HOT EX", "HOT D", "KAV HOT" }),
         new("רמזורים", "SIGNALS", new[] { "רמזור", "רמזורים", "RAMZOR", "RAMZORIM", "REMZOR", "REMZORIM", "TRAFFIC SIGNAL", "TRAFFIC SIGNALS", "TRAFFIC LIGHT", "TRAFFIC LIGHTS" }),
         new("השקיה", "IRRIGATION", new[] { "השקיה", "השקייה", "השקית", "השקיית", "מי השקיה", "מים להשקיה", "השקיית מים", "HASHKAY", "HASHKAYA", "HASHKAYAH", "HASHKAIA", "HASHKAA", "HASHKIA", "IRRIGATION", "IRRIG" }),
+        new("עבודות עפר", "EARTHWORK", new[] { "עבודות עפר", "חפירה", "חציבה", "מילוי עפר", "EARTHWORK", "EARTHWORKS", "EXCAVATION", "HAFIRA", "HAFIRAH", "HATZIVA", "CHATZIVA", "AFAR" }),
+        new("בטון", "CONCRETE", new[] { "בטון", "BETON", "CONCRETE", "CONC" }),
+        new("איטום", "WATERPROOF", new[] { "איטום", "בידוד", "ITUM", "ITOM", "WATERPROOF", "WATERPROOFING", "INSULATION" }),
+        new("פירוקים והריסות", "DEMOLITION", new[] { "פירוק", "פירוקים", "הריסה", "הריסות", "PERUK", "PERUKIM", "PIRUK", "PIRUKIM", "HERISA", "HARISA", "DEMOLITION", "DEMO", "DISMANTLE", "DISMANTLING", "REMOVE", "REMOVAL" }),
+        new("ריצופים", "PAVING", new[] { "ריצוף", "ריצופים", "מדרכה", "מדרכות", "אבנים משתלבות", "RIZUF", "RITZUF", "RITZOUF", "RIZOOF", "RIZUFIM", "MIDRAKA", "MIDRAKHA", "PAVING", "PAVERS", "SIDEWALK", "SIDEWALKS", "INTERLOCK" }),
+        new("גינון", "LANDSCAPE", new[] { "גינון", "דשא", "צמחיה", "צמחייה", "עצים", "נטיעות", "GINUN", "GINON", "GARDEN", "GARDENING", "LANDSCAPE", "LANDSCAPING", "LAWN", "GRASS", "TREES", "TREE", "PLANTING" }),
+        new("כבישים ואספלט", "ROAD", new[] { "אספלט", "כביש", "כבישים", "מיסעה", "סלילה", "ASFALT", "ASPHALT", "ASF", "ASFL", "PAVE", "PAVEMENT", "ROAD", "ROADS", "KVISH", "KVISHIM", "KAV ASFALT" }),
+        new("אבני שפה", "CURB", new[] { "אבן שפה", "אבני שפה", "EVEN SAFA", "EVEN SAFFA", "AVNEY SAFA", "SAFA", "CURB", "KERB", "KIRB", "CURBSTONE" }),
+        new("קירות תומכים", "WALL", new[] { "קיר תומך", "קירות תומכים", "קירות", "RETAINING WALL", "RETAINING", "KIROT", "KIR TOMECH", "KIR TOMEH" }),
+        new("קירות ומבנים", "WALLS", new[] { "קיר", "WALL", "WALLS", "מבנה", "MIVNE" }),
+        new("מסגרות וגדרות", "FENCE", new[] { "מסגרות", "גדר", "גדרות", "מעקה", "מעקות", "FENCE", "FENCING", "RAILING", "GUARDRAIL", "GADER", "GDER", "MAAKE", "MAAKEH" }),
+        new("סימון ושילוט", "SIGNS", new[] { "שילוט", "תמרור", "תמרורים", "סימון כבישים", "תמרורית", "SIGN", "SIGNS", "SIGNAGE", "ROAD MARKING", "MARKINGS", "TAMRUR", "TAMRURIM", "SHILUT", "SHILOT" }),
     };
     private static readonly Rule[] Rules = Domains.SelectMany(domain => domain.Aliases.Select(alias =>
         new Rule(domain, alias, new Regex(@"(?<![\p{L}\p{N}])" + Regex.Escape(Normalize(alias)).Replace("\\ ", @"\s+") + @"(?![\p{L}\p{N}])",
@@ -39,7 +51,7 @@ public static class InfrastructureLayerNames
             // A model containing water/gas also contains grids, profiles and drawing annotations.
             // Its filename is context only, and can narrow an explicitly named pipe/line, not every entity.
             if (IsAuxiliaryLayer(pieces.Last()) || !Regex.IsMatch(Normalize(pieces.Last()), @"(?:^| )(PIPE|LINE|KAV|כבל|צינור|קו)(?: |$)"))
-                return (InfrastructureBoq.Unknown, "ללא מילת תשתית מזוהה בשם או בתיאור השכבה", "UNCLASSIFIED");
+                return (InfrastructureBoq.Unknown, "ללא נושא מזוהה בשם או בתיאור השכבה — בחר תחום או חפש סעיף", "UNCLASSIFIED");
             // Directory names and XREF namespaces must not override an explicitly named leaf.
             var filename = Path.GetFileNameWithoutExtension(source.Split('\\', '/').Last());
             matches = Find(filename); origin = "שם קובץ המקור";

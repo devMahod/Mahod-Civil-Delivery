@@ -34,7 +34,6 @@ public sealed class InfrastructureLayerNamesTests
 
     [Theory]
     [InlineData("DRAWING")]
-    [InlineData("WATERPROOFING")]
     [InlineData("GASOLINE")]
     [InlineData("SELECTRICISH")]
     [InlineData("HOT")]
@@ -42,7 +41,6 @@ public sealed class InfrastructureLayerNamesTests
     [InlineData("S-COLS")]
     [InlineData("TR-NOTE2")]
     [InlineData("0_2D MIGR")]
-    [InlineData("HW-CURB")]
     [InlineData("M4404")]
     public void Unrelated_words_and_previous_drawing_symbols_do_not_invent_utility_topics(string layer) =>
         Assert.Equal(InfrastructureBoq.Unknown, InfrastructureBoq.Classify(layer, "984-HW-CIVIL.dwg").Topic);

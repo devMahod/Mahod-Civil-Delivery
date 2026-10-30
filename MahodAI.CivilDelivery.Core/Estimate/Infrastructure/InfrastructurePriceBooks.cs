@@ -41,7 +41,7 @@ public static class InfrastructurePriceBooks
                 {
                     if (row == null || string.IsNullOrWhiteSpace(row.Code) || string.IsNullOrWhiteSpace(row.Description) || row.Price < 0)
                         throw new InvalidDataException("סעיף לא תקין");
-                    if (!catalog.Items.TryAdd(row.Code, new CatalogItem { Code = row.Code, Description = row.Description, UnitRaw = row.Unit ?? "" }))
+                    if (!catalog.Items.TryAdd(row.Code, new CatalogItem { Code = row.Code, Description = row.Description, UnitRaw = row.Unit ?? "", ChapterPath = row.Chapter ?? "" }))
                         throw new InvalidDataException("מספר סעיף כפול במהדורה: " + row.Code);
                     catalog.Prices[row.Code] = new PriceRecord { Code = row.Code, Price = row.Price, PriceBookId = catalog.SnapshotId, SourceHash = hash };
                     chapters[row.Code] = row.Chapter ?? "";
@@ -61,14 +61,18 @@ public sealed class InfrastructureCatalogUsage
     public sealed record Example(string Description, string Unit, string[] Projects);
     public sealed record Document(int SchemaVersion, DateTime ImportedAtUtc, string EvidenceKind, Example[] Items);
     private readonly Dictionary<(string Text, string Unit), int> _counts = new();
+    public int ProjectCount { get; }
     public InfrastructureCatalogUsage(IEnumerable<Example> examples)
     {
+        var projects = new HashSet<string>(StringComparer.Ordinal);
         foreach (var e in examples)
         {
             var key = (InfrastructureCatalogSearch.Normalize(e.Description), Units.Parse(e.Unit).Canonical);
             if (key.Item2 == "?" || e.Projects == null) continue;
+            projects.UnionWith(e.Projects);
             _counts[key] = Math.Max(_counts.GetValueOrDefault(key), e.Projects.Distinct(StringComparer.Ordinal).Count());
         }
+        ProjectCount = projects.Count;
     }
     public int Projects(CatalogItem item) => _counts.GetValueOrDefault((InfrastructureCatalogSearch.Normalize(item.Description), item.Unit.Canonical));
     public static InfrastructureCatalogUsage Load(string path)

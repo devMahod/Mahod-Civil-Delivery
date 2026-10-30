@@ -53,7 +53,6 @@ public sealed class InfrastructureProjectLearningTests : IDisposable
     [InlineData("HW-PR-01-ELEV")]
     [InlineData("C-TOPO")]
     [InlineData("0")]
-    [InlineData("ST-CONC-4")]
     [InlineData("RR-ALGN")]
     public void A_utility_filename_does_not_turn_unrelated_geometry_into_pipes(string layer) =>
         Assert.Equal(InfrastructureBoq.Unknown, InfrastructureLayerNames.Classify(layer, "WATER-MODEL.dwg").Topic);
