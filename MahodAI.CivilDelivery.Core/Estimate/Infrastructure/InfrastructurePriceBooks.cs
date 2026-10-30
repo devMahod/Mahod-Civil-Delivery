@@ -15,7 +15,7 @@ public static class InfrastructurePriceBooks
 {
     public sealed record Row(string Code, string Description, string Unit, decimal? Price, string Chapter);
     public sealed record Document(int SchemaVersion, string Publisher, string Edition, string SourceSystem,
-        string SourceEditionId, DateTime ImportedAtUtc, Row[] Items);
+        string SourceEditionId, DateTime ImportedAtUtc, Row[] Items, bool UsesNtiChapters = false);
     public static string LocalDirectory => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "MahodCivilDelivery", "price-books", "ktavkam");
     private static readonly JsonSerializerOptions Json = new() { PropertyNameCaseInsensitive = true };
@@ -46,7 +46,7 @@ public static class InfrastructurePriceBooks
                     catalog.Prices[row.Code] = new PriceRecord { Code = row.Code, Price = row.Price, PriceBookId = catalog.SnapshotId, SourceHash = hash };
                     chapters[row.Code] = row.Chapter ?? "";
                 }
-                books.Add(new(d.Publisher, d.Edition, catalog, chapters));
+                books.Add(new(d.Publisher, d.Edition, catalog, chapters, d.UsesNtiChapters));
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidDataException or ArgumentException)
             { findings?.Add("מחירון מקומי לא נטען: " + Path.GetFileName(file) + " — " + ex.Message); }

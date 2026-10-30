@@ -121,6 +121,17 @@ public sealed class InfrastructureProjectLearningTests : IDisposable
     }
 
     [Fact]
+    public void A_cost_deduction_does_not_outrank_installing_a_pipe_even_when_it_appears_in_project_history()
+    {
+        var c = Catalog("a", 1);
+        c.Items["00.01.0010"] = new() { Code = "00.01.0010", Description = "TEST ONLY הפחתת עלויות חפירה של צינורות קוי מים", UnitRaw = "מטר" };
+        var usage = new InfrastructureCatalogUsage(new[] { new InfrastructureCatalogUsage.Example(c.Items["00.01.0010"].Description, "מטר", new[] { "TEST-A", "TEST-B" }) });
+        var s = new InfrastructureCatalogSearch(c, usage);
+        Assert.Equal("01.01.0010", s.Find(Group()).First().Code);
+        Assert.Contains("הפחתה", Assert.Single(s.Find(Group(), "הפחתת")).Reason);
+    }
+
+    [Fact]
     public void Two_publishers_with_the_same_code_preserve_prices_on_switch_restore_and_export()
     {
         var a = Catalog("a", 10); var b = Catalog("b", 25);
@@ -144,11 +155,12 @@ public sealed class InfrastructureProjectLearningTests : IDisposable
     public void Invalid_local_books_are_reported_without_losing_other_publishers()
     {
         var row = new InfrastructurePriceBooks.Row("01.01.0010", "TEST ONLY", "מטר", null, "TEST chapter");
-        var good = new InfrastructurePriceBooks.Document(1, "TEST publisher", "TEST edition", "TEST", "1", DateTime.UtcNow, new[] { row });
+        var good = new InfrastructurePriceBooks.Document(1, "TEST publisher", "TEST edition", "TEST", "1", DateTime.UtcNow, new[] { row }, UsesNtiChapters: true);
         File.WriteAllText(Path.Combine(_dir, "good.pricebook.json"), JsonSerializer.Serialize(good));
         File.WriteAllText(Path.Combine(_dir, "duplicate.pricebook.json"), JsonSerializer.Serialize(good with { Items = new[] { row, row } }));
         var errors = new List<string>(); var books = InfrastructurePriceBooks.Load(_dir, errors);
         Assert.Single(books); Assert.Single(errors); Assert.Null(books[0].Catalog.Prices[row.Code].Price);
         Assert.Equal("TEST chapter", books[0].Chapters[row.Code]);
+        Assert.True(books[0].UsesNtiChapters);
     }
 }

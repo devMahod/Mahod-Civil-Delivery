@@ -71,6 +71,8 @@ public sealed class InfrastructureCatalogSearch
                 if (material == e.Material) reasons.Add("חומר לפי שם השכבה: " + material);
             }
             if (Regex.IsMatch(e.Text, "תוספת|פירוק|הגנה|קידוח|שרוול|בדיק")) rank -= 20;
+            if (Regex.IsMatch(e.Text, "הפחת|ניכוי|זיכוי"))
+            { rank -= 90; reasons.Add("סעיף הפחתה/זיכוי — בדוק את אופן היישום"); }
             var projects = _usage?.Projects(e.Item) ?? 0;
             if (projects > 0 && topic > 0)
             {
