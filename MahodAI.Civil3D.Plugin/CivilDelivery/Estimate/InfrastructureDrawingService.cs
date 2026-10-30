@@ -78,7 +78,10 @@ internal sealed class InfrastructureDrawingService : IDisposable
                         var length = curve.GetDistanceAtParameter(curve.EndParam) - curve.GetDistanceAtParameter(curve.StartParam);
                         if (!double.IsFinite(length) || length <= 1e-9) { curve.Dispose(); continue; }
                         if (!_classifications.TryGetValue((layer, source), out var classification))
-                            _classifications[(layer, source)] = classification = InfrastructureBoq.Classify(layer, source);
+                        {
+                            var description = ((LayerTableRecord)tr.GetObject(entity.LayerId, OpenMode.ForRead)).Description;
+                            _classifications[(layer, source)] = classification = InfrastructureBoq.Classify(layer, source, description);
+                        }
                         // Keep the original layer and source separation. A topic is a proposal, never a payable item.
                         var leaf = layer.Split('|').Last();
                         var safe = string.Concat(leaf.Select(c => "<>/\\\":;?*|,=".Contains(c) ? '_' : c));

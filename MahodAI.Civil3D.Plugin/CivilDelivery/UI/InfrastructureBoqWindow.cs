@@ -37,14 +37,17 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI;
 internal sealed class InfrastructureBoqWindow : Window
 {
     private readonly InfrastructureDrawingService _scan;
-    private readonly CatalogSnapshot _catalog;
+    private CatalogSnapshot _catalog;
+    private readonly IReadOnlyList<InfrastructurePriceBook> _books;
+    private readonly InfrastructureCatalogUsage _usage;
     private readonly List<InfrastructureGroup> _groups;
     private readonly HashSet<InfrastructureGroup> _excluded = new();
-    private readonly InfrastructureCatalogSearch _search;
+    private InfrastructureCatalogSearch _search;
     private readonly string _reviewPath;
     private readonly DataGrid _grid = Table(), _items = Table();
     private readonly ComboBox _filter = new() { MinWidth = 130, Margin = new Thickness(0, 0, 8, 0), Padding = new Thickness(6) };
     private readonly ComboBox _topic = new() { ItemsSource = InfrastructureBoq.Topics, MinWidth = 110 };
+    private readonly ComboBox _bookPicker = new() { Padding = new Thickness(6), Margin = new Thickness(0, 4, 0, 6), DisplayMemberPath = "Label" };
     private readonly TextBox _layerSearch = Input(), _catalogSearch = Input();
     private readonly TextBlock _message = Text(""), _subject = Text("בחר שכבה"), _note = Text(""), _results = Text(""), _detail = Text("");
     private readonly TextBlock _source = Text("");
@@ -54,10 +57,15 @@ internal sealed class InfrastructureBoqWindow : Window
     internal InfrastructureBoqWindow(InfrastructureDrawingService scan, CatalogSnapshot catalog)
     {
         _scan = scan; _catalog = catalog; _groups = InfrastructureBoq.Group(scan.Measurements.Select(m => m.Line)).ToList();
-        _search = new InfrastructureCatalogSearch(catalog);
+        _books = new[] { new InfrastructurePriceBook("נתיבי ישראל", "אחוד יולי 2026 · מקור רשמי", catalog, new Dictionary<string,string>(), true) }
+            .Concat(InfrastructurePriceBooks.Load(InfrastructurePriceBooks.LocalDirectory, scan.Findings)).ToArray();
+        try { _usage = InfrastructureCatalogUsage.Load(Path.Combine(InfrastructurePriceBooks.LocalDirectory, "project-usage.json")); }
+        catch (System.Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException or InvalidDataException)
+        { _usage = new InfrastructureCatalogUsage(Array.Empty<InfrastructureCatalogUsage.Example>()); scan.Findings.Add("לא נטען ניסיון הפרויקטים: " + ex.Message); }
+        _search = new InfrastructureCatalogSearch(_books[0], _usage);
         _reviewPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MahodCivilDelivery", "infrastructure-reviews", InfrastructureReviewStore.FileName(scan.Drawing));
         string? restoreError = null;
-        try { InfrastructureReviewStore.Restore(_reviewPath, scan.DrawingHash, catalog, _groups, _excluded); }
+        try { InfrastructureReviewStore.Restore(_reviewPath, scan.DrawingHash, _books.Select(b => b.Catalog).ToArray(), _groups, _excluded); }
         catch (System.Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException) { restoreError = "לא ניתן לטעון שיוכים קודמים: " + ex.Message; }
         Title = "Mahod Delivery — כתב כמויות תשתיות"; Width = 1240; Height = 800; MinWidth = 920; MinHeight = 650;
         MaxHeight = SystemParameters.WorkArea.Height; MaxWidth = SystemParameters.WorkArea.Width;
@@ -71,7 +79,7 @@ internal sealed class InfrastructureBoqWindow : Window
         DockPanel.SetDock(export, Dock.Left); header.Children.Add(export);
         header.Children.Add(new TextBlock { Text = "כתב כמויות תשתיות", FontSize = 24, FontWeight = FontWeights.SemiBold });
         top.Children.Add(Text("בחר שכבה, בחר סעיף — וייצא. אפשר לייצא גם כתב כמויות חלקי."));
-        var scope = Text($"נת״י אחוד 07.2026 · {_catalog.Items.Count:N0} סעיפים · {scan.MetresPerHostUnit:G} מטר ליחידת שרטוט · כל המודל והמקורות, ללא חיתוך לפוליגון");
+        var scope = Text($"{_books.Count} מהדורות מחירונים לפי גופים · {scan.MetresPerHostUnit:G} מטר ליחידת שרטוט · כל המודל והמקורות, ללא חיתוך לפוליגון");
         top.Children.Add(scope);
         var bottom = new DockPanel { Margin = new Thickness(0, 10, 0, 0) }; DockPanel.SetDock(bottom, Dock.Bottom); root.Children.Add(bottom);
         _undo.Click += (_, _) => UiGuard.Run("החזרת שורות", () => { _excluded.Clear(); Persist(); Refresh(); });
@@ -100,6 +108,14 @@ internal sealed class InfrastructureBoqWindow : Window
         var editor = new DockPanel(); System.Windows.Controls.Grid.SetColumn(editor, 1); body.Children.Add(editor);
         var editHead = new StackPanel(); DockPanel.SetDock(editHead, Dock.Top); editor.Children.Add(editHead);
         editHead.Children.Add(Heading("2  סעיף מהמחירון"));
+        var booksView = new ListCollectionView(_books.ToList()); booksView.GroupDescriptions.Add(new PropertyGroupDescription("Publisher"));
+        _bookPicker.ItemsSource = booksView;
+        var groupHeader = new FrameworkElementFactory(typeof(TextBlock)); groupHeader.SetBinding(TextBlock.TextProperty, new Binding("Name"));
+        groupHeader.SetValue(TextBlock.FontWeightProperty, FontWeights.SemiBold); groupHeader.SetValue(FrameworkElement.MarginProperty, new Thickness(5));
+        _bookPicker.GroupStyle.Add(new GroupStyle { HeaderTemplate = new DataTemplate { VisualTree = groupHeader } });
+        _bookPicker.SelectedItem = _books[0];
+        _bookPicker.SelectionChanged += (_, _) => { if (!_loading && _bookPicker.SelectedItem is InfrastructurePriceBook book) { UseBook(book); Search(); } };
+        editHead.Children.Add(_bookPicker);
         _subject.FontWeight = FontWeights.SemiBold; _subject.TextTrimming = TextTrimming.CharacterEllipsis; _subject.TextWrapping = TextWrapping.NoWrap; editHead.Children.Add(_subject);
         _note.Foreground = new SolidColorBrush(Color.FromRgb(133, 84, 15)); editHead.Children.Add(_note);
         editHead.Children.Add(Text("חיפוש בעברית או מספר סעיף, לדוגמה: צינור ביוב 315"));
@@ -148,7 +164,13 @@ internal sealed class InfrastructureBoqWindow : Window
     private static void AddMenu(ContextMenu menu, string text, Action action)
     { var item = new MenuItem { Header = text }; item.Click += (_, _) => UiGuard.Run(text, action); menu.Items.Add(item); }
     private void Remove(InfrastructureGroup group) { _excluded.Add(group); Persist(); Refresh(); }
-    private void Persist() => InfrastructureReviewStore.Save(_reviewPath, _scan.DrawingHash, _catalog, _groups, _excluded);
+    private void Persist() => InfrastructureReviewStore.Save(_reviewPath, _scan.DrawingHash, _books.Select(b => b.Catalog).ToArray(), _groups, _excluded);
+    private void UseBook(InfrastructurePriceBook book)
+    {
+        _catalog = book.Catalog; _search = new InfrastructureCatalogSearch(book, _usage);
+        _bookPicker.ToolTip = _catalog.PublicationNote;
+        if (!Equals(_bookPicker.SelectedItem, book)) _bookPicker.SelectedItem = book;
+    }
     private void Refresh()
     {
         var topic = _filter.SelectedItem as string;
@@ -172,6 +194,8 @@ internal sealed class InfrastructureBoqWindow : Window
             _catalogSearch.Clear();
             if (_grid.SelectedItem is InfrastructureGroup g)
             {
+                var mappedBook = _books.FirstOrDefault(b => b.Catalog.FileHash == g.CatalogHash);
+                if (mappedBook != null && _catalog.FileHash != mappedBook.Catalog.FileHash) UseBook(mappedBook);
                 _subject.Text = g.ShortLayer + $" · {g.LengthMetres:N2} מטר";
                 _subject.ToolTip = g.Layer; _topic.SelectedItem = g.Topic;
                 _note.Text = g.Evidence + "\n" + InfrastructureCatalogSearch.LayerNote(g);
@@ -187,7 +211,7 @@ internal sealed class InfrastructureBoqWindow : Window
         if (_grid.SelectedItem is not InfrastructureGroup g) { _items.ItemsSource = null; _assign.IsEnabled = false; _detail.Text = ""; _results.Text = ""; return; }
         var options = _search.Find(g, _catalogSearch.Text);
         _items.ItemsSource = options;
-        _items.SelectedItem = options.FirstOrDefault(o => o.Code == g.Code);
+        _items.SelectedItem = options.FirstOrDefault(o => o.Code == g.Code && g.CatalogHash == _catalog.FileHash);
         _results.Text = options.Count == 0 ? "לא נמצאו סעיפים. נסה מילים אחרות או מספר סעיף." :
             $"{options.Count}{(options.Count == 100 ? "+" : "")} {(_catalogSearch.Text.Trim().Length > 0 ? "תוצאות" : "הצעות לפי השכבה")} · יחידת מטר בלבד";
         SelectItem();
@@ -196,7 +220,7 @@ internal sealed class InfrastructureBoqWindow : Window
     {
         _assign.IsEnabled = _grid.SelectedItem is InfrastructureGroup && _items.SelectedItem is InfrastructureCatalogOption;
         _detail.Text = _items.SelectedItem is InfrastructureCatalogOption item
-            ? $"{item.Code} · {item.PriceDisplay} ₪ למטר\n{item.Description}\n{item.Reason}"
+            ? $"{item.Code} · {item.PriceDisplay} ₪ למטר\n{item.Description}\n{item.Reason}\n{_catalog.SnapshotId}"
             : _grid.SelectedItem is InfrastructureGroup { Code: not null } g ? $"שויך לסעיף {g.Code}: {g.Description}" : "בחר סעיף כדי לראות את התיאור המלא ולשייך אותו לשכבה.";
     }
     private void Assign()
@@ -216,7 +240,7 @@ internal sealed class InfrastructureBoqWindow : Window
         var directory = Path.Combine(Path.GetDirectoryName(dialog.FileName)!, Path.GetFileNameWithoutExtension(dialog.FileName) + "-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + "-" + Guid.NewGuid().ToString("N")[..6]);
         Directory.CreateDirectory(directory);
         var excel = Path.Combine(directory, Path.GetFileName(dialog.FileName));
-        InfrastructureBoq.Export(excel, selected, lines, _catalog, _scan.Findings, _scan.Drawing, _scan.DrawingHash,
+        InfrastructureBoq.Export(excel, selected, lines, _books.Select(b => b.Catalog).ToArray(), _scan.Findings, _scan.Drawing, _scan.DrawingHash,
             "AutoCAD Curve.GetDistanceAtParameter; same native geometry basis as MAHOD CalcPolylines; original DLL not invoked");
         _scan.SaveDrawing(Path.Combine(directory, "Infrastructure-lines.dwg"), selected);
         File.WriteAllText(Path.Combine(directory, "review.json"), JsonSerializer.Serialize(selected, new JsonSerializerOptions { WriteIndented = true }));

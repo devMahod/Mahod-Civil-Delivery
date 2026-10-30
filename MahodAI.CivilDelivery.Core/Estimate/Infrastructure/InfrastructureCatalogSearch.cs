@@ -12,11 +12,24 @@ public sealed record InfrastructureCatalogOption(string Code, string Description
 /// <summary>Local Hebrew search and ranked alternatives, never an invented engineering specification.</summary>
 public sealed class InfrastructureCatalogSearch
 {
-    private sealed record Entry(CatalogItem Item, string Text, decimal? Price);
+    private sealed record Entry(CatalogItem Item, string Text, string Context, IReadOnlyList<string> ContextTopics, string? Material, decimal? Price);
     private readonly Entry[] _entries;
-    public InfrastructureCatalogSearch(CatalogSnapshot catalog) => _entries = catalog.Items.Values
-        .Where(i => i.Unit.SameUnit(Units.Parse("מטר")))
-        .Select(i => new Entry(i, Normalize(i.Description), catalog.Prices.GetValueOrDefault(i.Code)?.Price)).ToArray();
+    private readonly bool _usesNtiChapters;
+    private readonly InfrastructureCatalogUsage? _usage;
+    public InfrastructureCatalogSearch(InfrastructurePriceBook book, InfrastructureCatalogUsage? usage = null)
+        : this(book.Catalog, usage, book.Chapters, book.UsesNtiChapters) { }
+    public InfrastructureCatalogSearch(CatalogSnapshot catalog, InfrastructureCatalogUsage? usage = null,
+        IReadOnlyDictionary<string, string>? chapters = null, bool usesNtiChapters = true)
+    {
+        _usage = usage; _usesNtiChapters = usesNtiChapters;
+        var contexts = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
+        _entries = catalog.Items.Values.Where(i => i.Unit.SameUnit(Units.Parse("מטר"))).Select(i =>
+        {
+            var context = Normalize(chapters?.GetValueOrDefault(i.Code) ?? "");
+            if (!contexts.TryGetValue(context, out var topic)) contexts[context] = topic = InfrastructureLayerNames.TopicsInText(context);
+            return new Entry(i, Normalize(i.Description), context, topic, MaterialOf(i.Description), catalog.Prices.GetValueOrDefault(i.Code)?.Price);
+        }).ToArray();
+    }
 
     public IReadOnlyList<InfrastructureCatalogOption> Find(InfrastructureGroup group, string query = "", int limit = 100)
     {
@@ -26,13 +39,15 @@ public sealed class InfrastructureCatalogSearch
             return topic == InfrastructureBoq.Unknown ? term : Normalize(topic);
         }).Distinct(StringComparer.Ordinal).ToArray();
         var diameter = LayerDiameter(group.ShortLayer);
+        var material = MaterialOf(group.ShortLayer);
         var hasQuery = terms.Length > 0;
+        if (!hasQuery && InfrastructureLayerNames.IsAuxiliaryLayer(group.ShortLayer)) return Array.Empty<InfrastructureCatalogOption>();
         var matches = new List<InfrastructureCatalogOption>();
         foreach (var e in _entries)
         {
             var codeMatch = hasQuery && e.Item.Code.Contains(query.Trim(), StringComparison.OrdinalIgnoreCase);
-            if (hasQuery && !codeMatch && !terms.All(t => MatchesTerm(e.Text, t))) continue;
-            var topic = TopicRank(group.Topic, e.Item, e.Text);
+            if (hasQuery && !codeMatch && !terms.All(t => MatchesTerm(e.Text + " " + e.Context, t))) continue;
+            var topic = TopicRank(group.Topic, e.Item, e.Text, e.ContextTopics);
             if (!hasQuery && topic == 0) continue;
             var rank = topic;
             var reasons = new List<string>();
@@ -45,7 +60,18 @@ public sealed class InfrastructureCatalogSearch
                 reasons.Add(d.Unit == null ? $"מספר קוטר {d.Value:G} בשם השכבה; היחידה לא צוינה" : $"קוטר {d.Value:G} {d.Unit}");
             }
             if (Regex.IsMatch(e.Text, "צינור|קו מים|כבל")) rank += 15;
+            if (material != null && e.Material != null)
+            {
+                rank += material == e.Material ? 45 : -45;
+                if (material == e.Material) reasons.Add("חומר לפי שם השכבה: " + material);
+            }
             if (Regex.IsMatch(e.Text, "תוספת|פירוק|הגנה|קידוח|שרוול|בדיק")) rank -= 20;
+            var projects = _usage?.Projects(e.Item) ?? 0;
+            if (projects > 0 && topic > 0)
+            {
+                rank += Math.Min(12, projects * 3);
+                reasons.Add($"מופיע בכתבי כמויות של {projects} פרויקטים; רמז בלבד");
+            }
             if (e.Price != null) rank += 1;
             matches.Add(new(e.Item.Code, e.Item.Description, e.Item.UnitRaw, e.Price,
                 hasQuery ? "תוצאת חיפוש" + (reasons.Count > 0 ? " · " + string.Join(" · ", reasons) : "")
@@ -57,6 +83,8 @@ public sealed class InfrastructureCatalogSearch
     public static string LayerNote(InfrastructureGroup group)
     {
         var leaf = group.ShortLayer;
+        if (InfrastructureLayerNames.IsAuxiliaryLayer(leaf))
+            return "נראה ככיתוב, חתך, סימון עזר או היקף אביזר. אין הצעת צינור אוטומטית; אפשר לחפש סעיף ידנית אם האורך מתאים.";
         if (Regex.IsMatch(leaf, @"(?:^|[-_\s])EX(?:$|[-_\s])", RegexOptions.IgnoreCase) ||
             group.Layer.Contains("ASMADE", StringComparison.OrdinalIgnoreCase) || group.Source.Contains("ASMADE", StringComparison.OrdinalIgnoreCase))
             return "נראה כמצב קיים לפי שם המקור/השכבה. אפשר לשייך אם העבודה המבוקשת מתאימה לכך.";
@@ -78,7 +106,14 @@ public sealed class InfrastructureCatalogSearch
                 unit.StartsWith("CM") || unit.StartsWith("ס") ? "ס״מ" : unit.StartsWith("IN") ? "אינץ׳" :
                 unit.Length > 0 || layer.Contains("DN", StringComparison.OrdinalIgnoreCase) ? "מ״מ" : null);
         }
+        var labelled = Regex.Match(layer, @"(?<!\d)(\d+(?:[.]\d+)?)\s*(MM|CM|INCH|מ[""׳״']+מ|ס[""׳״']+מ)(?!\p{L})", RegexOptions.IgnoreCase);
+        if (labelled.Success)
+            return (double.Parse(labelled.Groups[1].Value, CultureInfo.InvariantCulture),
+                labelled.Groups[2].Value.StartsWith("CM", StringComparison.OrdinalIgnoreCase) || labelled.Groups[2].Value.StartsWith("ס") ? "ס״מ" :
+                labelled.Groups[2].Value.StartsWith("IN", StringComparison.OrdinalIgnoreCase) ? "אינץ׳" : "מ״מ");
         var convention = Regex.Match(layer, @"^(?:W-DE|SW-DE|DR-P?PIPE)[-_](\d+(?:[.]\d+)?)$", RegexOptions.IgnoreCase);
+        if (!convention.Success)
+            convention = Regex.Match(layer, @"^-?(?:MAIM|MAYIM|BIUV|BIYUV|MEKOROT|MIKOROT)[-_](\d+(?:[.]\d+)?)(?:[-_](?:MUTZA|MESHUAR|MEUTAK|EX|DE|NEW))?$", RegexOptions.IgnoreCase);
         return convention.Success ? (double.Parse(convention.Groups[1].Value, CultureInfo.InvariantCulture), null) : null;
     }
 
@@ -98,8 +133,26 @@ public sealed class InfrastructureCatalogSearch
         return false;
     }
 
-    private static int TopicRank(string topic, CatalogItem i, string text) => topic switch
+    private int TopicRank(string topic, CatalogItem i, string text, IReadOnlyList<string> contextTopics)
     {
+        // Chapter numbers are publisher-specific. Their inherited descriptions are usable across publishers.
+        var contextRank = contextTopics.Contains(topic) && topic != InfrastructureBoq.Unknown ? 60 : 0;
+        var semantic = topic switch
+        {
+            "מים" => text.Contains("מים") && text.Contains("צינור") ? 35 : 0,
+            "ביוב" => text.Contains("ביוב") ? 35 : 0,
+            "ניקוז" => Regex.IsMatch(text, "ניקוז|נקז") ? 35 : 0,
+            "חשמל" => Regex.IsMatch(text, "חשמל|כבל") ? 30 : 0,
+            "תאורה" => Regex.IsMatch(text, "תאורה|כבל") ? 30 : 0,
+            "תקשורת" => Regex.IsMatch(text, "תקשורת|בזק") ? 35 : 0,
+            "רמזורים" => text.Contains("רמזור") ? 60 : 0,
+            "גז" => Regex.IsMatch(text, @"(?:^| )גז(?: |$)") ? 60 : 0,
+            "השקיה" => text.Contains("השקיה") ? 35 : 0,
+            _ => 0,
+        };
+        if (!_usesNtiChapters) return Math.Max(contextRank, semantic);
+        var nti = topic switch
+        {
         "מים" => i.SubChapter == "57.02" ? 70 : text.Contains("מים") && text.Contains("צינור") ? 30 : 0,
         "ביוב" => i.SubChapter == "57.03" && Regex.IsMatch(text, "צינור|ביוב") ? 70 : text.Contains("ביוב") ? 30 : 0,
         "ניקוז" => i.SubChapter == "51.05" && Regex.IsMatch(text, "צינור|נקז") ? 70 : text.Contains("ניקוז") ? 30 : 0,
@@ -109,7 +162,19 @@ public sealed class InfrastructureCatalogSearch
         "גז" => Regex.IsMatch(text, @"(?:^| )גז(?: |$)") ? 60 : 0,
         "השקיה" => i.SubChapter == "41.01" && Regex.IsMatch(text, "צינור|טפטוף") ? 70 : text.Contains("השקיה") ? 30 : 0,
         _ => 0,
-    };
+        };
+        return Math.Max(nti, Math.Max(contextRank, semantic));
+    }
+
+    private static string? MaterialOf(string text)
+    {
+        var t = Normalize(text);
+        if (Regex.IsMatch(t, @"(?:^| )(?:pvc|פי וי סי)(?: |$)")) return "PVC";
+        if (Regex.IsMatch(t, @"(?:^| )(?:פוליאתילן|pe(?: 100| 80)?)(?: |$)")) return "פוליאתילן";
+        if (Regex.IsMatch(t, @"(?:^| )(?:בטון|beton|concrete|conc)(?: |$)")) return "בטון";
+        if (Regex.IsMatch(t, @"(?:^| )(?:פלדה|steel)(?: |$)")) return "פלדה";
+        return null;
+    }
 
     private static bool MatchesTerm(string description, string term) => term.All(char.IsDigit)
         ? Regex.IsMatch(description, @"(?<!\d)" + Regex.Escape(term) + @"(?!\d)")
@@ -118,6 +183,8 @@ public sealed class InfrastructureCatalogSearch
 
     public static string Normalize(string text)
     {
+        text = Regex.Replace(text, @"(?<![a-z])p[.\s]*v[.\s]*c(?![a-z])", "PVC", RegexOptions.IgnoreCase);
+        text = Regex.Replace(text, @"(?<![a-z])h[.\s]*d[.\s]*p[.\s]*e(?![a-z])", "פוליאתילן", RegexOptions.IgnoreCase);
         var b = new StringBuilder();
         foreach (var c in text.Normalize(NormalizationForm.FormD))
         {
@@ -126,7 +193,8 @@ public sealed class InfrastructureCatalogSearch
         }
         var normalized = Regex.Replace(b.ToString(), @"(?<=\p{L})(?=\d)|(?<=\d)(?=\p{L})", " ");
         normalized = Regex.Replace(normalized, @"צינורות|צנורות|צנרת|צנור", "צינור");
-        normalized = Regex.Replace(normalized, @"פוליאטילן|hdpe", "פוליאתילן");
+        normalized = Regex.Replace(normalized, @"פוליאטילן|פוליאיתילן|פוליאתלן|hdpe", "פוליאתילן");
+        normalized = Regex.Replace(normalized, @"מזויין|מזוין", "מזוין");
         return string.Join(" ", normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries));
     }
 }
