@@ -62,6 +62,31 @@ public sealed class CivilDeliveryCommandFacade
         ed.WriteMessage("\n" + MahodCivilDeliveryApplication.Describe() + "\n" + CivilDeliveryLoadGuard.DiagnosticSummary + "\n");
     }
 
+    [CommandMethod("MCD_INFRASTRUCTURE", CommandFlags.Modal)]
+    public void Infrastructure() { if (Ready()) InfrastructureBody(); }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void InfrastructureBody() => MahodAI.Civil3D.Plugin.CivilDelivery.UI.InfrastructureBoqWindow.Run();
+
+    [CommandMethod("MCD_INFRA_AUDIT", CommandFlags.Modal)]
+    public void InfrastructureAudit() { if (Ready()) InfrastructureAuditBody(); }
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void InfrastructureAuditBody() => MahodAI.Civil3D.Plugin.CivilDelivery.UI.InfrastructureBoqWindow.ExportAudit();
+
+    [CommandMethod("MCD_IGOR_AUDIT", CommandFlags.Modal)]
+    public void IgorAudit() { if (Ready()) IgorAuditBody(); }
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void IgorAuditBody()
+    {
+        var doc = AcadApp.DocumentManager.MdiActiveDocument;
+        if (doc == null) return;
+        var result = MahodAI.Civil3D.Plugin.CivilDelivery.Estimate.IgorPolylineAudit.Capture(doc.Database);
+        var path = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Mahod Delivery", "Infrastructure", "igor-check-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".json");
+        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)!);
+        System.IO.File.WriteAllText(path, System.Text.Json.JsonSerializer.Serialize(result, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+        doc.Editor.WriteMessage("\nIgor comparison: " + result.Status + "; " + path + "\n");
+    }
+
     /// <summary>
     /// Runs one typed command: under the standalone door when <paramref name="typedFlow"/> (its steps run inside the
     /// command), recording <paramref name="action"/>, when given, as completed, or failed if the body threw.

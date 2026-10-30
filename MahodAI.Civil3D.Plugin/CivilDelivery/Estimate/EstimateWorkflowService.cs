@@ -25,6 +25,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Estimate
     public sealed partial class EstimateWorkflowService
     {
         private readonly CivilQuantityExtractionService _extractor = new();
+        public SpatialBoundarySelection? SpatialBoundary { get; set; }
 
         /// <summary>Receipts of original XREF references read from local read copies (logical path, copy, decision, cleanup).</summary>
         internal const string XrefOriginalReadsArtifact = "xref_original_reference_reads.json";
@@ -195,7 +196,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Estimate
             var effectiveProfileHash = EstimateTraceIdentity.EffectiveProfileHash(profile);
 
             var extraction = EstimateScanTrace.Step("extraction", () => _extractor.Extract(db, tr, profile, runId,
-                startSource.DrawingPath, startSource.DrawingHash, Log, startSource));
+                startSource.DrawingPath, startSource.DrawingHash, Log, startSource, SpatialBoundary));
             var modelRecords = new List<NeutralQuantityRecord>();
             var modelFindings = new List<DeliveryFinding>();
             var materialAreas = new List<MaterialSectionAreaObservation>();
@@ -207,7 +208,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Estimate
             // (engineer, 31/08: "אפשר להוציא עוד דברים מהסיביל... ולשייך").
             try
             {
-                if (profile.Estimate.SourceSelection?.Sources.Single(s => s.Key == EstimateSourceSelectionPolicy.HostKey).Included != false)
+                if (SpatialBoundary == null && profile.Estimate.SourceSelection?.Sources.Single(s => s.Key == EstimateSourceSelectionPolicy.HostKey).Included != false)
                 {
                 var corridorQto = EstimateScanTrace.Step("corridor", () => CorridorQuantityService.Collect(tr, db, civilDoc, profile, runId,
                     startSource.DrawingPath, startSource.DrawingHash, Log));
