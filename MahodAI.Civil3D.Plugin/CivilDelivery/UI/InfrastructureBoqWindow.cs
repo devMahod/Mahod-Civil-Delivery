@@ -174,7 +174,7 @@ internal sealed class InfrastructureBoqWindow : Window
             {
                 _subject.Text = g.ShortLayer + $" · {g.LengthMetres:N2} מטר";
                 _subject.ToolTip = g.Layer; _topic.SelectedItem = g.Topic;
-                _note.Text = InfrastructureCatalogSearch.LayerNote(g);
+                _note.Text = g.Evidence + "\n" + InfrastructureCatalogSearch.LayerNote(g);
                 _source.Text = $"מקור: {g.Source}\nשכבה: {g.Layer}\n{g.Count} קווים · {g.ClosedCount} סגורים\n{g.Evidence}\n{_scan.Findings.Count} ממצאי סריקה — הפירוט נכלל ב־Excel";
             }
             else { _subject.Text = "אין שכבות בתצוגה"; _note.Text = ""; _source.Text = ""; }

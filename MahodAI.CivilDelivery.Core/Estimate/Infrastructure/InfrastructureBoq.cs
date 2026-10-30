@@ -1,5 +1,3 @@
-using System.Text.RegularExpressions;
-
 namespace MahodAI.CivilDelivery.Estimate.Infrastructure;
 
 public sealed record InfrastructureLine(string Source, string Handle, string Layer, string EntityType,
@@ -48,26 +46,9 @@ public sealed class InfrastructureGroup
 public static class InfrastructureBoq
 {
     public const string Unknown = "לא מסווג";
-    public static readonly string[] Topics = { "מים", "ביוב", "ניקוז", "גז", "חשמל", "תאורה", "תקשורת", "רמזורים", Unknown };
-    private static readonly (string Topic, string Code, string Pattern)[] Signals =
-    {
-        ("מים","WATER",@"WATER|WTR|WAT|WT|MAIM|מים"), ("ביוב","SEWER",@"SEWER|SEW|SWR|SW|BIUV|ביוב"),
-        ("ניקוז","DRAINAGE",@"DRAINAGE|DRAIN|DR|NIKUZ|ניקוז"), ("גז","GAS",@"GAS|GAZ|גז"),
-        ("חשמל","ELECTRIC",@"ELECTRIC|ELECTRICAL|ELEC|EL|HASHMAL|חשמל"), ("תאורה","LIGHTING",@"LIGHTING|TEURA|תאורה"),
-        ("תקשורת","TELECOM",@"TELECOM|COMMUNICATION|COMM|TC|BEZEQ|תקשורת|בזק"),
-        ("רמזורים","SIGNALS",@"TRAFFIC.?SIGNAL|RAMZOR|רמזורים"),
-    };
+    public static readonly string[] Topics = { "מים", "ביוב", "ניקוז", "גז", "חשמל", "תאורה", "תקשורת", "רמזורים", "השקיה", Unknown };
     public static (string Topic, string Evidence, string Code) Classify(string layer, string source)
-    {
-        string[] Matches(string text) => Signals.Where(s => Regex.IsMatch(text,
-            @"(?<![\p{L}\p{N}])(?:"+s.Pattern+@")(?![\p{L}\p{N}])", RegexOptions.IgnoreCase|RegexOptions.CultureInvariant))
-            .Select(s=>s.Topic).Distinct().ToArray();
-        var fromLayer=Matches(layer); var fromSource=Matches(source);
-        var hits=fromLayer.Length>0?fromLayer:fromSource;
-        if(hits.Length!=1) return (Unknown,hits.Length>1?"סימנים סותרים — לבדיקה":"ללא זיהוי מוכח", "UNCLASSIFIED");
-        return (hits[0],fromLayer.Length>0?"זיהוי נושא לפי שם השכבה":"זיהוי נושא לפי מקור השרטוט",
-            Signals.Single(s=>s.Topic==hits[0]).Code);
-    }
+        => InfrastructureLayerNames.Classify(layer, source);
     public static IReadOnlyList<InfrastructureGroup> Group(IEnumerable<InfrastructureLine> lines) => lines
         .GroupBy(l=>(l.Source,l.Layer,l.Topic))
         .Select(g=>new InfrastructureGroup {Source=g.Key.Source,Layer=g.Key.Layer,Topic=g.Key.Topic,Count=g.Count(),

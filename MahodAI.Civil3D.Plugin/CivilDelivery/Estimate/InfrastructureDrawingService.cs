@@ -21,6 +21,7 @@ internal sealed class InfrastructureDrawingService : IDisposable
     private readonly double _metres;
     internal double MetresPerHostUnit => _metres;
     private readonly Dictionary<string, int> _unsupported = new();
+    private readonly Dictionary<(string Layer, string Source), (string Topic, string Evidence, string Code)> _classifications = new();
     private int _symbolBlocks;
     internal InfrastructureDrawingService(Database db, string drawing, double metresPerHostUnit)
     {
@@ -76,7 +77,8 @@ internal sealed class InfrastructureDrawingService : IDisposable
                         curve.TransformBy(transform);
                         var length = curve.GetDistanceAtParameter(curve.EndParam) - curve.GetDistanceAtParameter(curve.StartParam);
                         if (!double.IsFinite(length) || length <= 1e-9) { curve.Dispose(); continue; }
-                        var classification = InfrastructureBoq.Classify(layer, source);
+                        if (!_classifications.TryGetValue((layer, source), out var classification))
+                            _classifications[(layer, source)] = classification = InfrastructureBoq.Classify(layer, source);
                         // Keep the original layer and source separation. A topic is a proposal, never a payable item.
                         var leaf = layer.Split('|').Last();
                         var safe = string.Concat(leaf.Select(c => "<>/\\\":;?*|,=".Contains(c) ? '_' : c));

@@ -20,7 +20,11 @@ public sealed class InfrastructureCatalogSearch
 
     public IReadOnlyList<InfrastructureCatalogOption> Find(InfrastructureGroup group, string query = "", int limit = 100)
     {
-        var terms = Normalize(query).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var terms = Normalize(query).Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(term =>
+        {
+            var topic = InfrastructureLayerNames.Classify(term, "").Topic;
+            return topic == InfrastructureBoq.Unknown ? term : Normalize(topic);
+        }).Distinct(StringComparer.Ordinal).ToArray();
         var diameter = LayerDiameter(group.ShortLayer);
         var hasQuery = terms.Length > 0;
         var matches = new List<InfrastructureCatalogOption>();
@@ -103,6 +107,7 @@ public sealed class InfrastructureCatalogSearch
         "תקשורת" => i.SubChapter is "18.01" or "18.06" && Regex.IsMatch(text, "צינור|כבל|תקשורת|בזק") ? 60 : text.Contains("תקשורת") ? 30 : 0,
         "רמזורים" => text.Contains("רמזור") ? 60 : 0,
         "גז" => Regex.IsMatch(text, @"(?:^| )גז(?: |$)") ? 60 : 0,
+        "השקיה" => i.SubChapter == "41.01" && Regex.IsMatch(text, "צינור|טפטוף") ? 70 : text.Contains("השקיה") ? 30 : 0,
         _ => 0,
     };
 
