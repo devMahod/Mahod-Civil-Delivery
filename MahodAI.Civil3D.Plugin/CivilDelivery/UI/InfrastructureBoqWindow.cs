@@ -129,6 +129,9 @@ internal sealed class InfrastructureBoqWindow : Window
     }
     private void Export()
     {
+        var doc = AcadApp.DocumentManager.MdiActiveDocument;
+        if (doc == null || !string.Equals(doc.Name, _scan.Drawing, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("שרטוט המקור אינו פעיל — פתח מחדש את מסך התשתיות בשרטוט הנכון");
         var dialog = new Microsoft.Win32.SaveFileDialog { Filter = "Excel (*.xlsx)|*.xlsx", FileName = "כתב כמויות תשתיות", AddExtension = true };
         if (dialog.ShowDialog(this) != true) return;
         var selected = _groups.Where(g => !_excluded.Contains(g)).ToArray();
@@ -136,12 +139,20 @@ internal sealed class InfrastructureBoqWindow : Window
         var keys = selected.ToDictionary(g => (g.Source, g.Layer));
         var lines = _scan.Measurements.Select(m => m.Line).Where(l => keys.ContainsKey((l.Source, l.Layer)))
             .Select(l => InfrastructureBoq.ReviewedLine(l, keys[(l.Source, l.Layer)])).ToArray();
+        _igorAudit = IgorPolylineAudit.Capture(doc.Database);
+        if (_igorAudit.Status == "mismatch")
+            throw new InvalidOperationException("מדידת איגור אינה תואמת למדידה העצמאית. יש לבדוק את השרטוט לפני ייצוא.");
+        var engine = "AutoCAD Curve.GetDistanceAtParameter; quantities in metres. " +
+            (_igorAudit.Status == "matched"
+                ? "Original installed MAHOD3D CalcPolylines invoked at export and independently matched. "
+                : "Original MAHOD3D comparison status: " + _igorAudit.Status + ". " + _igorAudit.Error + ". ") +
+            "Igor scope: " + _igorAudit.Scope + "; Igor receipt lengths are in drawing units. See igor-audit.json.";
         // Each export gets a new directory: never overwrite an existing drawing or its trace.
         var directory = Path.Combine(Path.GetDirectoryName(dialog.FileName)!, Path.GetFileNameWithoutExtension(dialog.FileName) + "-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + "-" + Guid.NewGuid().ToString("N")[..6]);
         Directory.CreateDirectory(directory);
         var excel = Path.Combine(directory, Path.GetFileName(dialog.FileName));
         InfrastructureBoq.Export(excel, selected, lines, _catalog, _scan.Findings, _scan.Drawing, _scan.DrawingHash,
-            "AutoCAD Curve.GetDistanceAtParameter; same native geometry basis as MAHOD CalcPolylines; original DLL not invoked");
+            engine);
         _scan.SaveDrawing(Path.Combine(directory, "Infrastructure-lines.dwg"), selected);
         File.WriteAllText(Path.Combine(directory, "review.json"), JsonSerializer.Serialize(selected, new JsonSerializerOptions { WriteIndented = true }));
         File.WriteAllText(Path.Combine(directory, "igor-audit.json"), JsonSerializer.Serialize(_igorAudit ??
