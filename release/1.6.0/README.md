@@ -16,4 +16,17 @@ The distribution ZIP contains exactly the installer and the version-matched Hebr
 
 ## Build verification
 
-Pending the final code and reviewed guide. Do not treat this release note as evidence of a completed build or live acceptance. Installer/ZIP hashes and verification results will be recorded after the final build gate.
+Built from source revision `c485875`. Both Civil 3D 2026 and 2027 builds passed the payload identity, dependency, asset and version checks. The real setup EXE's embedded-payload self-test returned 0; Microsoft Defender reported CLEAN for the unchanged setup bytes. Packaging verified exactly two ZIP entries, their CRCs and byte identity with the installer and reviewed guide.
+
+The payload manifest contains 15 expected bundle files only: six runtime/dependency files per host, the guide, uninstaller and PackageContents.xml. No private KTAVKAM snapshots or project research files are included. This verification does not replace live Civil 3D acceptance.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `Mahod_Civil_Delivery_Setup_1.6.0.exe` | `722EF8EA60838F1A0FD3C4D4D8CC1B789E1E80E12C5BE771B73EA91DA070C149` |
+| `Mahod_Civil_Delivery_1.6.0.zip` | `A08E06B7D99F213A839779B113F631D345EFBE8B1A85F3FCC65743CCF0DDFED5` |
+| Hebrew guide PDF | `1BB473D83709267D56308508291BC26003FA146EA6BF404E8DFCC9FD2278FCA8` |
+| Payload manifest | `B95333F4AF2D8865372424BB1D577E26A08398508CD8B54D0F6A0C53D9E8BAEC` |
+
+Local receipts: `MahodCivilDelivery/out/SETUP_PAYLOAD_VERIFICATION_1.6.0.json` and `MahodCivilDelivery/out/DEFENDER_SCAN_1.6.0.json`. Distribution artifacts and receipts remain outside Git.
+
+The focused infrastructure/catalogue/review regression suite passed 111 tests on each target (2026/net8 and 2027/net10). Live acceptance in Civil 3D 2027 verified the installed Plugin/Core pair, grouped local catalogues, restoration of existing choices and Hebrew search intent overriding an inferred layer topic. The original drawing and saved choices were unchanged. No new engineering item assignments were made during acceptance.
