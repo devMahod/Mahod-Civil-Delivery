@@ -70,6 +70,9 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
             // palette came back 225 px wide from the previous session and the panel
             // rendered clipped). Re-apply once on the next idle, when the restore is done.
             DeferEnsureUsableSize();
+#if !MAHOD_CD_STANDALONE
+            PaletteSizing.OpenLarge(_paletteSet);
+#endif
         }
 
         /// <summary>Smallest palette the two tables remain readable in.</summary>

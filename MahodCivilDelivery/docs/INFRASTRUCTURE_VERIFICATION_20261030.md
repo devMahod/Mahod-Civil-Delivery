@@ -80,3 +80,35 @@ Sunday acceptance remains at risk until official Railways/Defense books, the exa
 
 - Catalogue import live check passed using `BOQ-IMPORT-TEST.xlsx`, explicitly synthetic. Confirmation showed one parsed item; active identity/count changed correctly. Closed this test session without exporting against the synthetic book. Screenshot `live-20261030/catalogue-import-live.png`.
 - Restored FILEDIA=1 after script checks. Left the verified workbook and Civil 3D open. Evidence screenshot `live-20261030/excel-priced-live.png`. No production release, push or parent-pointer change.
+
+## Igor MAHOD3D and large-window regression pass
+
+- INF-007 FIXED AND LIVE VERIFIED: Igor detection previously searched only MahodNet. The installed tool uses MahodCivilNet.MHAutocad.CalcPolylines. Detection now recognizes both exact types, rejects ambiguity and checks that the scan belongs to the active drawing before invoking Igor's read-only length routine.
+- Loaded original DLL: C:/C3D/2027/MahodCivilNet_2027.dll. SHA256 38AF7E0B60DC8B593852829F21EE788C44ACE020D570D44D238F6E2F82045C2A; identical to the supplied C:/WORK/2027/MAHOD_3D/2027 copy. No duplicate NETLOAD or source replacement.
+- Live Igor result: matched all six layers, each 2,000 polylines and 410,000 m; total 12,000 and 2,460,000 m. Evidence: live-20261030/igor-matched.json and igor-matched-large.png.
+- Fresh export: C:/Users/vadim/Desktop/כתב כמויות תשתיות-20261030-132927-9ae15c. XLSX contains six 410,000 m rows, 12,000 source records, and explicit unpriced draft state. Igor receipt matches. Earlier priced Excel and independent reopened DWG validation remain documented above.
+- INF-008 FIXED: primary tool palettes open floating at 90% of the current host monitor work area; BOQ opens maximized. Engineers can resize/dock afterwards. Live size checks: Civil Delivery, Intergreen, Parking, Culvert, Cross Section and Visual Scan. Screenshots in live-20261030/*-large*.png. These are window smoke checks, not complete engineering validation of every tool.
+- INF-009 FIXED AND LIVE VERIFIED: Parking's palette has no auto-hide support; setting AutoRollUp throws InvalidOperationException and originally aborted the large resize. The optional auto-hide setting is now isolated. parking-large-retake.png proves the corrected live size.
+- Automated regression: Core 2,918/2,918; filtered Plugin 1,606/1,606. Both targets built successfully before the final optional-auto-hide correction; subsequent target builds are build-window-retake-2027.log and build-window-retake-2026.log.
+- Preserved existing source changes. Parking sync now excludes bin-* handoff output directories as well as bin/obj, preventing build artifacts entering its source mirror.
+
+### Deeper in-host results — NOT an all-green acceptance
+
+Ran MAHOD_SELFTEST in Civil 3D 2027 with two disposable drawing copies, mutation explicitly enabled only for this test process. Report live-20261030/selftest-first.json: 6 pass, 2 fail, 6 skip, no timeout. Passed main-thread execution, layer discovery, FIFO, closed-drawing rejection, rollback readback gate and routed-axis fixture. Skips include missing fixture geometry and the unconfigured network round trip.
+
+- REG-001 OPEN: session_document_binding failed to activate Road-regression.dwg while MAHOD_SELFTEST ran as a Modal command under SCRIPT. It rejected the call rather than using the wrong drawing. Needs an application-context/interactive reproduction before changing production routing; the harness command itself holds document command context.
+- REG-002 OPEN TEST DRIFT: section.build_standard_assembly still demands library-only rural construction. Current code intentionally supports stock_collapsed_median since commit c1c8a1f (owner change 2026-10-06). Do not revert that behavior or silently weaken the test. Update the scenario with a collapsed-median geometry/readback assertion and rerun the full in-host assembly case.
+- The two-drawing test can leave the other drawing active; palette screenshots after it correctly show Road-regression.dwg. Original source drawings were copied, not edited. Test-created fixture geometry has not been saved over the clean infrastructure fixture.
+- Remaining non-price acceptance: complete road-section generation regression, live catalogue-switch approval withdrawal, and all engineering tool workflows. Missing Railways/Defense prices and exact mahod2 example still prevent complete original acceptance. The FB demonstration's depth/manhole capabilities are not implemented by polyline-length measurement.
+
+### Corrected in-host rerun
+
+- REG-001 FIXED AND LIVE VERIFIED: changed MAHOD_SELFTEST from document-modal to Session context, allowing its two-document binding scenario to exercise real activation. Production tool routing was not changed. Both session-bound calls now pass against their own drawings.
+- REG-002 FIXED AND LIVE VERIFIED: rural-plan test recognizes the owner-approved collapsed-median strategy and requires its explicit donor/review notice. Existing lane/shoulder/source assertions and actual divided assembly/corridor geometry checks remain. Assembly scenario passes in-host.
+- Final report live-20261030/selftest-verified.json: 8 PASS, 0 FAIL, 6 SKIP, no timeout. These results supersede the two open statuses above; skipped cases still need suitable fixtures/network configuration.
+- Final source builds 2026 and 2027: build-selftest-retake-2026.log / build-selftest-retake-2027.log, 0 errors. Filtered plugin regression 1,606/1,606: plugin-regression-final.log.
+- All seven primary palettes verified large, including MahodAI chat (chat-large.png). BOQ dialog maximized. This policy does not resize small confirmations/pickers or Igor's separate third-party forms.
+- Independent latest workbook/source/audit assertions passed: live-20261030/igor-export-verification.json.
+- Latest export reopened in Civil 3D and independently verified again: Igor-export.dwg.verification.csv PASS, INSUNITS=6 / MEASUREMENT=1, 12,000 polylines, 2,460,000 m. Civil Delivery rescan shows the same six categories and Igor again reports matched on all six output layers.
+- Final category-filter check: selecting Water shows only the 2,000-polyline / 410,000 m water row; restored All Infrastructure afterwards. FILEDIA restored to 1 by the verification script.
+- The first new recording (igor-large-window-demo.mp4) captured the parent canvas behind the modal and is rejected as demonstration evidence. The corrected igor-boq-demo.mp4 targets the actual BOQ window; its sampled frame is verified separately. Existing priced-export-demo.mp4 remains the priced-export demonstration.

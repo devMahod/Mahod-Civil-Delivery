@@ -44,6 +44,7 @@ internal sealed class InfrastructureBoqWindow : Window
         Title = "Mahod Delivery — כתב כמויות תשתיות"; Width = 1250; Height = 760;
         FlowDirection = System.Windows.FlowDirection.RightToLeft; FontFamily = new System.Windows.Media.FontFamily("Segoe UI");
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        WindowState = WindowState.Maximized;
         var root = new DockPanel { Margin = new Thickness(12) }; Content = root;
         var top = new StackPanel(); DockPanel.SetDock(top, Dock.Top); root.Children.Add(top);
         top.Children.Add(new TextBlock { Text = "תשתיות | מדידה ← בדיקת מפרט ← חיפוש סעיף ← Excel ושרטוט", FontSize = 21, Margin = new Thickness(4) });
@@ -180,7 +181,7 @@ internal sealed class InfrastructureBoqWindow : Window
             using var scan = new InfrastructureDrawingService(doc.Database, doc.Name, factor);
             var groups = InfrastructureBoq.Group(scan.Measurements.Select(m => m.Line));
             var pricePath = BundledPriceBooks.Offers(Path.Combine(directory, "price-book"), new MahodAI.CivilDelivery.Shared.ProjectProfile()).Single().Entry.Path;
-            var catalog = PriceBookXlsxLoader.Load(pricePath, "נתיבי ישראל אחוד יולי 2026 — אומת באתר הרשמי ב־30.10.2026");
+            var catalog = PriceBookXlsxLoader.Load(pricePath, "נתיבי ישראל אחוד יולי 2026 — מחירון כלול בתוסף");
             InfrastructureBoq.Export(Path.Combine(directory, "Infrastructure-review.xlsx"), groups, scan.Measurements.Select(m => m.Line).ToArray(), catalog,
                 scan.Findings, doc.Name, scan.DrawingHash, "AutoCAD native curve distance; original Igor audit is separate and limited to host LWPOLYLINE");
             scan.SaveDrawing(Path.Combine(directory, "Infrastructure-lines.dwg"), groups);

@@ -15,12 +15,20 @@ internal static class IgorPolylineAudit
     internal static Result Capture(Database db)
     {
         const string scope = "Current drawing Model Space LWPOLYLINE only; excludes Xrefs and other curve types";
-        var assembly = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(a => a.GetName().Name?.StartsWith("MahodNet", StringComparison.OrdinalIgnoreCase) == true
-            && a.GetType("MahodNet.MHAutocad.CalcPolylines") != null);
-        var identity = assembly?.FullName ?? "not loaded";
+        var candidates = AppDomain.CurrentDomain.GetAssemblies()
+            .SelectMany(a => new[] { "MahodCivilNet.MHAutocad.CalcPolylines", "MahodNet.MHAutocad.CalcPolylines" }
+                .Select(name => a.GetType(name)).Where(t => t != null)).ToArray();
+        var identity = string.Join("; ", candidates.Select(t => t!.Assembly.FullName));
         try
         {
-            var type = assembly?.GetType("MahodNet.MHAutocad.CalcPolylines") ?? throw new InvalidOperationException("MAHOD CalcPolylines assembly is not loaded");
+            if (candidates.Length != 1)
+                throw new InvalidOperationException(candidates.Length == 0
+                    ? "MAHOD3D CalcPolylines assembly is not loaded"
+                    : "Multiple MAHOD3D measurement assemblies are loaded; comparison is ambiguous");
+            var type = candidates[0]!;
+            var active = Autodesk.AutoCAD.ApplicationServices.Core.Application.DocumentManager.MdiActiveDocument;
+            if (active == null || active.Database.UnmanagedObject != db.UnmanagedObject)
+                throw new InvalidOperationException("Igor comparison requires the active drawing database");
             var method = type.GetMethods(BindingFlags.NonPublic | BindingFlags.Static).Single(m => m.Name == "FillLayerInfoList" && m.GetParameters().Length == 4);
             var dictionary = (IDictionary)Activator.CreateInstance(method.GetParameters()[1].ParameterType)!;
             using var tr = db.TransactionManager.StartTransaction();
