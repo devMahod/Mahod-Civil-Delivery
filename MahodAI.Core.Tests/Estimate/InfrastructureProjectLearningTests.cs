@@ -102,6 +102,25 @@ public sealed class InfrastructureProjectLearningTests : IDisposable
     }
 
     [Fact]
+    public void A_specific_subchapter_wins_over_a_combined_parent_before_historical_usage_is_applied()
+    {
+        var c = Catalog("a", 1);
+        c.Items["01.01.0010"] = new() { Code = "01.01.0010", Description = "TEST ONLY צינור PVC בקוטר 110 מ״מ", UnitRaw = "מטר" };
+        c.Items["01.02.0010"] = new() { Code = "01.02.0010", Description = "TEST ONLY צינור פוליאתילן בקוטר 110 מ״מ", UnitRaw = "מטר" };
+        var chapters = new Dictionary<string,string>
+        {
+            ["01.01.0010"] = "מערכות ביוב ואספקת מים > אספקת מים",
+            ["01.02.0010"] = "מערכות ביוב ואספקת מים > מערכות ביוב"
+        };
+        var usage = new InfrastructureCatalogUsage(new[] { new InfrastructureCatalogUsage.Example(c.Items["01.02.0010"].Description, "מטר", new[] { "TEST-A", "TEST-B" }) });
+        var s = new InfrastructureCatalogSearch(new InfrastructurePriceBook("TEST publisher", "TEST edition", c, chapters), usage);
+        Assert.Equal("01.01.0010", Assert.Single(s.Find(Group())).Code);
+        Assert.Equal("01.02.0010", Assert.Single(s.Find(Group(), "צינור ביוב")).Code);
+        var sewer = Group(); sewer.Topic = "ביוב";
+        Assert.Equal("01.02.0010", Assert.Single(s.Find(sewer)).Code);
+    }
+
+    [Fact]
     public void Two_publishers_with_the_same_code_preserve_prices_on_switch_restore_and_export()
     {
         var a = Catalog("a", 10); var b = Catalog("b", 25);

@@ -16,6 +16,7 @@ public sealed class InfrastructureCatalogSearch
     private readonly Entry[] _entries;
     private readonly bool _usesNtiChapters;
     private readonly InfrastructureCatalogUsage? _usage;
+    private static readonly HashSet<string> TopicTerms = InfrastructureBoq.Topics.Where(t => t != InfrastructureBoq.Unknown).Select(Normalize).ToHashSet(StringComparer.Ordinal);
     public InfrastructureCatalogSearch(InfrastructurePriceBook book, InfrastructureCatalogUsage? usage = null)
         : this(book.Catalog, usage, book.Chapters, book.UsesNtiChapters) { }
     public InfrastructureCatalogSearch(CatalogSnapshot catalog, InfrastructureCatalogUsage? usage = null,
@@ -25,8 +26,11 @@ public sealed class InfrastructureCatalogSearch
         var contexts = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
         _entries = catalog.Items.Values.Where(i => i.Unit.SameUnit(Units.Parse("מטר"))).Select(i =>
         {
-            var context = Normalize(chapters?.GetValueOrDefault(i.Code) ?? "");
-            if (!contexts.TryGetValue(context, out var topic)) contexts[context] = topic = InfrastructureLayerNames.TopicsInText(context);
+            var rawContext = chapters?.GetValueOrDefault(i.Code) ?? "";
+            var context = Normalize(rawContext);
+            // A combined parent (water + sewer) cannot override the explicitly named sewer subchapter.
+            if (!contexts.TryGetValue(rawContext, out var topic)) contexts[rawContext] = topic = rawContext.Split('>')
+                .AsEnumerable().Reverse().Select(part => InfrastructureLayerNames.TopicsInText(part)).FirstOrDefault(topics => topics.Count > 0) ?? Array.Empty<string>();
             return new Entry(i, Normalize(i.Description), context, topic, MaterialOf(i.Description), catalog.Prices.GetValueOrDefault(i.Code)?.Price);
         }).ToArray();
     }
@@ -46,7 +50,8 @@ public sealed class InfrastructureCatalogSearch
         foreach (var e in _entries)
         {
             var codeMatch = hasQuery && e.Item.Code.Contains(query.Trim(), StringComparison.OrdinalIgnoreCase);
-            if (hasQuery && !codeMatch && !terms.All(t => MatchesTerm(e.Text + " " + e.Context, t))) continue;
+            if (hasQuery && !codeMatch && !terms.All(t => MatchesTerm(e.Text, t) ||
+                (TopicTerms.Contains(t) ? e.ContextTopics.Contains(t) : MatchesTerm(e.Context, t)))) continue;
             var topic = TopicRank(group.Topic, e.Item, e.Text, e.ContextTopics);
             if (!hasQuery && topic == 0) continue;
             var rank = topic;
