@@ -119,7 +119,7 @@
                  TextTrimming="CharacterEllipsis"/>
     </DockPanel>
 
-    <TabControl x:Name="Tabs" SelectedIndex="3" SelectionChanged="OnBoqTabSelected" Margin="12,0,12,8" Padding="0">
+    <TabControl x:Name="Tabs" SelectedIndex="3" Margin="12,0,12,8" Padding="0">
 
       <!-- ==================== SECTIONS ==================== -->
       <TabItem Header="חתכים">
@@ -249,7 +249,7 @@
       </TabItem>
 
       <!-- ==================== ESTIMATE ==================== -->
-      <TabItem Header="כתב כמויות">
+      <TabItem x:Name="BoqLauncherTab" Header="כתב כמויות">
         <DockPanel LastChildFill="True" Visibility="Collapsed">
 
           <StackPanel DockPanel.Dock="Top">
@@ -522,7 +522,7 @@
           <Button Content="פתח כתב כמויות תשתיות…" Click="OnInfrastructureBoq" HorizontalAlignment="Right"/>
         </StackPanel>
       </TabItem>
-      <TabItem Header="פרויקט">
+      <TabItem x:Name="ProjectTab" Header="פרויקט">
         <ScrollViewer VerticalScrollBarVisibility="Auto">
           <StackPanel>
             <Border Style="{StaticResource Card}" Margin="0,0,0,8">
