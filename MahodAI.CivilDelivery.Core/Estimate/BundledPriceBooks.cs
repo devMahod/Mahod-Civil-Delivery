@@ -7,7 +7,8 @@ namespace MahodAI.CivilDelivery.Estimate;
 public static class BundledPriceBooks
 {
     public const string FileName = "nti-unified-2026-07.xls";
-    public const string Sha256 = "CD1DDA5FE3E8B5BDA4C18A61D805F0DC4A29F9678E61D9CE8E6FC75FBA0EB5E1";
+    // Fresh download from the official unified-price-book page, verified 2026-10-30.
+    public const string Sha256 = "884B052CE443546F0FD9F6CC18F478107CB8C3D19A5AD9039DE951845E549613";
     private const string ResourceName = "Mahod.CivilDelivery.PriceBooks." + FileName;
 
     public static IReadOnlyList<KnownPriceBookIndex.Offer> Offers(string indexDirectory, ProjectProfile profile)

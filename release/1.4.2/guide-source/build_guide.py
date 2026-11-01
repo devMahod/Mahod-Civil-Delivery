@@ -1,12 +1,14 @@
-"""Render the Mahod Civil Delivery 1.4.2 Hebrew user guide (guide.html) to PDF with Microsoft Edge
+"""Render the Mahod Civil Delivery Hebrew user guide (guide.html) to PDF with Microsoft Edge
 headless, the way nataly/build-guide.ps1 prints a guide, and every page to PNG for review.
 
 Usage (the project venv; never a bare python):
-  <venv>\\python.exe build_guide.py <source commit> --out <dir>
+  <venv>\\python.exe build_guide.py <source commit> --out <dir> --version 1.4.3
 
 The 12-character commit is printed on the cover and on the last page as the build id
-("1.4.2+<commit>"), the same id MCD_CHECK shows: pass the commit the installer is built from.
-Writes <dir>/MAHOD_CIVIL_DELIVERY_GUIDE_HE_1.4.2.pdf (the file name build-setup.ps1 requires)
+("<version>+<commit>"), the same id MCD_CHECK shows: pass the commit the installer is built from.
+Writes <dir>/MAHOD_CIVIL_DELIVERY_GUIDE_HE_<version>.pdf (the file name build-setup.ps1 requires).
+The version defaults to 1.4.2; pass --version for a newer release. Historical version mentions
+in guide.html use numeric HTML entities so they remain unchanged by legacy version substitution.
 and <dir>/pages/page-NN.png. The logo is the plugin's own asset, inlined.
 """
 import argparse
@@ -64,7 +66,10 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("commit")
     ap.add_argument("--out", required=True, type=Path)
+    ap.add_argument("--version", default=VERSION)
     a = ap.parse_args()
+    if not re.fullmatch(r"\d+\.\d+\.\d+", a.version):
+        sys.exit("pass a three-part numeric version")
     if not re.fullmatch(r"[0-9a-f]{40}", a.commit):
         sys.exit("pass the full 40-character source commit")
     edge = next((e for e in EDGE if e.exists()), None)
@@ -72,13 +77,14 @@ def main() -> None:
         sys.exit("Microsoft Edge not found")
 
     html = (HERE / "guide.html").read_text(encoding="utf-8")
+    html = html.replace("1.4.2", a.version).replace("@@VERSION@@", a.version)
     html = isolate_latin(html.replace("@@BUILD@@", a.commit[:12]))
     html = html.replace('src="logo.png"', 'src="data:image/png;base64,' + base64.b64encode(LOGO.read_bytes()).decode() + '"')
     if "@@" in html:
         sys.exit("an unreplaced @@ token is left in the guide")
 
     a.out.mkdir(parents=True, exist_ok=True)
-    pdf = a.out / f"MAHOD_CIVIL_DELIVERY_GUIDE_HE_{VERSION}.pdf"
+    pdf = a.out / f"MAHOD_CIVIL_DELIVERY_GUIDE_HE_{a.version}.pdf"
     if pdf.exists():
         pdf.unlink()
     with tempfile.TemporaryDirectory(prefix="mcd-guide-") as work:
@@ -102,7 +108,7 @@ def main() -> None:
         old.unlink()
     doc = fitz.open(pdf)
     text = "".join(p.get_text() for p in doc)
-    for needle in (f"1.4.2+{a.commit[:12]}", "MCD_CIVIL_DELIVERY", "MAHOD_USAGE_OFF=1", f"Mahod_Civil_Delivery_Setup_{VERSION}.exe"):
+    for needle in (f"{a.version}+{a.commit[:12]}", "MCD_CIVIL_DELIVERY", "MAHOD_USAGE_OFF=1", f"Mahod_Civil_Delivery_Setup_{a.version}.exe"):
         if needle not in text:
             sys.exit(f"the rendered guide is missing {needle!r}")
     for i, p in enumerate(doc):

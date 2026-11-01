@@ -31,10 +31,11 @@ internal static class Program
 
         // Per-user install: "Run as administrator" could belong to another account and would install into that
         // account's profile. The normal double-click is the only supported entry point.
-        if (IsElevated() && !quiet)
+        if (IsElevated())
         {
-            Fail("ההתקנה הופעלה כמנהל (Run as administrator).\n\nיש לסגור אותה ולהפעיל שוב בלחיצה כפולה רגילה — " +
-                 "ההתקנה היא למשתמש הנוכחי ואינה צריכה הרשאות מנהל.");
+            if (!quiet)
+                Fail("ההתקנה הופעלה כמנהל (Run as administrator).\n\nיש לסגור אותה ולהפעיל שוב בלחיצה כפולה רגילה — " +
+                     "ההתקנה היא למשתמש הנוכחי ואינה צריכה הרשאות מנהל.");
             return 6;
         }
 

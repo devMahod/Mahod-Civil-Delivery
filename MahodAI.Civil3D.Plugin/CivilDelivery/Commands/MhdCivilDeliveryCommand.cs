@@ -18,6 +18,10 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Commands
     /// </summary>
     public class MhdCivilDeliveryCommand
     {
+#if !MAHOD_CD_STANDALONE
+        [CommandMethod("MHD_INFRASTRUCTURE", CommandFlags.Modal)]
+        public void Infrastructure() => InfrastructureBoqWindow.Run();
+#endif
         [CommandMethod(CivilDeliveryCommandNames.AfterSave, CommandFlags.Modal | CommandFlags.NoHistory)]
         public void ResumeAfterSave()
         {
