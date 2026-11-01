@@ -39,26 +39,28 @@ public sealed class InfrastructureGroup
     public string? CatalogHash { get; private set; }
     public string? ApprovedBy { get; private set; }
     public DateTime? ApprovedAtUtc { get; private set; }
+    public bool AutomaticallyAssigned { get; private set; }
+    internal long AssignmentRevision { get; private set; }
     public bool Approved => Code != null && CatalogHash != null;
     public string ShortLayer => Layer.Split('|').Last() + (GroupPart.Length > 0 ? " · " + GroupPart : "");
     public string MappingDisplay => Code ?? "בחר סעיף";
     public decimal? Total => Approved && Price is { } p ? (decimal)Quantity * p : null;
-    public string Status => Approved ? Price == null ? "שויך — חסר מחיר" : "שויך" : "טרם שויך";
+    public string Status => Approved ? (AutomaticallyAssigned ? "שויך אוטומטית" : "שויך") + (Price == null ? " — חסר מחיר" : "") : "טרם שויך";
     /// <summary>Selecting an item is the mapping decision. No name or unrelated form is required.</summary>
-    public void Assign(CatalogSnapshot catalog, string code)
+    public void Assign(CatalogSnapshot catalog, string code, bool automatic = false)
     {
         if (!double.IsFinite(Quantity) || Quantity <= 0 ||
             !catalog.Items.TryGetValue(code, out var item) || !item.Unit.SameUnit(Units.Parse(MeasurementUnit)))
             throw new InvalidOperationException("יש לבחור סעיף ביחידה התואמת לכמות. שטח, אורך, נפח וספירה אינם מתחלפים זה בזה");
         Code = item.Code; Description = item.Description;
         Price = catalog.Prices.TryGetValue(code, out var price) ? price.Price : null;
-        CatalogHash = catalog.FileHash; ApprovedBy = null; ApprovedAtUtc = DateTime.UtcNow;
+        CatalogHash = catalog.FileHash; ApprovedBy = null; ApprovedAtUtc = DateTime.UtcNow; AutomaticallyAssigned = automatic; AssignmentRevision++;
     }
     // Compatibility for callers with historical named decisions; never manufacture a person's identity.
     public void Approve(CatalogSnapshot catalog, string code, string approver)
     { Assign(catalog, code); ApprovedBy = string.IsNullOrWhiteSpace(approver) ? null : approver.Trim(); }
     public void Withdraw()
-    { Code = Description = CatalogHash = ApprovedBy = null; Price = null; ApprovedAtUtc = null; }
+    { Code = Description = CatalogHash = ApprovedBy = null; Price = null; ApprovedAtUtc = null; AutomaticallyAssigned = false; AssignmentRevision++; }
 }
 
 public static class InfrastructureBoq

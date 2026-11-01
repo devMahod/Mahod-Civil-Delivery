@@ -7,6 +7,9 @@ namespace MahodAI.CivilDelivery.Estimate.Infrastructure;
 public sealed record InfrastructureCatalogOption(string Code, string Description, string Unit, decimal? Price, string Reason, int Rank)
 {
     public string PriceDisplay => Price?.ToString("N2", CultureInfo.CurrentCulture) ?? "חסר מחיר";
+    public bool MatchesLayerTopic { get; init; }
+    public bool IsRecommended { get; init; }
+    public string RecommendationLabel => IsRecommended ? "מומלץ" : "";
 }
 
 /// <summary>Local Hebrew search and ranked alternatives, never an invented engineering specification.</summary>
@@ -14,6 +17,7 @@ public sealed class InfrastructureCatalogSearch
 {
     private sealed record Entry(CatalogItem Item, string Text, string Context, IReadOnlyList<string> ContextTopics, string? Material, decimal? Price);
     private readonly Entry[] _entries;
+    private readonly CatalogSnapshot _catalog;
     private readonly bool _usesNtiChapters;
     private readonly InfrastructureCatalogUsage? _usage;
     private static readonly HashSet<string> TopicTerms = InfrastructureBoq.Topics.Where(t => t != InfrastructureBoq.Unknown).Select(Normalize).ToHashSet(StringComparer.Ordinal);
@@ -22,7 +26,7 @@ public sealed class InfrastructureCatalogSearch
     public InfrastructureCatalogSearch(CatalogSnapshot catalog, InfrastructureCatalogUsage? usage = null,
         IReadOnlyDictionary<string, string>? chapters = null, bool usesNtiChapters = true)
     {
-        _usage = usage; _usesNtiChapters = usesNtiChapters;
+        _catalog = catalog; _usage = usage; _usesNtiChapters = usesNtiChapters;
         var contexts = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
         _entries = catalog.Items.Values.Where(i => i.Unit.Dimension is not (UnitDimension.Note or UnitDimension.Unknown)).Select(i =>
         {
@@ -48,7 +52,8 @@ public sealed class InfrastructureCatalogSearch
         var material = MaterialOf(group.ShortLayer);
         var hasQuery = terms.Length > 0;
         var focused = category != null && category.Code.Length > 0;
-        if (!hasQuery && !focused && Units.Parse(group.MeasurementUnit).Dimension == UnitDimension.Length && InfrastructureLayerNames.IsAuxiliaryLayer(group.ShortLayer)) return Array.Empty<InfrastructureCatalogOption>();
+        var auxiliaryLength = Units.Parse(group.MeasurementUnit).Dimension == UnitDimension.Length && InfrastructureLayerNames.IsAuxiliaryLayer(group.ShortLayer);
+        if (!hasQuery && !focused && auxiliaryLength) return Array.Empty<InfrastructureCatalogOption>();
         var matches = new List<InfrastructureCatalogOption>();
         foreach (var e in _entries)
         {
@@ -86,9 +91,32 @@ public sealed class InfrastructureCatalogSearch
             if (e.Price != null) rank += 1;
             matches.Add(new(e.Item.Code, e.Item.Description, e.Item.UnitRaw, e.Price,
                 hasQuery ? "תוצאת חיפוש" + (reasons.Count > 0 ? " · " + string.Join(" · ", reasons) : "")
-                    : string.Join(" · ", reasons) + " · בדוק חומר, עומק וסוג עבודה", rank));
+                    : string.Join(" · ", reasons) + " · בדוק חומר, עומק וסוג עבודה", rank)
+            { MatchesLayerTopic = !auxiliaryLength && TopicRank(group.Topic, e.Item, e.Text, e.ContextTopics) > 0 });
         }
-        return matches.OrderByDescending(x => x.Rank).ThenBy(x => x.Code, StringComparer.Ordinal).Take(limit).ToArray();
+        var options = matches.OrderByDescending(x => x.Rank).ThenBy(x => x.Code, StringComparer.Ordinal).Take(limit).ToArray();
+        // A filter or an exact code search can return items unrelated to this layer.
+        // Never give one of those a layer recommendation just because it is first.
+        var recommended = Array.FindIndex(options, x => x.MatchesLayerTopic);
+        if (recommended >= 0) options[recommended] = options[recommended] with { IsRecommended = true };
+        return options;
+    }
+
+    /// <summary>Read-only planning can run off the UI thread; applying is an explicit user action.</summary>
+    public InfrastructureAutoAssignmentBatch PlanAutomaticAssignment(IEnumerable<InfrastructureGroup> groups, BoqCatalogCategory? category = null)
+    {
+        var proposals = new List<InfrastructureAutoAssignmentBatch.Proposal>();
+        var existing = 0; var unmeasured = 0; var unmatched = 0;
+        foreach (var group in groups.Distinct())
+        {
+            if (group.Approved) { existing++; continue; }
+            if (!double.IsFinite(group.Quantity) || group.Quantity <= 0) { unmeasured++; continue; }
+            // A text query belongs to the current layer only, never to the whole batch.
+            var recommendation = Find(group, category: category).FirstOrDefault(o => o.IsRecommended);
+            if (recommendation == null) { unmatched++; continue; }
+            proposals.Add(new(group, recommendation.Code, group.Topic, group.MeasurementUnit, group.Quantity));
+        }
+        return new(_catalog, proposals, existing, unmeasured, unmatched);
     }
 
     public static string LayerNote(InfrastructureGroup group)

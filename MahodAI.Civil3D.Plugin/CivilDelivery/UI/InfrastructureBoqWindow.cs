@@ -4,6 +4,7 @@ using System.IO;
 using System.Globalization;
 using System.Linq;
 using System.Text.Json;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -16,6 +17,7 @@ using MahodAI.CivilDelivery.Estimate;
 using MahodAI.CivilDelivery.Estimate.Infrastructure;
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 using DataGrid = System.Windows.Controls.DataGrid;
+using DataGridCell = System.Windows.Controls.DataGridCell;
 using ComboBox = System.Windows.Controls.ComboBox;
 using TextBox = System.Windows.Controls.TextBox;
 using Panel = System.Windows.Controls.Panel;
@@ -56,8 +58,11 @@ internal sealed class InfrastructureBoqWindow : Window
     private readonly TextBlock _message = Text(""), _subject = Text("בחר שכבה"), _note = Text(""), _results = Text(""), _detail = Text("");
     private readonly TextBlock _source = Text("");
     private readonly Button _assign = ActionButton("שייך לשכבה", true), _undo = ActionButton("החזר שורות שהוסרו");
+    private readonly Button _autoAssign = ActionButton("שייך אוטומטית", true), _undoAuto = ActionButton("בטל שיוך אוטומטי אחרון");
+    private readonly DockPanel _layoutRoot = new() { Margin = new Thickness(18) };
+    private InfrastructureAutoAssignmentBatch? _lastAutomaticBatch;
     private readonly System.Windows.Threading.DispatcherTimer _queryTimer = new() { Interval = TimeSpan.FromMilliseconds(180) };
-    private bool _loading;
+    private bool _loading, _automaticBusy, _closed;
     internal InfrastructureBoqWindow(InfrastructureDrawingService scan, CatalogSnapshot catalog)
     {
         _scan = scan; _catalog = catalog; _groups = InfrastructureBoq.Group(scan.Measurements.Select(m => m.Line)).ToList();
@@ -76,18 +81,26 @@ internal sealed class InfrastructureBoqWindow : Window
         FlowDirection = System.Windows.FlowDirection.RightToLeft; FontFamily = new System.Windows.Media.FontFamily("Segoe UI");
         FontSize = 13; Background = Brushes.White; Foreground = Brushes.Black;
         WindowStartupLocation = WindowStartupLocation.CenterOwner; UiGuard.Attach(this, "כתב כמויות");
-        var root = new DockPanel { Margin = new Thickness(18) }; Content = root;
+        var root = _layoutRoot; Content = root;
         var top = new StackPanel(); DockPanel.SetDock(top, Dock.Top); root.Children.Add(top);
         var header = new DockPanel(); top.Children.Add(header);
         var export = ActionButton("ייצא Excel ושרטוט…", true); export.Click += (_, _) => UiGuard.Run("ייצוא תשתיות", Export);
         DockPanel.SetDock(export, Dock.Left); header.Children.Add(export);
+        _autoAssign.Margin = new Thickness(8, 3, 0, 3);
+        _autoAssign.ToolTip = "שייך את הסעיף המומלץ לכל שכבה שמוצגת וטרם שויכה, במחירון ובתחום הנבחרים. שיוכים קיימים נשמרים. חיפוש הסעיפים הידני אינו מוחל על שכבות אחרות.";
+        _autoAssign.Click += async (_, _) => await AssignAutomatically();
+        DockPanel.SetDock(_autoAssign, Dock.Left); header.Children.Add(_autoAssign);
         header.Children.Add(new TextBlock { Text = "כתב כמויות", FontSize = 24, FontWeight = FontWeights.SemiBold });
-        top.Children.Add(Text("בחר שכבה, בחר סעיף — וייצא. אפשר לייצא גם כתב כמויות חלקי."));
+        top.Children.Add(Text("שייך אוטומטית לפי המלצות המערכת, או בחר שכבה וסעיף. אפשר לייצא גם כתב כמויות חלקי."));
         var scope = Text($"{_books.Count} מהדורות מחירונים לפי גופים · ניסיון מ־{_usage.ProjectCount} פרויקטים · {scan.MetresPerHostUnit:G} מטר ליחידת שרטוט · כל המודל והמקורות");
         top.Children.Add(scope);
         var bottom = new DockPanel { Margin = new Thickness(0, 10, 0, 0) }; DockPanel.SetDock(bottom, Dock.Bottom); root.Children.Add(bottom);
         _undo.Click += (_, _) => UiGuard.Run("החזרת שורות", () => { _excluded.Clear(); Persist(); Refresh(); });
         DockPanel.SetDock(_undo, Dock.Left); bottom.Children.Add(_undo); bottom.Children.Add(_message);
+        _undoAuto.Visibility = System.Windows.Visibility.Collapsed;
+        _undoAuto.Margin = new Thickness(8, 3, 0, 3);
+        _undoAuto.Click += (_, _) => UiGuard.Run("ביטול שיוך אוטומטי", UndoAutomaticAssignment);
+        DockPanel.SetDock(_undoAuto, Dock.Left); bottom.Children.Insert(1, _undoAuto);
         var body = new System.Windows.Controls.Grid { Margin = new Thickness(0, 14, 0, 0) };
         body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(0.45, GridUnitType.Star) });
         body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(0.55, GridUnitType.Star) }); root.Children.Add(body);
@@ -133,7 +146,7 @@ internal sealed class InfrastructureBoqWindow : Window
         _note.Foreground = new SolidColorBrush(Color.FromRgb(133, 84, 15)); editHead.Children.Add(_note);
         editHead.Children.Add(Text("חיפוש בעברית או מספר סעיף, לדוגמה: צינור ביוב 315"));
         _queryTimer.Tick += (_, _) => { _queryTimer.Stop(); UiGuard.Run("חיפוש סעיפים", Search); };
-        Closed += (_, _) => _queryTimer.Stop();
+        Closed += (_, _) => { _closed = true; _queryTimer.Stop(); };
         _catalogSearch.TextChanged += (_, _) => { _queryTimer.Stop(); if (!_loading) _queryTimer.Start(); }; editHead.Children.Add(_catalogSearch);
         _results.FontSize = 11; editHead.Children.Add(_results);
         var choice = new StackPanel { Margin = new Thickness(0, 8, 0, 0) }; DockPanel.SetDock(choice, Dock.Bottom); editor.Children.Add(choice);
@@ -143,7 +156,7 @@ internal sealed class InfrastructureBoqWindow : Window
         var sourceBody = new StackPanel(); sourceBody.Children.Add(_source); sourceBody.Children.Add(_topic);
         _topic.SelectionChanged += (_, _) => { if (!_loading && _grid.SelectedItem is InfrastructureGroup g) { g.Topic = _topic.SelectedItem as string ?? InfrastructureBoq.Unknown; Persist(); _grid.Items.Refresh(); Search(); } };
         choice.Children.Add(new Expander { Header = "פרטי המקור ושינוי נושא", Content = new ScrollViewer { Content = sourceBody, MaxHeight = 140, VerticalScrollBarVisibility = ScrollBarVisibility.Auto }, Margin = new Thickness(0, 8, 0, 0) });
-        Column(_items, "סעיף", "Code", 95); Column(_items, "תיאור", "Description", new DataGridLength(1, DataGridLengthUnitType.Star)); Column(_items, "₪ ליחידה", "PriceDisplay", 80);
+        RecommendedCodeColumn(_items); Column(_items, "תיאור", "Description", new DataGridLength(1, DataGridLengthUnitType.Star)); Column(_items, "₪ ליחידה", "PriceDisplay", 80);
         _items.SelectionChanged += (_, _) => SelectItem();
         _items.MouseDoubleClick += (_, e) => { if (e.OriginalSource is DependencyObject d && FindRow(d) != null && _assign.IsEnabled) UiGuard.Run("שיוך שכבה", Assign); };
         _items.PreviewKeyDown += (_, e) => { if (e.Key == Key.Enter && _assign.IsEnabled) { UiGuard.Run("שיוך שכבה", Assign); e.Handled = true; } };
@@ -155,7 +168,7 @@ internal sealed class InfrastructureBoqWindow : Window
     private static TextBox Input() => new() { Padding = new Thickness(7), VerticalContentAlignment = VerticalAlignment.Center };
     private static Button ActionButton(string text, bool primary = false) => new() { Content = text, Padding = new Thickness(14, 9, 14, 9), Margin = new Thickness(0, 3, 0, 3),
         Background = primary ? new SolidColorBrush(Color.FromRgb(35, 104, 169)) : new SolidColorBrush(Color.FromRgb(236, 240, 245)), Foreground = primary ? Brushes.White : Brushes.Black, BorderThickness = new Thickness(0), Cursor = Cursors.Hand };
-    private static DataGrid Table()
+    internal static DataGrid Table()
     {
         var table = new DataGrid { AutoGenerateColumns = false, IsReadOnly = true, SelectionMode = DataGridSelectionMode.Single,
             SelectionUnit = DataGridSelectionUnit.FullRow, CanUserAddRows = false, CanUserDeleteRows = false, CanUserResizeRows = false,
@@ -171,6 +184,50 @@ internal sealed class InfrastructureBoqWindow : Window
         style.Setters.Add(new Setter(FrameworkElement.MarginProperty, new Thickness(5)));
         style.Setters.Add(new Setter(FrameworkElement.ToolTipProperty, new Binding(path)));
         grid.Columns.Add(new DataGridTextColumn { Header = title, Binding = new Binding(path) { StringFormat = format }, Width = width, ElementStyle = style });
+    }
+    internal static void RecommendedCodeColumn(DataGrid grid)
+    {
+        var rowStyle = new Style(typeof(DataGridRow));
+        rowStyle.Setters.Add(new Setter(FrameworkElement.ToolTipProperty, new Binding("Reason")));
+        var recommended = new DataTrigger { Binding = new Binding("IsRecommended"), Value = true };
+        recommended.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(230, 246, 237))));
+        recommended.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.Black));
+        recommended.Setters.Add(new Setter(Control.FontWeightProperty, FontWeights.SemiBold));
+        recommended.Setters.Add(new Setter(Control.BorderBrushProperty, new SolidColorBrush(Color.FromRgb(32, 133, 83))));
+        recommended.Setters.Add(new Setter(Control.BorderThicknessProperty, new Thickness(0, 1, 0, 1)));
+        rowStyle.Triggers.Add(recommended);
+        var selected = new MultiDataTrigger();
+        selected.Conditions.Add(new Condition(new Binding("IsRecommended"), true));
+        selected.Conditions.Add(new Condition(new Binding("IsSelected") { RelativeSource = new RelativeSource(RelativeSourceMode.Self) }, true));
+        selected.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(202, 233, 217))));
+        rowStyle.Triggers.Add(selected); grid.RowStyle = rowStyle;
+        // The theme paints selected cells over the row; keep the recommendation
+        // visible both before and after selection, with readable dark text.
+        var cellStyle = new Style(typeof(DataGridCell));
+        var recommendedCell = new DataTrigger { Binding = new Binding("IsRecommended"), Value = true };
+        recommendedCell.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(230, 246, 237))));
+        recommendedCell.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.Black)); cellStyle.Triggers.Add(recommendedCell);
+        var selectedCell = new MultiDataTrigger();
+        selectedCell.Conditions.Add(new Condition(new Binding("IsRecommended"), true));
+        selectedCell.Conditions.Add(new Condition(new Binding("IsSelected") { RelativeSource = new RelativeSource(RelativeSourceMode.Self) }, true));
+        selectedCell.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(202, 233, 217))));
+        cellStyle.Triggers.Add(selectedCell); grid.CellStyle = cellStyle;
+        var stack = new FrameworkElementFactory(typeof(StackPanel));
+        stack.SetValue(FrameworkElement.MarginProperty, new Thickness(5, 2, 5, 2));
+        stack.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
+        var code = new FrameworkElementFactory(typeof(TextBlock)); code.SetBinding(TextBlock.TextProperty, new Binding("Code")); stack.AppendChild(code);
+        var badge = new FrameworkElementFactory(typeof(Border));
+        badge.SetValue(Border.BackgroundProperty, new SolidColorBrush(Color.FromRgb(32, 133, 83)));
+        badge.SetValue(Border.CornerRadiusProperty, new CornerRadius(4)); badge.SetValue(Border.PaddingProperty, new Thickness(6, 1, 6, 1));
+        badge.SetValue(FrameworkElement.HorizontalAlignmentProperty, System.Windows.HorizontalAlignment.Right);
+        var badgeStyle = new Style(typeof(Border)); badgeStyle.Setters.Add(new Setter(UIElement.VisibilityProperty, System.Windows.Visibility.Collapsed));
+        var showBadge = new DataTrigger { Binding = new Binding("IsRecommended"), Value = true };
+        showBadge.Setters.Add(new Setter(UIElement.VisibilityProperty, System.Windows.Visibility.Visible)); badgeStyle.Triggers.Add(showBadge);
+        badge.SetValue(FrameworkElement.StyleProperty, badgeStyle);
+        var label = new FrameworkElementFactory(typeof(TextBlock)); label.SetBinding(TextBlock.TextProperty, new Binding("RecommendationLabel"));
+        label.SetValue(TextBlock.ForegroundProperty, Brushes.White); label.SetValue(TextBlock.FontSizeProperty, 10d);
+        badge.AppendChild(label); stack.AppendChild(badge);
+        grid.Columns.Add(new DataGridTemplateColumn { Header = "סעיף", Width = 95, CellTemplate = new DataTemplate { VisualTree = stack } });
     }
     private static DataGridRow? FindRow(DependencyObject? child)
     { while (child != null && child is not DataGridRow) child = child is Visual ? VisualTreeHelper.GetParent(child) : LogicalTreeHelper.GetParent(child); return child as DataGridRow; }
@@ -200,6 +257,7 @@ internal sealed class InfrastructureBoqWindow : Window
     {
         var active = _groups.Where(g => !_excluded.Contains(g)).ToArray();
         _message.Text = $"{active.Length} שכבות פעילות · {active.Count(g => g.Approved)} שויכו · {_excluded.Count} הוסרו · השיוכים נשמרים אוטומטית במחשב זה";
+        _autoAssign.IsEnabled = !_automaticBusy && _grid.Items.OfType<InfrastructureGroup>().Any(g => !g.Approved && double.IsFinite(g.Quantity) && g.Quantity > 0);
     }
     private void SelectLayer()
     {
@@ -227,16 +285,19 @@ internal sealed class InfrastructureBoqWindow : Window
         if (_grid.SelectedItem is not InfrastructureGroup g) { _items.ItemsSource = null; _assign.IsEnabled = false; _detail.Text = ""; _results.Text = ""; return; }
         var options = _search.Find(g, _catalogSearch.Text, category: _filter.SelectedItem as BoqCatalogCategory);
         _items.ItemsSource = options;
-        _items.SelectedItem = options.FirstOrDefault(o => o.Code == g.Code && g.CatalogHash == _catalog.FileHash);
+        _items.SelectedItem = options.FirstOrDefault(o => o.Code == g.Code && g.CatalogHash == _catalog.FileHash)
+            ?? options.FirstOrDefault(o => o.IsRecommended);
+        if (_items.SelectedItem != null) _items.ScrollIntoView(_items.SelectedItem);
         _results.Text = options.Count == 0 ? "לא נמצאו סעיפים. נסה מילים אחרות או מספר סעיף." :
-            $"{options.Count}{(options.Count == 100 ? "+" : "")} {(_catalogSearch.Text.Trim().Length > 0 ? "תוצאות" : "הצעות לפי השכבה")} · {g.MeasurementUnit}";
+            $"{options.Count}{(options.Count == 100 ? "+" : "")} {(_catalogSearch.Text.Trim().Length > 0 ? "תוצאות" : "הצעות לפי השכבה")} · {g.MeasurementUnit}" +
+            (options.Any(o => o.IsRecommended) ? " · הסעיף המומלץ מסומן בירוק" : " · אפשר לבחור סעיף ידנית");
         SelectItem();
     }
     private void SelectItem()
     {
         _assign.IsEnabled = _grid.SelectedItem is InfrastructureGroup { Quantity: > 0 } && _items.SelectedItem is InfrastructureCatalogOption;
         _detail.Text = _items.SelectedItem is InfrastructureCatalogOption item
-            ? $"{item.Code} · {item.PriceDisplay} ₪ ל{item.Unit}\n{item.Description}\n{item.Reason}\n{_catalog.SnapshotId}"
+            ? $"{(item.IsRecommended ? "מומלץ לשכבה · " : "")}{item.Code} · {item.PriceDisplay} ₪ ל{item.Unit}\n{item.Description}\n{item.Reason}\n{_catalog.SnapshotId}"
             : _grid.SelectedItem is InfrastructureGroup { Code: not null } g ? $"שויך לסעיף {g.Code}: {g.Description}" : "בחר סעיף כדי לראות את התיאור המלא ולשייך אותו לשכבה.";
     }
     private void Assign()
@@ -244,6 +305,39 @@ internal sealed class InfrastructureBoqWindow : Window
         if (_grid.SelectedItem is not InfrastructureGroup g || _items.SelectedItem is not InfrastructureCatalogOption item) return;
         g.Assign(_catalog, item.Code); Persist(); _grid.Items.Refresh(); UpdateSummary();
         _message.Text = $"נשמר: {g.ShortLayer} ← {item.Code} · {(g.Total is { } total ? total.ToString("N2") + " ₪" : "חסר מחיר במחירון")}";
+    }
+    private async Task AssignAutomatically()
+    {
+        if (_automaticBusy) return;
+        _automaticBusy = true; _queryTimer.Stop();
+        var previousCursor = Cursor;
+        try
+        {
+            var groups = _grid.Items.OfType<InfrastructureGroup>().ToArray();
+            var search = _search; var category = _filter.SelectedItem as BoqCatalogCategory;
+            _layoutRoot.IsEnabled = false; Cursor = Cursors.Wait;
+            _autoAssign.Content = "משייך…"; _message.Text = "מחפש סעיפים מומלצים לשכבות המוצגות…";
+            var batch = await Task.Run(() => search.PlanAutomaticAssignment(groups, category));
+            if (_closed) return;
+            var assigned = batch.Apply();
+            if (assigned > 0) { _lastAutomaticBatch = batch; _undoAuto.Visibility = System.Windows.Visibility.Visible; }
+            Persist(); _grid.Items.Refresh(); SelectLayer();
+            var remaining = groups.Count(g => !g.Approved);
+            _message.Text = $"{assigned} שכבות שויכו אוטומטית · {remaining} נשארו לבחירה ידנית · {batch.ExistingCount} שיוכים קיימים נשמרו";
+        }
+        catch (System.Exception ex) when (UiGuard.IsRecoverable(ex)) { if (!_closed) UiGuard.Report("שיוך אוטומטי", ex); }
+        finally
+        {
+            _automaticBusy = false; _layoutRoot.IsEnabled = true; Cursor = previousCursor; _autoAssign.Content = "שייך אוטומטית";
+            _autoAssign.IsEnabled = _grid.Items.OfType<InfrastructureGroup>().Any(g => !g.Approved && double.IsFinite(g.Quantity) && g.Quantity > 0);
+        }
+    }
+    private void UndoAutomaticAssignment()
+    {
+        var undone = _lastAutomaticBatch?.Undo() ?? 0;
+        _lastAutomaticBatch = null; _undoAuto.Visibility = System.Windows.Visibility.Collapsed;
+        Persist(); _grid.Items.Refresh(); SelectLayer();
+        _message.Text = $"בוטל שיוך אוטומטי של {undone} שכבות. שינויים ידניים שנעשו לאחר השיוך נשמרו.";
     }
     private void UpdateMeasurementInput(InfrastructureGroup g)
     {

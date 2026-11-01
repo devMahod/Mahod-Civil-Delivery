@@ -8,7 +8,7 @@ namespace MahodAI.CivilDelivery.Estimate.Infrastructure;
 public static class InfrastructureReviewStore
 {
     public sealed record Choice(string Key, string? Code, bool Excluded, string? CatalogHash = null, string? Topic = null,
-        string? MeasurementUnit = null, double? ManualQuantity = null);
+        string? MeasurementUnit = null, double? ManualQuantity = null, bool AutomaticallyAssigned = false);
     public sealed record Review(string DrawingHash, string CatalogHash, DateTime SavedAtUtc, Choice[] Choices);
     public static string FileName(string drawing) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(Path.GetFullPath(drawing).ToUpperInvariant()))) + ".json";
     private static string Key(InfrastructureGroup g) => JsonSerializer.Serialize(new { g.Source, g.Layer, g.Topic, g.Count, g.LengthMetres, g.ClosedCount });
@@ -23,7 +23,7 @@ public static class InfrastructureReviewStore
         var hashes = catalogs.Select(c => c.FileHash).ToHashSet(StringComparer.Ordinal);
         var review = new Review(drawingHash, catalogs.Count == 1 ? catalogs[0].FileHash : "multiple-editions", DateTime.UtcNow,
             groups.Select(g => new Choice(StableKey(g), g.CatalogHash != null && hashes.Contains(g.CatalogHash) ? g.Code : null,
-                excluded.Contains(g), g.CatalogHash, g.Topic, g.MeasurementUnit, g.ManualQuantity)).ToArray());
+                excluded.Contains(g), g.CatalogHash, g.Topic, g.MeasurementUnit, g.ManualQuantity, g.AutomaticallyAssigned)).ToArray());
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         var temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try { File.WriteAllText(temporary, JsonSerializer.Serialize(review)); File.Move(temporary, path, true); }
@@ -50,7 +50,7 @@ public static class InfrastructureReviewStore
             if (choice.ManualQuantity is > 0 && double.IsFinite(choice.ManualQuantity.Value)) group.ManualQuantity = choice.ManualQuantity;
             if (choice.Code != null && books.TryGetValue(choice.CatalogHash ?? saved.CatalogHash, out var catalog) &&
                 catalog.Items.TryGetValue(choice.Code, out var item) && item.Unit.SameUnit(Units.Parse(group.MeasurementUnit)) && group.Quantity > 0)
-            { group.Assign(catalog, choice.Code); restored++; }
+            { group.Assign(catalog, choice.Code, choice.AutomaticallyAssigned); restored++; }
             if (choice.Excluded) excluded.Add(group);
         }
         return restored;
