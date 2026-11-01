@@ -164,7 +164,7 @@ internal sealed class DrawingUnitsReviewDialog : Window
         };
         Cancel.IsCancel = true;
         Cancel.Click += (_, _) => { ApprovedDeclaration = null; RevocationRequested = false; Close(); };
-        Refresh(); UiGuard.Attach(this, "יחידות פיזיות");
+        Refresh(); NamelessDecisionField.Attach(this, Approver); UiGuard.Attach(this, "יחידות פיזיות");
     }
 
     // The physical unit the current choice records; null while nothing (or no listed unit) is chosen.

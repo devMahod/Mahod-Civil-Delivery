@@ -26,7 +26,8 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
 
             InitializeComponent();
             FontFamily = CivilDeliveryTheme.Font;
-            UiGuard.Attach(this, "אישור מרוכז — סימוני תחנות ועזר");
+            NamelessDecisionField.Attach(this, ApproverBox); UiGuard.Attach(this, "אישור מרוכז — סימוני תחנות ועזר");
+
             CandidatesGrid.ItemsSource = candidates;
             var stations = candidates.Count(candidate =>
                 candidate.Verdict?.Kind == QuantitySignificance.Kind.StationGeometry);

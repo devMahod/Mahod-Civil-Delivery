@@ -65,7 +65,7 @@ public sealed class ProjectPriceApprovalDialog : Window
         var actions = new WrapPanel { Margin = new Thickness(10) }; actions.Children.Add(approve); actions.Children.Add(cancel);
         var root = new DockPanel(); DockPanel.SetDock(actions, Dock.Bottom); root.Children.Add(actions);
         root.Children.Add(new ScrollViewer { Content = body, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
-        Content = root; UiGuard.Attach(this, "אישור מחיר פרויקט");
+        Content = root; NamelessDecisionField.Attach(this, _approver); UiGuard.Attach(this, "אישור מחיר פרויקט");
     }
 
     private static void AddField(Panel panel, string label, TextBox input)

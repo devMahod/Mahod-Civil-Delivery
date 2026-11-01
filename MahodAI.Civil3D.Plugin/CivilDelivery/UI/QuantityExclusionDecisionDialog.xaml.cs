@@ -15,7 +15,8 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
         {
             InitializeComponent();
             FontFamily = CivilDeliveryTheme.Font;
-            UiGuard.Attach(this, "אישור החרגת קבוצת כמות");
+            NamelessDecisionField.Attach(this, ApproverBox); UiGuard.Attach(this, "אישור החרגת קבוצת כמות");
+
             QuantitySummaryText.Text =
                 $"שכבה: {layer}\nכמות: {quantityDisplay} · {objectCount} עצמים\nחוק: {ruleKey}";
             ApproverBox.Text = ApproverContext.Session.Name ?? ""; // b24: the session approver or empty, never Windows

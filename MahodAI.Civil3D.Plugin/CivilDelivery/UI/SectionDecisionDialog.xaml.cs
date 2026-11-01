@@ -44,7 +44,8 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
         {
             InitializeComponent();
             FontFamily = CivilDeliveryTheme.Font;
-            UiGuard.Attach(this, "הכרעת רשומת חתך");
+            NamelessDecisionField.Attach(this, ApproverBox); UiGuard.Attach(this, "הכרעת רשומת חתך");
+
             SubjectTitle.Text = $"חתך {record.SectionId ?? record.Cl.SourceHandle}";
             SubjectDetail.Text =
                 $"CL handle {Bidi.Ltr(record.Cl.SourceHandle)} · {Bidi.Ltr(record.Cl.SourceLayer)} · " +

@@ -30,7 +30,8 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
 
             InitializeComponent();
             FontFamily = CivilDeliveryTheme.Font;
-            UiGuard.Attach(this, "אישור מיפויים חד־משמעיים");
+            NamelessDecisionField.Attach(this, ApproverBox); UiGuard.Attach(this, "אישור מיפויים חד־משמעיים");
+
             CandidatesGrid.ItemsSource = candidates;
             SummaryText.Text =
                 $"{candidates.Count} קבוצות · {candidates.Sum(candidate => candidate.ObjectCount):N0} עצמים · " +

@@ -109,7 +109,8 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
             _sourceSnapshots = records.Select(record => (record, JsonSerializer.Serialize(record))).ToArray();
             InitializeComponent();
             FontFamily = CivilDeliveryTheme.Font;
-            UiGuard.Attach(this, "כיווני נסיעה לאצוות חתכים");
+            NamelessDecisionField.Attach(this, ApproverBox); UiGuard.Attach(this, "כיווני נסיעה לאצוות חתכים");
+
             _rows = records
                 .OrderBy(record => record.Station ?? double.MaxValue)
                 .ThenBy(record => record.RecordId, StringComparer.Ordinal)

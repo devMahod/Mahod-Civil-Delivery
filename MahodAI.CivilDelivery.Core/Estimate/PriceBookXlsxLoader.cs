@@ -126,6 +126,7 @@ namespace MahodAI.CivilDelivery.Estimate
             var firstRows = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             var problems = new List<string>();
             var chapters = new SortedSet<string>(StringComparer.Ordinal);
+            var chapterTitles = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             var candidates = new List<HeaderCandidate>();
             var diagnostics = new List<RowDiagnostic>();
             var reasons = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -328,11 +329,22 @@ namespace MahodAI.CivilDelivery.Estimate
                     repeated.Any(c => c.Role == "code" && c.Column == codeCol) &&
                     repeated.Any(c => c.Role == "price" && c.Column == priceCol)))
                 { NonItem("repeated_header"); continue; }
+                // NTI places the whole chapter heading in the code cell ("תת פרק 51.01 - ...").
+                var labelledHeading = Regex.Match(code, @"^(?:תת\s*פרק|פרק|subchapter|chapter)\s+([A-Za-z]?\d{1,3}(?:\.\d{1,3})?)\s*[-–:]\s*(.+)$", RegexOptions.IgnoreCase);
+                if (unitRaw.Length == 0 && priceCell.Text.Length == 0 && labelledHeading.Success)
+                {
+                    chapterTitles[Regex.Replace(labelledHeading.Groups[1].Value, @"^[A-Za-z](?=\d)", "")] = labelledHeading.Groups[2].Value.Trim();
+                    NonItem("chapter_heading"); continue;
+                }
                 if (unit.Dimension == UnitDimension.Note) { NonItem("note_unit"); continue; }
                 // A bare chapter/subchapter with no unit or price is a heading, not a missing-price item.
                 if (unitRaw.Length == 0 && priceCell.Text.Length == 0 &&
                     Regex.IsMatch(code, @"^[A-Za-z]?\d{1,3}(\.\d{1,3})?$"))
-                { NonItem("chapter_heading"); continue; }
+                {
+                    var headingCode = Regex.Replace(code, @"^[A-Za-z](?=\d)", "");
+                    if (!string.IsNullOrWhiteSpace(desc)) chapterTitles[headingCode] = desc.Trim();
+                    NonItem("chapter_heading"); continue;
+                }
                 if (!CodePattern.IsMatch(code))
                 {
                     var itemLike = unitRaw.Length > 0 || priceCell.Text.Length > 0 ||
@@ -365,7 +377,10 @@ namespace MahodAI.CivilDelivery.Estimate
                     continue;
                 }
 
-                items.Add(code, new CatalogItem { Code = code, Description = desc, UnitRaw = unitRaw });
+                var bareCode = Regex.Replace(code, @"^[A-Za-z](?=\d)", "");
+                var chapterPath = string.Join(" > ", chapterTitles.Where(h => bareCode.StartsWith(h.Key + ".", StringComparison.OrdinalIgnoreCase))
+                    .OrderBy(h => h.Key.Length).Select(h => h.Value));
+                items.Add(code, new CatalogItem { Code = code, Description = desc, UnitRaw = unitRaw, ChapterPath = chapterPath });
                 prices.Add(code, new PriceRecord { Code = code, Price = price, PriceBookId = snapshotId, SourceHash = fileHash });
                 firstRows.Add(code, row.Number);
                 imported++;

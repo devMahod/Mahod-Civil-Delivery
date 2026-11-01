@@ -26,7 +26,7 @@ namespace MahodAI.CivilDelivery.Estimate
         public static UnitInfo Parse(string? raw)
         {
             var t = (raw ?? string.Empty).Trim()
-                .Replace("״", "\"").Replace("''", "\"").Replace("`", "'")
+                .Replace("״", "\"").Replace("''", "\"").Replace("`", "'").Replace("׳", "'")
                 .TrimEnd('.');
 
             return t switch
@@ -54,6 +54,7 @@ namespace MahodAI.CivilDelivery.Estimate
         public required string Code { get; init; }
         public required string Description { get; init; }
         public required string UnitRaw { get; init; }
+        public string ChapterPath { get; init; } = "";
         [JsonIgnore] public UnitInfo Unit => Units.Parse(UnitRaw);
 
         /// <summary>"51" from U51.04.0080 (NTI) or from 68.052.0010 (Dekel) - any single-letter publisher prefix is ignored.</summary>
