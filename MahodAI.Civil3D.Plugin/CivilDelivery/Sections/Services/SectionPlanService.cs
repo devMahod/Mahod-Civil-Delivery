@@ -1700,8 +1700,8 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             }
         }
 
-        /// <summary>Grid origin clear of the existing model extents.</summary>
-        private static (double X, double Y) ResolveLayoutOriginFor(
+        /// <summary>Grid origin clear of the existing model extents (shared with the typical-sections grid).</summary>
+        internal static (double X, double Y) ResolveLayoutOriginFor(
             Database db, Transaction tr)
         {
             // Never call Database.UpdateExt from PLAN: despite being described as

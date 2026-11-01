@@ -51,6 +51,10 @@ public sealed class CivilDeliveryCommandFacade
     public void SmokeDiscover() { if (Ready()) Typed(null, typedFlow: true, SmokeDiscoverBody); }
     [CommandMethod(CivilDeliveryCommandNames.SmokeSections, CommandFlags.Modal)]
     public void SmokeSections() { if (Ready()) Typed(null, typedFlow: true, SmokeSectionsBody); }
+    [CommandMethod(CivilDeliveryCommandNames.TypicalSections, CommandFlags.Modal | CommandFlags.NoHistory)]
+    public void TypicalSections() { if (Ready()) TypicalSectionsBody(); }
+    [CommandMethod(CivilDeliveryCommandNames.SmokeTypical, CommandFlags.Modal)]
+    public void SmokeTypical() { if (Ready()) Typed(null, typedFlow: true, SmokeTypicalBody); }
 
     /// <summary>Identity of what is loaded: this plugin, its Core and the pairing verdict. Never needs Core.</summary>
     [CommandMethod("MCD_CHECK", CommandFlags.Modal)]
@@ -129,4 +133,8 @@ public sealed class CivilDeliveryCommandFacade
     private static void SmokeDiscoverBody() => new MhdSmokeDiscoverCommand().Run();
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static void SmokeSectionsBody() => new MhdSmokeSectionsCommand().Run();
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void TypicalSectionsBody() => new MhdTypicalSectionsCommand().Run();
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void SmokeTypicalBody() => new MhdSmokeTypicalSectionsCommand().Run();
 }

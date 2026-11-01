@@ -73,15 +73,26 @@ public partial class CivilDeliveryControl
                 _sectionDisplayStatuses.TryGetValue(row.Record.RecordId, out var status) &&
                 status == DeliveryStatus.Verified && IsAuthoritativeVerify(_lastVerifyResult),
             PlanRecordCount = _plan?.Records.Count ?? 0,
+            PickingTypicalSections = _pendingTypicalPickDocument != null,
+            TypicalPicksPending = _typicalPicks.Count,
+            OfferTypicalSections = CanStartTypicalSections(Doc(), profileUsable),
         });
         ShowSectionStage(_sectionGuidedAction.Stage);
-        SectionStepTitle.Text = (row == null || !string.IsNullOrWhiteSpace(globalBlock)
+        var typicalAction = _sectionGuidedAction.Action is SectionGuidedActionKind.WaitForTypicalPicks
+            or SectionGuidedActionKind.ConfirmTypicalSections or SectionGuidedActionKind.StartTypicalSections;
+        // The typical-sections pill: hidden while it is the main button itself, "סמן עוד" while marks wait.
+        BtnTypicalSections.Visibility = _sectionGuidedAction.Action == SectionGuidedActionKind.StartTypicalSections
+            ? Visibility.Collapsed : Visibility.Visible;
+        BtnTypicalSections.Content = _typicalPicks.Count > 0 ? "סמן עוד" : "חתכים טיפוסיים";
+        SectionStepTitle.Text = (row == null || !string.IsNullOrWhiteSpace(globalBlock) || typicalAction
             ? "" : "חתך " + row.SectionId + " · ") + _sectionGuidedAction.Title;
         SectionStepDetail.Text = _sectionGuidedAction.Detail;
         BtnSectionNext.Content = _sectionGuidedAction.ButtonText;
         BtnSectionNext.IsEnabled = !_sectionDrawingOpenPending && _busyProgress == null &&
             _pendingWorkflowSaveDocument == null &&
             (Doc() != null || _sectionGuidedAction.Action == SectionGuidedActionKind.OpenDrawing);
+        // While the pick command owns the drawing the guide waits; the command reports back through the palette.
+        BtnSectionNext.IsEnabled &= _pendingTypicalPickDocument == null;
         BtnShow.Content = hasView ? "הצג חתך קיים" : canLocate ? "אתר חתך קיים" : "הצג מיקום בתכנית";
         BtnShow.ToolTip = hasView
             ? "התמקד בתצוגת החתך הקיימת; ההצגה לבדה אינה אימות."
@@ -151,6 +162,9 @@ public partial class CivilDeliveryControl
                     if (_sectionRecoveryTargetRecordId != null)
                         SelectBestSectionRow(_sectionRecoveryTargetRecordId);
                     break;
+                case SectionGuidedActionKind.ConfirmTypicalSections: OnConfirmTypicalSections(sender, e); break;
+                case SectionGuidedActionKind.StartTypicalSections: OnTypicalSections(sender, e); break;
+                case SectionGuidedActionKind.WaitForTypicalPicks: break;
             }
         }
         catch (Exception ex) { ShowError("המשך חתכים", ex); }

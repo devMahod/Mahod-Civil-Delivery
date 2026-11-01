@@ -43,6 +43,13 @@ public sealed class View
             TextElement.SetFontFamily(host, window.FontFamily);
             TextElement.SetFontSize(host, window.FontSize);
             TextElement.SetForeground(host, window.Foreground);
+            // A window that sizes to its content is shown at the height it would take, within its min and max.
+            if (window.SizeToContent is SizeToContent.Height or SizeToContent.WidthAndHeight)
+            {
+                host.Measure(new Size(WindowSize.Width, double.PositiveInfinity));
+                var height = Math.Max(window.MinHeight, Math.Min(host.DesiredSize.Height, window.MaxHeight));
+                WindowSize = new Size(WindowSize.Width, Math.Ceiling(height));
+            }
             return (host, WindowSize);
         }
         var element = (FrameworkElement)root;
@@ -120,6 +127,92 @@ public static class Views
             if (!File.Exists(path)) continue;
             yield return new View { Title = title, FileName = "dialog-" + file, XamlPath = path, Fill = SampleDialog };
         }
+        var typical = Path.Combine(uiDir, "TypicalSectionsDialog.xaml");
+        if (File.Exists(typical))
+        {
+            yield return new View { Title = "חתכים טיפוסיים · סקירה", FileName = "dialog-TypicalSections-review", XamlPath = typical, Fill = TypicalReview };
+            yield return new View { Title = "חתכים טיפוסיים · תוצאה", FileName = "dialog-TypicalSections-result", XamlPath = typical, Fill = TypicalResult };
+            yield return new View { Title = "חתכים טיפוסיים · חסר", FileName = "dialog-TypicalSections-blocked", XamlPath = typical, Fill = TypicalBlocked };
+        }
+    }
+
+    // The three states of the typical-sections popup, filled the way its code-behind does (markup only here).
+    private static Size TypicalReview(FrameworkElement root)
+    {
+        if (Find<ItemsControl>(root, "PickList") is { } list)
+            list.ItemsSource = new[] { 120.5, 186.0, 240.0, 315.25, 402.8, 470.0, 555.6, 640.0 }
+                .Select((station, i) => new { Number = i + 1, Station = station.ToString("0.00"), Alignment = "Road34" }).ToList();
+        Text(root, "HeadTitle", "8 חתכים מוכנים ליצירה");
+        Text(root, "HeadSub", "Road34 · חצי רוחב 20 מ'");
+        return new Size(0, 0);
+    }
+
+    private static Size TypicalResult(FrameworkElement root)
+    {
+        Collapse(root, "PickList", "BtnCreate");
+        if (Find<ItemsControl>(root, "SectionList") is { } list)
+        {
+            list.Visibility = Visibility.Visible;
+            list.ItemsSource = new[]
+            {
+                new { Title = "Road34 - 7 (120.50)", Detail = "6 מתוך 6 רוחבים עם שם", Good = true, CanShow = true },
+                new { Title = "Road34 - 10 (186.00)", Detail = "5 מתוך 6 רוחבים עם שם", Good = false, CanShow = true },
+                new { Title = "Road34 - 13 (240.00)", Detail = "6 מתוך 6 רוחבים עם שם", Good = true, CanShow = true },
+                new { Title = "Road34 - 16 (315.25)", Detail = "4 מתוך 6 רוחבים עם שם", Good = false, CanShow = true },
+                new { Title = "Road34 - 21 (402.80)", Detail = "6 מתוך 6 רוחבים עם שם", Good = true, CanShow = true },
+                new { Title = "Road34 (470.00)", Detail = "תחנה מחוץ לאזורי הקורידור", Good = false, CanShow = false },
+            };
+        }
+        Text(root, "HeadTitle", "נוצרו 5 חתכים");
+        Text(root, "HeadSub", "Road34 · חצי רוחב 20 מ'");
+        Text(root, "StatLabel1", "חתכים"); Text(root, "StatValue1", "5");
+        Text(root, "StatLabel2", "רצועות עם שם"); Text(root, "StatValue2", "27");
+        Text(root, "StatLabel3", "ללא התאמה"); Text(root, "StatValue3", "3");
+        if (Find<Border>(root, "HeadChip") is { } chip) chip.Background = (Brush)root.FindResource("AccentTint");
+        if (Find<System.Windows.Shapes.Path>(root, "HeadIcon") is { } icon)
+        {
+            icon.Data = (Geometry)root.FindResource("IconCheck");
+            icon.Stroke = (Brush)root.FindResource("AccentInk");
+        }
+        if (Find<Button>(root, "BtnAddMore") is { } more) more.Content = "חתכים נוספים";
+        if (Find<Button>(root, "BtnFolder") is { } folder) folder.Visibility = Visibility.Visible;
+        if (Find<Button>(root, "BtnClose") is { } close) { close.Content = "סגור"; close.Style = (Style)root.FindResource("PrimaryButton"); }
+        if (Find<Expander>(root, "NotesExpander") is { } notes)
+        {
+            notes.Visibility = Visibility.Visible;
+            notes.Header = "3 הערות";
+        }
+        return new Size(0, 0);
+    }
+
+    private static Size TypicalBlocked(FrameworkElement root)
+    {
+        Collapse(root, "PickList", "Stats", "BtnCreate", "BtnAddMore");
+        if (Find<ItemsControl>(root, "BlockerList") is { } list)
+        {
+            list.Visibility = Visibility.Visible;
+            list.ItemsSource = new[]
+            {
+                "לתוואי Road34 אין קורידור — תוכנת החתכים המשרדית מציירת לאורך קורידור מעובד.",
+                "לא נמצא משטח קרקע קיימת (TIN) בשרטוט — יש לטעון אותו.",
+            };
+        }
+        Text(root, "HeadTitle", "החתכים לא נוצרו");
+        Text(root, "HeadSub", "Road34 · חצי רוחב 20 מ'");
+        if (Find<Border>(root, "HeadChip") is { } chip) chip.Background = (Brush)root.FindResource("BlockedTint");
+        if (Find<System.Windows.Shapes.Path>(root, "HeadIcon") is { } icon)
+        {
+            icon.Data = (Geometry)root.FindResource("IconX");
+            icon.Stroke = (Brush)root.FindResource("Blocked");
+        }
+        if (Find<Button>(root, "BtnClose") is { } close) { close.Content = "סגור"; close.Style = (Style)root.FindResource("PrimaryButton"); }
+        return new Size(0, 0);
+    }
+
+    private static void Collapse(FrameworkElement root, params string[] names)
+    {
+        foreach (var name in names)
+            if (root.FindName(name) is UIElement element) element.Visibility = Visibility.Collapsed;
     }
 
     private static View Palette(string title, string file, string path, string assetsDir, int tab, bool busy = false) => new()

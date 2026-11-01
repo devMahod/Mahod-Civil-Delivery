@@ -264,6 +264,14 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
             control.Dispatcher.BeginInvoke(new Action(() => control.ResumeWorkflowAfterExplicitSave(token)));
         }
 
+        /// <summary>The pick command's report (2026-10), posted after the command has returned, like the save resume.</summary>
+        internal static void ResumeTypicalSectionPicks(Sections.Services.TypicalSectionPickResult result)
+        {
+            var control = _control;
+            if (control == null) return;
+            control.Dispatcher.BeginInvoke(new Action(() => control.ResumeTypicalSectionPicks(result)));
+        }
+
         /// <summary>
         /// Opens the panel unless it is really on screen, then closes it. Returns true when the
         /// panel is (being) shown. The PaletteSet flag alone decided this before, and a panel that

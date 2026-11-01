@@ -88,9 +88,15 @@ internal static class CivilDeliveryTheme
     public static readonly Brush BlockedTint = Frozen(0xFB, 0xE9, 0xE8);
     public static readonly Brush Selection = AccentTint;
 
-    private static ResourceDictionary? _dictionary;
+    /// <summary>
+    /// One per UI thread: a ResourceDictionary belongs to the thread that loaded it, and the busy-progress window runs
+    /// on its own thread. Shared, whichever loaded it first owned it, and every code-built window on the other thread
+    /// failed at its first layout with "The calling thread cannot access this object because a different thread owns
+    /// it" (live 2026-10-28: the corridor choice after the progress window of typical sections).
+    /// </summary>
+    [ThreadStatic] private static ResourceDictionary? _dictionary;
 
-    /// <summary>The shared styles, loaded once from this assembly (whichever assembly compiled the tool).</summary>
+    /// <summary>The shared styles, loaded once per UI thread from this assembly (whichever assembly compiled the tool).</summary>
     public static ResourceDictionary Dictionary => _dictionary ??= Load();
 
     private static ResourceDictionary Load()

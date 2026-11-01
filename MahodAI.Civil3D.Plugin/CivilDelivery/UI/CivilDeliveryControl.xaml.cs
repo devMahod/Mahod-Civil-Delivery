@@ -770,6 +770,8 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
                 _ when stage.StartsWith("estimate.", StringComparison.Ordinal) => "סורק כמויות",
                 _ when stage.StartsWith("setup.", StringComparison.Ordinal) => "סורק את הגדרות הפרויקט",
                 _ when stage.StartsWith("discover.", StringComparison.Ordinal) => "סורק את מבנה השרטוט",
+                "typical.fix_corridor" => "בונה מחדש את הקורידור",
+                _ when stage.StartsWith("typical.", StringComparison.Ordinal) => "יוצר חתכים טיפוסיים",
                 _ => "מעבד…",
             };
             if (string.IsNullOrWhiteSpace(detail) || detail!.Length > 60) return text;
@@ -1185,6 +1187,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
             PriceBookCombo.IsEnabled = profileUsable;
 
             BtnPlan.IsEnabled = gate.CanPlan;
+            RefreshTypicalSectionGates(profileUsable);
             BtnNextSectionIssue.IsEnabled = _sectionRows.Any(IsActionableSectionRow);
             BtnPreview.IsEnabled = gate.CanPreview &&
                                    SectionsGrid.SelectedItem is SectionRowViewModel previewRow &&

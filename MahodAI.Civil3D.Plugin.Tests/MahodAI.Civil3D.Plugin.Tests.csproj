@@ -74,6 +74,8 @@
     <Compile Include="..\MahodAI.Civil3D.Plugin\CivilDelivery\UI\SectionSpanLabelDecisionDialog.xaml.cs" Link="CivilDelivery\UI\SectionSpanLabelDecisionDialog.xaml.cs" />
     <Page Include="..\MahodAI.Civil3D.Plugin\CivilDelivery\UI\TrafficDirectionDecisionDialog.xaml" Link="CivilDelivery\UI\TrafficDirectionDecisionDialog.xaml" />
     <Compile Include="..\MahodAI.Civil3D.Plugin\CivilDelivery\UI\TrafficDirectionDecisionDialog.xaml.cs" Link="CivilDelivery\UI\TrafficDirectionDecisionDialog.xaml.cs" />
+    <Page Include="..\MahodAI.Civil3D.Plugin\CivilDelivery\UI\TypicalSectionsDialog.xaml" Link="CivilDelivery\UI\TypicalSectionsDialog.xaml" />
+    <Compile Include="..\MahodAI.Civil3D.Plugin\CivilDelivery\UI\TypicalSectionsDialog.xaml.cs" Link="CivilDelivery\UI\TypicalSectionsDialog.xaml.cs" />
   </ItemGroup>
 
   <!-- 2027 host-coupled test references follow the installed host. The 2026 test
