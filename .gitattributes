@@ -1,2 +1,8 @@
 # This catalogue fixture is byte-pinned by the edition-link contract tests.
 fixtures/civil-delivery/estimate/nti-unified-2026-07-candidates.json text eol=lf
+# The installer pins the license bytes shipped beside the binary Rubik fonts.
+MahodAI.Civil3D.Plugin/CivilDelivery/UI/Fonts/OFL.txt text eol=crlf
+# Keep the staging scripts stable instead of reintroducing mixed line endings.
+MahodCivilDelivery/installer/build-setup.ps1 text eol=lf
+MahodCivilDelivery/installer/FontPayload.ps1 text eol=lf
+MahodCivilDelivery/installer/Test-FontPayload.ps1 text eol=lf
