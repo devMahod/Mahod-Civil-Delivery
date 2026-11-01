@@ -79,7 +79,7 @@ public sealed class PaletteSmallViewportTests
         Assert.True(viewport.ScrollableHeight > 0, "Vertical navigation must remain available.");
         var targets = tab switch
         {
-            0 => new[] { "BtnSectionNext", "BtnShow", "BtnNameAllSpans" },
+            0 => new[] { "BtnSectionNext", "BtnShow", "BtnTypicalSections", "BtnNameAllSpans" },
             1 => new[] { "BtnStartEstimateGuided", "BtnLoadPriceBook", "BtnReviewMappings", "BtnBuild", "BtnExportPricedDraft", "BtnExportMeasurementDraft", "BtnApprove", "BtnProjectPrice", "BtnQuantityAdjustment", "BtnShowQuantity", "BtnRelevance" },
             _ => new[] { "BtnReloadProfile", "BtnSelectProjectProfile", "BtnOpenProfile", "BtnPickClProfile", "BtnRunSetup" },
         };
@@ -275,7 +275,7 @@ public sealed class PaletteSmallViewportTests
         var topAction = Find<Button>(tab == 0 ? "BtnSectionNext" : "BtnStartEstimateGuided");
         AssertVisible(viewport, topAction);
         var targets = tab == 0
-            ? new[] { "BtnSectionNext", "BtnShow", "BtnNameAllSpans" }
+            ? new[] { "BtnSectionNext", "BtnShow", "BtnTypicalSections", "BtnNameAllSpans" }
             : new[] { "BtnReviewMappings", "BtnBuild", "BtnExportMeasurementDraft", "BtnApprove", "BtnProjectPrice", "BtnQuantityAdjustment", "BtnShowQuantity", "BtnRelevance" };
         foreach (var name in targets)
         {

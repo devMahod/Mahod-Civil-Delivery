@@ -154,6 +154,8 @@
                   <WrapPanel Margin="0,12,0,0">
                     <Button x:Name="BtnSectionNext" Content="התחל תכנון" Click="OnSectionNext" Style="{StaticResource PillPrimaryButton}" Tag="play"/>
                     <Button x:Name="BtnShow" Content="הצג מיקום בתכנית" Click="OnShow" Style="{StaticResource PillButton}" Tag="locate"/>
+                    <Button x:Name="BtnTypicalSections" Content="חתכים טיפוסיים" Click="OnTypicalSections" Style="{StaticResource PillButton}" Tag="pin"/>
+                    <Button x:Name="BtnTypicalCancel" Content="בטל סימון" Click="OnCancelTypicalPicks" Style="{StaticResource PillButton}" Visibility="Collapsed"/>
                     <Button x:Name="BtnNameAllSpans" Content="סקירת רצועות בכל החתכים…" Click="OnNameAllSectionSpans" Style="{StaticResource PillButton}" Tag="layers"
                             ToolTip="סקור את הרצועות בכל התכנון בחלון אחד. נשמרים רק שמות שבחרת ואישרת במפורש; אין אישור אוטומטי של הצעות."/>
                   </WrapPanel>

@@ -284,35 +284,35 @@
         <Setter Property="Foreground" Value="#FF8E9792"/>
         <Setter Property="Cursor" Value="Arrow"/>
       </Trigger>
-      <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="search"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconSearch}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-      <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="play"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconPlay}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-      <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="locate"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconCrosshair}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-      <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="scan"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconScan}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-      <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="download"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconDownload}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-      <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="upload"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconUpload}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-      <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="sheet"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconSheet}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-      <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="file"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconFileText}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-      <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="folder"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconFolder}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-      <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="refresh"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconRefresh}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-      <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="book"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconBook}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-      <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="support"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconLifeBuoy}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-      <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="sliders"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconSliders}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-      <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="layers"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconLayers}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-      <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="pin"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconMapPin}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-      <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="x"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconX}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-      <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="check"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconCheck}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-      <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="route"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconRoute}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-      <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="calc"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconCalculator}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-      <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="price"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconBanknote}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-      <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="maximize"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconMaximize}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-      <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="filter"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconFilter}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-      <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="user"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconUser}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-      <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="link"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconLink}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-      <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="pen"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconPen}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-      <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="hide"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconEyeOff}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-      <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="grid"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconGrid}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-      <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="ruler"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconRuler}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-      <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="chevron"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconChevronLeft}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
+      <Trigger Property="Tag" Value="search"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconSearch}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+      <Trigger Property="Tag" Value="play"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconPlay}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+      <Trigger Property="Tag" Value="locate"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconCrosshair}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+      <Trigger Property="Tag" Value="scan"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconScan}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+      <Trigger Property="Tag" Value="download"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconDownload}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+      <Trigger Property="Tag" Value="upload"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconUpload}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+      <Trigger Property="Tag" Value="sheet"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconSheet}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+      <Trigger Property="Tag" Value="file"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconFileText}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+      <Trigger Property="Tag" Value="folder"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconFolder}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+      <Trigger Property="Tag" Value="refresh"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconRefresh}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+      <Trigger Property="Tag" Value="book"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconBook}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+      <Trigger Property="Tag" Value="support"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconLifeBuoy}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+      <Trigger Property="Tag" Value="sliders"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconSliders}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+      <Trigger Property="Tag" Value="layers"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconLayers}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+      <Trigger Property="Tag" Value="pin"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconMapPin}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+      <Trigger Property="Tag" Value="x"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconX}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+      <Trigger Property="Tag" Value="check"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconCheck}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+      <Trigger Property="Tag" Value="route"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconRoute}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+      <Trigger Property="Tag" Value="calc"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconCalculator}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+      <Trigger Property="Tag" Value="price"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconBanknote}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+      <Trigger Property="Tag" Value="maximize"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconMaximize}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+      <Trigger Property="Tag" Value="filter"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconFilter}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+      <Trigger Property="Tag" Value="user"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconUser}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+      <Trigger Property="Tag" Value="link"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconLink}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+      <Trigger Property="Tag" Value="pen"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconPen}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+      <Trigger Property="Tag" Value="hide"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconEyeOff}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+      <Trigger Property="Tag" Value="grid"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconGrid}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+      <Trigger Property="Tag" Value="ruler"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconRuler}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+      <Trigger Property="Tag" Value="chevron"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconChevronLeft}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
     </ControlTemplate.Triggers>
   </ControlTemplate>
 
@@ -367,12 +367,12 @@
               <Setter Property="Foreground" Value="White"/>
               <Setter Property="Cursor" Value="Arrow"/>
             </Trigger>
-            <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="play"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconPlay}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-            <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="scan"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconScan}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-            <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="download"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconDownload}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-            <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="sheet"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconSheet}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-            <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="check"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconCheck}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-            <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="calc"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconCalculator}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
+            <Trigger Property="Tag" Value="play"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconPlay}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+            <Trigger Property="Tag" Value="scan"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconScan}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+            <Trigger Property="Tag" Value="download"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconDownload}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+            <Trigger Property="Tag" Value="sheet"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconSheet}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+            <Trigger Property="Tag" Value="check"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconCheck}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+            <Trigger Property="Tag" Value="calc"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconCalculator}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
       </Setter.Value>
@@ -410,10 +410,11 @@
               <Setter Property="Foreground" Value="#FF5E7B6C"/>
               <Setter Property="Cursor" Value="Arrow"/>
             </Trigger>
-            <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="locate"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconCrosshair}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-            <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="layers"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconLayers}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-            <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="sheet"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconSheet}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-            <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="ruler"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconRuler}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
+            <Trigger Property="Tag" Value="locate"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconCrosshair}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+            <Trigger Property="Tag" Value="layers"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconLayers}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+            <Trigger Property="Tag" Value="sheet"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconSheet}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+            <Trigger Property="Tag" Value="ruler"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconRuler}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+            <Trigger Property="Tag" Value="pin"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconMapPin}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
       </Setter.Value>
@@ -447,9 +448,9 @@
               <Setter Property="Foreground" Value="#FF4F7A64"/>
               <Setter Property="Cursor" Value="Arrow"/>
             </Trigger>
-            <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="play"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconPlay}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-            <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="scan"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconScan}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
-            <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="chevron"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconChevronLeft}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></DataTrigger>
+            <Trigger Property="Tag" Value="play"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconPlay}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+            <Trigger Property="Tag" Value="scan"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconScan}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+            <Trigger Property="Tag" Value="chevron"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconChevronLeft}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
       </Setter.Value>

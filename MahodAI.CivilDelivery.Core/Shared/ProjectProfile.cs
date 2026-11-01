@@ -100,6 +100,25 @@ namespace MahodAI.CivilDelivery.Shared
             public ProjectionProfile Projection { get; set; } = new();
 
             /// <summary>
+            /// Typical sections (2026-10): what the engineer approved for the firm's section program — corridor,
+            /// surfaces and half-width. Null until the first confirm, so existing profiles keep their bytes.
+            /// </summary>
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+            [YamlMember(DefaultValuesHandling = DefaultValuesHandling.OmitNull)]
+            public TypicalSectionsProfile? Typical { get; set; }
+
+            public sealed class TypicalSectionsProfile
+            {
+                public string? CorridorName { get; set; }
+                public string? ExistingSurfaceName { get; set; }
+                public string? TopSurfaceName { get; set; }
+                public string? BottomSurfaceName { get; set; }
+                public double? HalfWidthM { get; set; }
+                public string? ApprovedBy { get; set; }
+                public DateTime? ApprovedAtUtc { get; set; }
+            }
+
+            /// <summary>
             /// Projecting drawing linework into created sections: the utility polylines
             /// that arrive through the UT XREF, plan marks (curbs, lane lines), and the
             /// right-of-way. Civil samples only its own objects, so this is the honest

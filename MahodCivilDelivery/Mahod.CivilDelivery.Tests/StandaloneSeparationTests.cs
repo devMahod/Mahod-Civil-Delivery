@@ -43,7 +43,7 @@ public sealed class StandaloneSeparationTests
     public void EveryCommandIsMcd_AndNoneIsACommandMahodAiRegisters()
     {
         var names = NameConstants();
-        names.Should().HaveCount(9).And.OnlyHaveUniqueItems();
+        names.Should().HaveCount(11).And.OnlyHaveUniqueItems();
         names.Should().OnlyContain(n => n.StartsWith("MCD_", StringComparison.Ordinal));
         names.Intersect(MahodAiCommands, StringComparer.OrdinalIgnoreCase).Should().BeEmpty();
     }

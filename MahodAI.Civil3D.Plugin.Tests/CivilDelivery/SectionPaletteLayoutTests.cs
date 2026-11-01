@@ -108,7 +108,7 @@ public sealed class SectionPaletteLayoutTests
             SaveRender(control, $"section-{width}x{height}-{(expanded ? "expanded" : "compact")}-{(blocked ? "blocked" : "verified")}.png", width, height);
             Assert.True(Find<DataGrid>("SectionsGrid").ActualHeight >= 150,
                 "The action groups must not consume the section table.");
-            foreach (var name in new[] { "BtnSectionNext", "BtnShow", "BtnNameAllSpans" })
+            foreach (var name in new[] { "BtnSectionNext", "BtnShow", "BtnTypicalSections", "BtnNameAllSpans" })
             {
                 var button = Find<Button>(name);
                 AssertWithin(control, button, width, height);
