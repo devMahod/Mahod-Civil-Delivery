@@ -209,4 +209,45 @@ public sealed class FirmSectionSettingsTests
         FirmStationsInRange(0, 691.806, 1, 103.457, 103.457).Should().BeEmpty("a corridor station between whole metres is never listed");
         FirmStationsInRange(0, 691.806, 1, 100, 100).Should().Equal(100.0);
     }
+
+    // The office's own settings as the firm's dialog saved them in 6403-HW-DESING (2026-11-02), shortened.
+    private const string Stored6403 =
+        "CreateMultipleSectionView_txtAlignMove=0|CreateMultipleSectionView_cmbCorridor=RD-40-ST-01|" +
+        "CreateMultipleSectionView_cmbBaseAlign=40-st-01-1|CreateMultipleSectionView_cbSAByLayers=1|" +
+        "CreateMultipleSectionView_txtBandHeight=1|CreateMultipleSectionView_txtBandStep=2|" +
+        "CreateMultipleSectionView_lvSurf_RD-40+Top=1|CreateMultipleSectionView_cmbSurfBase=MK-MISAA|" +
+        "CreateMultipleSectionView_cmbSurfElev=|CreateMultipleSectionView_cmbSurfTop1=RD-40 Surface - TOP-2.00|" +
+        "CreateMultipleSectionView_cmbSurfBot1=RD-40 Surface - BOT-IN|CreateMultipleSectionView_cbByLinks=1||junk";
+
+    [Fact]
+    public void StoredSettings_AreTheFirmsFieldsWithoutTheDialogPrefix()
+    {
+        var settings = FirmSectionSettings.FromStored(Stored6403);
+
+        settings.Should().NotBeNull();
+        var fields = Parse(settings!);
+        fields["cbSAByLayers"].Should().Be("1");
+        fields["lvSurf_RD-40+Top"].Should().Be("1");
+        fields["cmbSurfElev"].Should().Be("", "an empty field is still the office's choice");
+        fields.Keys.Should().NotContain(k => k.StartsWith(FirmSectionSettings.StoredFieldPrefix, StringComparison.Ordinal));
+        fields.Keys.Should().NotContain("junk");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("CalcSectionVolumes3_cmbCorridor=RD-40")]
+    public void NoFirmFields_IsNoStoredSetting(string? stored) =>
+        FirmSectionSettings.FromStored(stored?.Replace("CalcSectionVolumes3_cmbCorridor", "other")).Should().BeNull();
+
+    [Fact]
+    public void StoredSurfaces_ApplyOnlyToTheCorridorTheOfficeLastRan()
+    {
+        var settings = FirmSectionSettings.FromStored(Stored6403);
+
+        FirmSectionSettings.StoredSurfacesFor(settings, "rd-40-st-01")
+            .Should().Be(("RD-40 Surface - TOP-2.00", "RD-40 Surface - BOT-IN", "MK-MISAA"));
+        FirmSectionSettings.StoredSurfacesFor(settings, "RD-3933-ZMANI").Should().Be(((string?)null, (string?)null, (string?)null));
+        FirmSectionSettings.Field(Stored6403, "cmbSurfBase").Should().Be("MK-MISAA", "the prefixed form reads too");
+    }
 }

@@ -12,7 +12,14 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
     /// chord geometry (axis point, tangent, ends) in world coordinates.</summary>
     internal sealed record TypicalSectionPick(
         string LineHandle, string TextHandle, string AlignmentName, double Station, double HalfWidthM,
-        double AxisX, double AxisY, double TangentDeg, double AX, double AY, double BX, double BY);
+        double AxisX, double AxisY, double TangentDeg, double AX, double AY, double BX, double BY)
+    {
+        /// <summary>
+        /// True when the axis is a plan polyline (a drafted drawing with no Civil alignment): the section is then read
+        /// off the plan (<see cref="DraftedTypicalSectionService"/>), there being no corridor for the firm's program.
+        /// </summary>
+        public bool FromPlan { get; init; }
+    }
 
     /// <summary>The pick command's report back to the palette. Always sent, so a pending request never leaks.</summary>
     internal sealed class TypicalSectionPickResult

@@ -34,21 +34,30 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
         private readonly Transaction _read;
         private readonly List<CivilDb.Alignment> _alignments;
         private readonly Dictionary<ObjectId, List<double>> _corridorStations;
+        private readonly List<PlanAxis> _planAxes;
 
         private TypicalSectionPicker(Database db, Transaction read, List<CivilDb.Alignment> alignments, bool corridorOnly,
-            Dictionary<ObjectId, List<double>> corridorStations)
+            Dictionary<ObjectId, List<double>> corridorStations, List<PlanAxis>? planAxes = null)
         {
             _db = db;
             _read = read;
             _alignments = alignments;
             CorridorOnly = corridorOnly;
             _corridorStations = corridorStations;
+            _planAxes = planAxes ?? new List<PlanAxis>();
         }
 
         /// <summary>True when the candidates are corridor baselines; false when no allowed alignment has a corridor.</summary>
         public bool CorridorOnly { get; }
 
-        public IReadOnlyList<string> AlignmentNames => _alignments.Select(a => a.Name).ToList();
+        /// <summary>
+        /// True on a drafted drawing: no Civil alignment at all, the candidates are the plan's axis polylines (host and
+        /// XREFs) and the section will be read off the plan (<see cref="DraftedTypicalSectionService"/>).
+        /// </summary>
+        public bool PlanOnly => _alignments.Count == 0 && _planAxes.Count > 0;
+
+        public IReadOnlyList<string> AlignmentNames =>
+            _alignments.Count > 0 ? _alignments.Select(a => a.Name).ToList() : _planAxes.Select(a => a.Name).ToList();
 
         /// <summary>
         /// The alignments a point may resolve to: those the profile allows, narrowed to corridor baselines when any
@@ -85,9 +94,13 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                     all.Add(alignment);
                 }
                 var withCorridor = all.Where(a => baselineAlignments.Contains(a.ObjectId)).ToList();
-                return withCorridor.Count > 0
-                    ? new TypicalSectionPicker(db, read, withCorridor, corridorOnly: true, corridorStations)
-                    : new TypicalSectionPicker(db, read, all, corridorOnly: false, corridorStations);
+                if (withCorridor.Count > 0)
+                    return new TypicalSectionPicker(db, read, withCorridor, corridorOnly: true, corridorStations);
+                // A drafted drawing (MAAKAF DD-500X, 2026-11-02): no alignment anywhere, the axes are plan polylines.
+                var planAxes = all.Count == 0
+                    ? DraftedTypicalSectionService.CollectPlanAxes(read, db, allowed)
+                    : new List<PlanAxis>();
+                return new TypicalSectionPicker(db, read, all, corridorOnly: false, corridorStations, planAxes);
             }
             catch
             {
@@ -99,6 +112,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
         /// <summary>The verdict for a point: nearest alignment by perpendicular offset, its axis point and chord.</summary>
         public PickResolution Resolve(P2 point, double halfWidth, IReadOnlyList<P2> taken)
         {
+            if (_alignments.Count == 0 && _planAxes.Count > 0) return ResolveOnPlan(point, halfWidth, taken);
             CivilDb.Alignment? best = null;
             double bestStation = double.NaN, bestOffset = double.PositiveInfinity;
             foreach (var alignment in _alignments)
@@ -115,6 +129,34 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                 return new PickResolution(none.State, none.Reason, null, double.NaN, double.NaN, point, 0, point, point);
             }
             return Build(best, bestStation, bestOffset, halfWidth, taken);
+        }
+
+        /// <summary>
+        /// The verdict on a drafted drawing: the nearest plan axis by perpendicular offset, its point and direction at
+        /// the click's station, the chord ±half-width. No corridor stations to snap to: the section is cut where clicked.
+        /// </summary>
+        private PickResolution ResolveOnPlan(P2 point, double halfWidth, IReadOnlyList<P2> taken)
+        {
+            PlanAxis? best = null;
+            double bestStation = double.NaN, bestOffset = double.PositiveInfinity;
+            foreach (var axis in _planAxes)
+            {
+                if (!axis.TryStationOffset(point, out var station, out var offset, out _)) continue;
+                if (Math.Abs(offset) < Math.Abs(bestOffset)) { best = axis; bestStation = station; bestOffset = offset; }
+            }
+            if (best == null)
+            {
+                var none = TypicalSectionPickLogic.Assess(null, double.NaN, double.NaN, halfWidth, false);
+                return new PickResolution(none.State, none.Reason, null, double.NaN, double.NaN, point, 0, point, point);
+            }
+            var axisPoint = best.PointAt(bestStation, 0);
+            var tangent = best.TangentDegAt(bestStation);
+            var verdict = TypicalSectionPickLogic.Assess(
+                best.Name, bestStation, bestOffset, halfWidth, TypicalSectionPickLogic.TooClose(taken, axisPoint));
+            var (a, b) = TypicalSectionPickLogic.ValidateHalfWidth(halfWidth) == null
+                ? TypicalSectionPickLogic.Endpoints(axisPoint, tangent, halfWidth)
+                : (axisPoint, axisPoint);
+            return new PickResolution(verdict.State, verdict.Reason, best.Name, bestStation, bestOffset, axisPoint, tangent, a, b);
         }
 
         /// <summary>The resolution at a known station of a named alignment (the smoke test's "click" on the axis).</summary>
@@ -210,7 +252,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             return (lineId, textId, new TypicalSectionPick(
                 line.Handle.ToString(), text.Handle.ToString(), resolution.AlignmentName, resolution.Station, halfWidth,
                 resolution.Axis.X, resolution.Axis.Y, resolution.TangentDeg,
-                resolution.A.X, resolution.A.Y, resolution.B.X, resolution.B.Y));
+                resolution.A.X, resolution.A.Y, resolution.B.X, resolution.B.Y) { FromPlan = PlanOnly });
         }
 
         /// <summary>

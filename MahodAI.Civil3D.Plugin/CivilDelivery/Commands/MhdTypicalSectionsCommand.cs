@@ -75,17 +75,18 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Commands
             using var picker = TypicalSectionPicker.Open(doc.Database, CivilApplication.ActiveDocument, request.AllowedAlignmentNames);
             if (picker.AlignmentNames.Count == 0)
             {
-                result.Error = "לא נמצא תוואי מתאים בשרטוט (לפי התוואים המותרים בפרופיל הפרויקט).";
+                result.Error = "לא נמצא תוואי מתאים בשרטוט (לפי התוואים המותרים בפרופיל הפרויקט), ולא נמצא קו ציר בתנוחה (שכבות AX-*, CL, CENTERLINE).";
                 return;
             }
             var names = string.Join(", ", picker.AlignmentNames);
             ed.WriteMessage(picker.CorridorOnly
                 ? FormattableString.Invariant($"\nתוואים עם קורידור: {names}. הקו הירוק עוקב אחרי העכבר — לחיצה מסמנת חתך. חצי רוחב {halfWidth.Value:0.##} מ' (לשינוי: רוחב).\n")
-                : $"\nתוואים: {names} — לאף אחד מהם אין קורידור; היצירה תיחסם עד שיהיה.\n");
+                : picker.PlanOnly
+                    ? FormattableString.Invariant($"\nאין בשרטוט תוואי Civil — צירים מהתנוחה: {names}. החתך ייקרא מקווי התנוחה. הקו הירוק עוקב אחרי העכבר — לחיצה מסמנת חתך. חצי רוחב {halfWidth.Value:0.##} מ' (לשינוי: רוחב).\n")
+                    : $"\nתוואים: {names} — לאף אחד מהם אין קורידור; היצירה תיחסם עד שיהיה.\n");
 
             var existing = picker.ExistingMarkerMidpoints();
             var session = new List<(ObjectId Line, ObjectId Text, TypicalSectionPick Pick)>();
-            var textHeight = PreviewTextHeight();
             using var sysvars = new PickSysvarScope();
             while (true)
             {
@@ -93,7 +94,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Commands
                 var message = session.Count == 0
                     ? "\nלחץ על הכביש במיקום החתך"
                     : $"\nלחץ על הכביש במיקום החתך הבא ({session.Count} סומנו), או Enter לסיום";
-                var jig = new TypicalPickJig(picker, halfWidth.Value, taken, message, canFinish: session.Count > 0, textHeight);
+                var jig = new TypicalPickJig(picker, halfWidth.Value, taken, message, canFinish: session.Count > 0, PreviewTextHeight);
 
                 PromptResult dragged;
                 try { dragged = ed.Drag(jig); }

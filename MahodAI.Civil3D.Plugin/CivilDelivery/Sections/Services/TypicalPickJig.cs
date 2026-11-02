@@ -27,18 +27,31 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
         private readonly IReadOnlyList<P2> _taken;
         private readonly string _message;
         private readonly bool _canFinish;
-        private readonly double _textHeight;
+        private readonly Func<double> _textHeightNow;
         private Point3d _last = new(double.NaN, double.NaN, double.NaN);
 
         public TypicalPickJig(TypicalSectionPicker picker, double halfWidth, IReadOnlyList<P2> taken,
-            string message, bool canFinish, double textHeight)
+            string message, bool canFinish, Func<double> textHeight)
         {
             _picker = picker;
             _halfWidth = halfWidth;
             _taken = taken;
             _message = message;
             _canFinish = canFinish;
-            _textHeight = textHeight > 0 && double.IsFinite(textHeight) ? textHeight : 1.0;
+            _textHeightNow = textHeight;
+        }
+
+        /// <summary>
+        /// The label height for the zoom on screen now: the engineer zooms in while picking, and a height fixed when the
+        /// command started drew the station in letters wider than the road (live 2026-11-02).
+        /// </summary>
+        private double _textHeight
+        {
+            get
+            {
+                var height = _textHeightNow();
+                return height > 0 && double.IsFinite(height) ? height : 1.0;
+            }
         }
 
         /// <summary>The resolution under the cursor at the moment the drag ended (null before the first move).</summary>

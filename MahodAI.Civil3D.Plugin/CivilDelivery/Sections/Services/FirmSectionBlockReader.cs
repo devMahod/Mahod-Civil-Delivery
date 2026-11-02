@@ -67,6 +67,8 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             var ticks = new List<double>();
             var chainVertices = new List<double>();
             var shortVerticals = new List<double>();
+            var leaders = new List<((double X, double Y) A, (double X, double Y) B)>();
+            var turnedTexts = new List<(double MidX, double TopY, string Text)>();
             var chainTexts = new List<(double X, string Text)>();
             double chainTextHeight = 0;
             var headerTop = double.NegativeInfinity;
@@ -101,16 +103,29 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                         var p1 = polyline.GetPoint2dAt(1);
                         if (Math.Abs(p1.X - p0.X) <= TickMaxSlopeX && Math.Abs(p1.Y - p0.Y) > TickMaxSlopeX)
                             shortVerticals.Add(p0.X);
+                        // Every two-vertex line on the chain layer is a turned number's leader (vertical or slanted).
+                        leaders.Add(((p0.X, p0.Y), (p1.X, p1.Y)));
                         break;
                     }
                     case Polyline polyline when InFamily(polyline.Layer, ChainLayer):
+                    {
+                        var vertices = new List<(double X, double Y)>();
                         for (var i = 0; i < polyline.NumberOfVertices; i++)
-                            chainVertices.Add(polyline.GetPoint2dAt(i).X);
+                        {
+                            var vertex = polyline.GetPoint2dAt(i);
+                            vertices.Add((vertex.X, vertex.Y));
+                        }
+                        chainVertices.AddRange(FirmSectionFrameLogic.ChainTicks(vertices));
                         break;
+                    }
                     case DBText text when InFamily(text.Layer, ChainLayer):
                     {
                         if (!TryExtents(text, out var ext)) break;
-                        chainTexts.Add(((ext.MinPoint.X + ext.MaxPoint.X) / 2.0, text.TextString));
+                        var midX = (ext.MinPoint.X + ext.MaxPoint.X) / 2.0;
+                        if (Math.Abs(Math.Abs(Math.Sin(text.Rotation)) - 1.0) < 0.01)
+                            turnedTexts.Add((midX, ext.MaxPoint.Y, text.TextString));
+                        else
+                            chainTexts.Add((midX, text.TextString));
                         chainTextHeight = Math.Max(chainTextHeight, text.Height);
                         headerTop = Math.Max(headerTop, ext.MaxPoint.Y);
                         if (chainStyle.IsNull) chainStyle = text.TextStyleId;
@@ -142,6 +157,10 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
 
             // A short vertical beside a chain polyline is the leader of a turned width number, not a tick.
             ticks.AddRange(chainVertices.Count > 0 ? chainVertices : shortVerticals);
+            // A turned number stands where its leader points, not where the firm had room to print it.
+            var reach = Math.Max(chainTextHeight, 0.4);
+            foreach (var (midX, topY, raw) in turnedTexts)
+                chainTexts.Add((FirmSectionFrameLogic.TurnedTextX(midX, topY, leaders, reach), raw));
             return new BlockRead(referenceId, definition.ObjectId, definition.Name, title,
                 new FirmSectionFrameLogic.FirmSectionFrameInput(centrelineX, ruler,
                     ticks.Distinct().OrderBy(x => x).ToList(), chainTexts),
@@ -225,7 +244,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
         }
 
         /// <summary>Hebrew needs a TrueType style; the firm's SHX chain style would print question marks.</summary>
-        private static ObjectId EnsureTrueTypeStyle(Transaction tr, Database db)
+        internal static ObjectId EnsureTrueTypeStyle(Transaction tr, Database db)
         {
             const string styleName = "MHD-TYPICAL-NAMES";
             var styles = (TextStyleTable)tr.GetObject(db.TextStyleTableId, OpenMode.ForRead);

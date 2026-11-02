@@ -42,6 +42,65 @@ public static class FirmSectionSettings
         "txtSlopePrecision=1|txtMinGrade1=0|cbRemoveOld=1|txtScale=200|cmbPaperSize=900*1300|cmbTitlePlace=Center|" +
         "txtAlignMove=0|cbCustomDatum=0";
 
+    /// <summary>
+    /// Where MahodCivilNet keeps a project's own section settings: an Xrecord under this key in the drawing's named
+    /// objects dictionary, one <c>CreateMultipleSectionView_key=value</c> entry per field, saved by the firm's dialog
+    /// on every run (6403-HW-DESING, 2026-11-02: 203 fields — the project's band sizes, station format, the
+    /// neighbouring corridor surfaces it draws into each section, the utility layers it projects).
+    /// </summary>
+    public const string StoredSettingsKey = "CreateMultipleSectionView";
+
+    /// <summary>The prefix the firm's dialog writes before every stored field.</summary>
+    public const string StoredFieldPrefix = StoredSettingsKey + "_";
+
+    /// <summary>
+    /// The project's stored settings as the firm's <c>Cfg.FromString</c> takes them (prefix removed), or null when
+    /// <paramref name="stored"/> holds none of the firm's fields. The office's sections are drawn with these, so a
+    /// typical section drawn with them is the office's section; <see cref="FirmDefaults"/> (another project's setting)
+    /// is only the fallback for a drawing the firm's program never ran in. Entries without a key are dropped.
+    /// </summary>
+    public static string? FromStored(string? stored)
+    {
+        if (string.IsNullOrWhiteSpace(stored)) return null;
+        var entries = new List<string>();
+        foreach (var raw in stored.Split(EntrySeparator))
+        {
+            var entry = raw.StartsWith(StoredFieldPrefix, StringComparison.Ordinal) ? raw.Substring(StoredFieldPrefix.Length) : raw;
+            var cut = entry.IndexOf(ValueSeparator);
+            if (cut <= 0) continue;
+            entries.Add(entry);
+        }
+        return entries.Count == 0 || !entries.Exists(e => e.StartsWith("cbByLinks=", StringComparison.Ordinal) ||
+                                                           e.StartsWith("txtBandStep=", StringComparison.Ordinal) ||
+                                                           e.StartsWith("cmbCorridor=", StringComparison.Ordinal))
+            ? null
+            : string.Join(EntrySeparator.ToString(), entries);
+    }
+
+    /// <summary>One field of a settings string (stored or plain); null when absent.</summary>
+    public static string? Field(string? settings, string key)
+    {
+        if (string.IsNullOrEmpty(settings)) return null;
+        foreach (var raw in settings.Split(EntrySeparator))
+        {
+            var entry = raw.StartsWith(StoredFieldPrefix, StringComparison.Ordinal) ? raw.Substring(StoredFieldPrefix.Length) : raw;
+            if (entry.StartsWith(key + ValueSeparator, StringComparison.Ordinal)) return entry.Substring(key.Length + 1);
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// The surfaces the office's last run used, when that run was on <paramref name="corridor"/>: the firm's dialog
+    /// keeps them per run, and a temporary corridor is often cut against the main road's finished surfaces
+    /// (6403: RD-40-ST-01 against "RD-40 Surface - TOP-2.00" / "BOT-IN"). Nulls when the stored run was another corridor.
+    /// </summary>
+    public static (string? Top, string? Bottom, string? Ground) StoredSurfacesFor(string? settings, string corridor)
+    {
+        if (!string.Equals(Field(settings, "cmbCorridor"), corridor, StringComparison.OrdinalIgnoreCase)) return (null, null, null);
+        static string? NonEmpty(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
+        return (NonEmpty(Field(settings, "cmbSurfTop1")), NonEmpty(Field(settings, "cmbSurfBot1")), NonEmpty(Field(settings, "cmbSurfBase")));
+    }
+
     /// <summary>The firm tool's own limit on sections per run; beyond it ProcessCorridor shows a modal box.</summary>
     public const int MaxSections = 2000;
 

@@ -270,6 +270,8 @@ public sealed class FirmSectionFrameLogicTests
     [InlineData("3.6", 3.6, 1)]
     [InlineData("12", 12, 0)]
     [InlineData("0.31", 0.31, 2)]
+    [InlineData(".40", 0.40, 2)]
+    [InlineData(".05", 0.05, 2)]
     public void WidthTexts_ParseInvariantlyWithTheirPrintedPrecision(string text, double expected, int decimals)
     {
         FirmSectionFrameLogic.TryParseWidthM(text, out var width, out var printedDecimals).Should().BeTrue();
@@ -284,6 +286,8 @@ public sealed class FirmSectionFrameLogicTests
     [InlineData("-3.60")]
     [InlineData("0")]
     [InlineData("3.60x5")]
+    [InlineData(".")]
+    [InlineData(".00")]
     [InlineData("ראה פרט")]
     [InlineData(null)]
     public void TextsThatAreNotAWidth_DoNotParse(string? text) =>
@@ -326,5 +330,72 @@ public sealed class FirmSectionFrameLogicTests
 
         frame.Findings.Should().Contain(Finding.ScaleInconsistent);
         frame.Segments.Should().BeEmpty("a misplaced name is worse than none");
+    }
+
+    // MahodCivilNet 2026 drew this left half live (2026-11-02, Road1 station 140, MahodAI_TestKit 01_analyze_fix): a
+    // curb of .40 / .05 / .15. The chain runs out to the moved numbers and back above its baseline, and the .05 and
+    // .15 are printed aside (X -4.1 / -4.5) with slanted leaders back to their strips.
+    private static readonly (double X, double Y)[] CurbChain =
+    [
+        (0, 8.5), (-3.5, 8.5), (-3.5, 8.633), (-3.5, 8.5), (-3.9, 8.5), (-3.9, 8.633), (-3.9, 8.5), (-3.95, 8.5),
+        (-3.95, 8.633), (-4.3, 8.9), (-3.95, 8.633), (-3.95, 8.5), (-4.1, 8.5), (-4.1, 8.633), (-4.7, 8.9),
+        (-4.1, 8.633), (-4.1, 8.5), (-8.946, 8.5), (-8.946, 8.633), (-8.946, 8.5),
+    ];
+
+    private static readonly ((double X, double Y) A, (double X, double Y) B)[] CurbLeaders =
+    [
+        ((-3.7, 8.46), (-3.7, 8.1)), ((-3.925, 8.46), (-4.1, 8.1)), ((-4.025, 8.46), (-4.5, 8.1)),
+    ];
+
+    [Fact]
+    public void EveryFindingAndMatchReason_ReadsInHebrew_NotAsItsCode()
+    {
+        var codes = typeof(Finding).GetFields()
+            .Where(f => f.IsLiteral && f.FieldType == typeof(string))
+            .Select(f => (string)f.GetRawConstantValue()!).ToList();
+        codes.Should().NotBeEmpty();
+        foreach (var code in codes)
+            Finding.DescribeHe(code).Should().NotBe(code).And.MatchRegex("[֐-׿]");
+
+        var reasons = typeof(TypicalSectionStripMatchLogic.Reason).GetFields()
+            .Where(f => f.IsLiteral && f.FieldType == typeof(string))
+            .Select(f => (string)f.GetRawConstantValue()!).ToList();
+        foreach (var reason in reasons)
+            TypicalSectionStripMatchLogic.Reason.DescribeHe(reason).Should().NotBe(reason).And.MatchRegex("[֐-׿]");
+    }
+
+    [Fact]
+    public void ChainTicks_AreTheBaselineVertices_NotTheRunsOutToTheMovedNumbers()
+    {
+        FirmSectionFrameLogic.ChainTicks(CurbChain).Should().Equal(-8.946, -4.1, -3.95, -3.9, -3.5, 0);
+    }
+
+    [Fact]
+    public void TurnedNumbers_StandWhereTheirLeadersPoint()
+    {
+        FirmSectionFrameLogic.TurnedTextX(-3.7, 8.1, CurbLeaders, 0.4).Should().BeApproximately(-3.7, Precision);
+        FirmSectionFrameLogic.TurnedTextX(-4.1, 8.1, CurbLeaders, 0.4).Should().BeApproximately(-3.925, Precision);
+        FirmSectionFrameLogic.TurnedTextX(-4.5, 8.1, CurbLeaders, 0.4).Should().BeApproximately(-4.025, Precision);
+        FirmSectionFrameLogic.TurnedTextX(-7.0, 8.1, CurbLeaders, 0.4).Should().Be(-7.0, "no leader reaches it");
+    }
+
+    [Fact]
+    public void ALiveCurbWithMovedNumbers_DecodesEveryWidth()
+    {
+        var texts = new (double X, string Text)[]
+        {
+            (-1.75, "3.50"), (-6.523, "4.85"),
+            (FirmSectionFrameLogic.TurnedTextX(-3.7, 8.1, CurbLeaders, 0.4), ".40"),
+            (FirmSectionFrameLogic.TurnedTextX(-4.1, 8.1, CurbLeaders, 0.4), ".05"),
+            (FirmSectionFrameLogic.TurnedTextX(-4.5, 8.1, CurbLeaders, 0.4), ".15"),
+        };
+        var ruler = new[] { (98.0, 0.133), (103.0, 5.133), (108.0, 10.133) };
+
+        var frame = FirmSectionFrameLogic.Decode(new Input(0, ruler, FirmSectionFrameLogic.ChainTicks(CurbChain), texts));
+
+        frame.HasHorizontalFrame.Should().BeTrue();
+        frame.HorizontalScale!.Value.Should().BeApproximately(1.0, 0.002);
+        frame.Segments.Select(s => s.WidthText).Should().Equal("4.85", ".15", ".05", ".40", "3.50");
+        frame.Findings.Should().BeEmpty();
     }
 }

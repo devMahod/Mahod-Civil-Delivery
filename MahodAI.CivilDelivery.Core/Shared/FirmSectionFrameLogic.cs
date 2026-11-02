@@ -68,6 +68,25 @@ public static class FirmSectionFrameLogic
 
         /// <summary>A non-finite coordinate was dropped from the input.</summary>
         public const string InvalidInput = "frame-input-invalid";
+
+        /// <summary>
+        /// What the engineer reads for a code in the result window (the codes stay in the run folder). Live 2026-11-02
+        /// the window listed "frame-chain-text-unparsable" as is.
+        /// </summary>
+        public static string DescribeHe(string code) => code switch
+        {
+            NoCentreline => "בבלוק החתך אין קו ציר (HW-CS-CL) — לא ידוע איפה היסט 0.",
+            NoChain => "בבלוק החתך אין שרשרת רוחבים (HW-CS-D).",
+            NoChainWidths => "לשרשרת הרוחבים בבלוק אין מספרי רוחב קריאים.",
+            ScaleInconsistent => "מספרי הרוחב בשרשרת אינם תואמים למרחקים בין הקווים — קנה המידה לא נקבע, ושמות לא נכתבו כדי לא לכתוב שם על רצועה אחרת.",
+            ChainTextMissing => "לאחד הרוחבים בשרשרת אין מספר — הרוחב נמדד מהקווים.",
+            ChainTextAmbiguous => "באחד הרוחבים בשרשרת יש כמה מספרים ואי אפשר לדעת איזה שלו.",
+            ChainTextUnparsable => "בשרשרת הרוחבים יש טקסט שאינו מספר רוחב — הוא לא נקרא.",
+            NoRuler => "סרגל הגבהים בבלוק לא נמצא.",
+            RulerInconsistent => "סרגל הגבהים בבלוק אינו אחיד.",
+            InvalidInput => "בבלוק יש קואורדינטה לא תקינה — היא לא נקראה.",
+            _ => code,
+        };
     }
 
     /// <summary>
@@ -190,7 +209,7 @@ public static class FirmSectionFrameLogic
     }
 
     /// <summary>
-    /// Reads a chain width text: a decimal number, optionally followed by a unit ("m",
+    /// Reads a chain width text: a decimal number (".40" too), optionally followed by a unit ("m",
     /// "מ'", "מטר") or spaces, invariant culture. Decimals is the printed precision, so the
     /// caller can allow for the rounding the firm applied ("0.31" is anything in 0.305..0.315).
     /// </summary>
@@ -209,9 +228,53 @@ public static class FirmSectionFrameLogic
         return true;
     }
 
+    // The firm prints a width under one metre without its leading zero (".40", ".05" on a curb), live 2026-11-02.
     private static readonly Regex WidthPattern = new(
-        @"^\s*(?<value>\d+(?:\.(?<fraction>\d+))?)\s*[\p{L}'""׳״.]*\s*$",
+        @"^\s*(?<value>\d+(?:\.(?<fraction>\d+))?|\.(?<fraction>\d+))\s*[\p{L}'""׳״.]*\s*$",
         RegexOptions.CultureInvariant);
+
+    /// <summary>
+    /// The ticks of one chain polyline: the X of every vertex on its baseline (its lowest Y). The firm's chain steps up
+    /// and back at each tick, and where a turned number had to move aside it also runs out to the number's leader and
+    /// back ((-3.95,8.633) (-4.3,8.9) (-3.95,8.633), live 2026-11-02 on a curb of .40/.05/.15): those excursions are
+    /// above the baseline and are not ticks.
+    /// </summary>
+    public static IReadOnlyList<double> ChainTicks(IReadOnlyList<(double X, double Y)> vertices, double tolerance = 1e-6)
+    {
+        if (vertices == null) throw new ArgumentNullException(nameof(vertices));
+        var finite = vertices.Where(v => double.IsFinite(v.X) && double.IsFinite(v.Y)).ToList();
+        if (finite.Count == 0) return Array.Empty<double>();
+        var baseline = finite.Min(v => v.Y);
+        return finite.Where(v => v.Y - baseline <= tolerance).Select(v => v.X).Distinct().OrderBy(x => x).ToList();
+    }
+
+    /// <summary>
+    /// Where a turned width number belongs. A number too wide for its strip is turned 90° below the chain with a short
+    /// leader up to the strip; when neighbouring strips are narrow too (.05 beside .15) the firm moves the number aside
+    /// and the leader slants back, so the number's own X is under the wrong pair. The leader whose end touches the
+    /// number's top (within <paramref name="reach"/>) points with its other end at the strip: that X is returned. A
+    /// number with no leader keeps its own X.
+    /// </summary>
+    public static double TurnedTextX(
+        double textMidX, double textTopY,
+        IEnumerable<((double X, double Y) A, (double X, double Y) B)> leaders, double reach)
+    {
+        if (leaders == null) throw new ArgumentNullException(nameof(leaders));
+        double? best = null;
+        var bestDistance = double.MaxValue;
+        foreach (var (a, b) in leaders)
+        {
+            foreach (var (near, far) in new[] { (a, b), (b, a) })
+            {
+                if (far.Y <= near.Y) continue; // the leader goes UP from the number to the chain
+                var distance = Math.Sqrt(Math.Pow(near.X - textMidX, 2) + Math.Pow(near.Y - textTopY, 2));
+                if (distance > reach || distance >= bestDistance) continue;
+                bestDistance = distance;
+                best = far.X;
+            }
+        }
+        return best ?? textMidX;
+    }
 
     private sealed record ChainText(double X, string Text, double WidthM, int Decimals);
 

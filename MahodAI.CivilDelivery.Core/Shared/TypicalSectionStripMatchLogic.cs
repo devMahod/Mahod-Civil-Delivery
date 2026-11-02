@@ -42,6 +42,15 @@ public static class TypicalSectionStripMatchLogic
 
         /// <summary>The segment itself is unusable (non-finite or non-positive width).</summary>
         public const string InvalidSegment = "invalid-segment";
+
+        /// <summary>The reason as the engineer reads it in the result window.</summary>
+        public static string DescribeHe(string? reason) => reason switch
+        {
+            Conflict => "שתי רצועות בשמות שונים בתנוחה מתאימות לו",
+            NoPlanStrip => "אין בתנוחה רצועה מסומנת באותו מקום ובאותו רוחב",
+            InvalidSegment => "הרוחב בבלוק אינו תקין",
+            _ => reason ?? string.Empty,
+        };
     }
 
     /// <summary>One decision per segment, by its index in the input list.</summary>
