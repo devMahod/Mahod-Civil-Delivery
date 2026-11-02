@@ -323,7 +323,8 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                         }
                         outcome.BlockHandle = added[0].ToString();
                         previousExtents = ReadBlockExtents(db, added[0], outcome, result);
-                        previousExtents = AddPlanOverlay(db, pick, added[0], outcome, result, previousExtents);
+                        previousExtents = AddPlanOverlay(db, pick, added[0], prerequisites.CorridorName, prerequisites.ExistingSurface,
+                            outcome, result, previousExtents);
                     }
                     catch (Exception ex)
                     {
@@ -333,6 +334,11 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                 }
             }
             log?.End("typical.firm_sections", $"created={result.CreatedCount}");
+
+            // The office's sheet (DD-5001: A0, 1:100, the panels stacked) is its own command: building a layout right after
+            // the firm's section program took Civil 3D down (2026-11-02).
+            if (result.Sections.Any(s => s.OverlayHandle != null))
+                result.Warnings.Add($"לגיליון החתכים הטיפוסיים (A0, קנ\"מ 1:100): הפקודה {Commands.CivilDeliveryCommandNames.TypicalSheet}.");
 
             // -------------------------------------------------------- strip names
             // A section with the plan layer above it is named there already: the naming pass collects every plan mark of
@@ -415,6 +421,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                         layout = slot.State;
                         var referenceId = DraftedTypicalSectionService.Draw(tr, db, panels, pick, slot.X, slot.Y);
                         tr.Commit();
+                        RedrawCommitted(db, referenceId);
 
                         outcome.BlockHandle = referenceId.Handle.ToString();
                         outcome.Title = title;
@@ -443,12 +450,14 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
         /// leaves a note: the firm section stands on its own.
         /// </summary>
         private static (double MinX, double MinY, double MaxX, double MaxY)? AddPlanOverlay(Database db, TypicalSectionPick pick,
-            Handle firmBlock, SectionOutcome outcome, Result result, (double MinX, double MinY, double MaxX, double MaxY)? blockExtents)
+            Handle firmBlock, string corridorName, string groundSurface, SectionOutcome outcome, Result result,
+            (double MinX, double MinY, double MaxX, double MaxY)? blockExtents)
         {
             try
             {
                 using var tr = db.TransactionManager.StartTransaction();
-                var overlayId = DraftedTypicalSectionService.DrawOverPlanSection(tr, db, pick, firmBlock, out var panels, out var reason);
+                var overlayId = DraftedTypicalSectionService.DrawOverPlanSection(tr, db, pick, firmBlock, corridorName, groundSurface,
+                    out var panels, out var reason);
                 if (overlayId is not { } id)
                 {
                     tr.Abort();
@@ -459,13 +468,15 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                 try { outcome.Title = FirmSectionBlockReader.Read(tr, db, firmBlock).Title; }
                 catch { /* the window falls back to the block name */ }
                 tr.Commit();
+                RedrawCommitted(db, id);
                 outcome.OverlayHandle = id.Handle.ToString();
                 outcome.ChainSegments = panels.Sum(p => p.Section.Strips.Count);
                 outcome.NamedStrips = panels.Sum(p => p.Section.NamedCount);
                 outcome.UnmatchedStrips = outcome.ChainSegments - outcome.NamedStrips;
+                foreach (var panel in panels) outcome.Notes.AddRange(panel.Section.Findings.Select(f => panel.Title + ": " + f));
                 foreach (var panel in panels) outcome.Notes.Add(panel.Title + " — " + DraftedSummaryHe(panel.Section));
                 using var read = db.TransactionManager.StartOpenCloseTransaction();
-                var e = ((Entity)read.GetObject(id, OpenMode.ForRead)).GeometricExtents;
+                var e = OfficeTypicalRenderer.FrameExtents(read, id) ?? ((Entity)read.GetObject(id, OpenMode.ForRead)).GeometricExtents;
                 var overlay = (e.MinPoint.X, e.MinPoint.Y, e.MaxPoint.X, e.MaxPoint.Y);
                 result.CreatedExtents = result.CreatedExtents is { } all
                     ? (Math.Min(all.MinX, overlay.Item1), Math.Min(all.MinY, overlay.Item2), Math.Max(all.MaxX, overlay.Item3), Math.Max(all.MaxY, overlay.Item4))
@@ -755,6 +766,22 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             TypicalCorridorChoiceLogic.Reason.UpToDate => "רק הוא מעודכן מבין המכסים",
             _ => reason,
         };
+
+        /// <summary>
+        /// Marks a block drawn and committed in an earlier transaction for redraw (2026-11-02, 6403): a typical section
+        /// placed above a firm block stayed invisible, through a regen too, until its reference was marked again once its
+        /// own transaction had committed. Only that block is redrawn - no regen of a large drawing.
+        /// </summary>
+        private static void RedrawCommitted(Database db, ObjectId id)
+        {
+            try
+            {
+                using var tr = db.TransactionManager.StartTransaction();
+                ((Entity)tr.GetObject(id, OpenMode.ForWrite)).RecordGraphicsModified(true);
+                tr.Commit();
+            }
+            catch { /* display only */ }
+        }
 
         /// <summary>True when the corridor's assemblies carry at least one link code; a corridor Civil cannot read is given the benefit.</summary>
         private static bool CorridorHasLinkCodes(Transaction tr, ObjectId corridorId)

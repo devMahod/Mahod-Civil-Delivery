@@ -23,6 +23,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Commands
         public const string SmokeSections = "MCD_SMOKE_SECTIONS";
         public const string SmokeEstimate = "MCD_SMOKE_ESTIMATE";
         public const string TypicalSections = "MCD_TYPICAL_SECTIONS";
+        public const string TypicalSheet = "MCD_TYPICAL_SHEET";
         public const string SmokeTypical = "MCD_SMOKE_TYPICAL";
 #else
         public const string Panel = "MHD_CIVIL_DELIVERY";
@@ -35,6 +36,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Commands
         public const string SmokeSections = "MHD_SMOKE_SECTIONS";
         public const string SmokeEstimate = "MHD_SMOKE_ESTIMATE";
         public const string TypicalSections = "MHD_TYPICAL_SECTIONS";
+        public const string TypicalSheet = "MHD_TYPICAL_SHEET";
         public const string SmokeTypical = "MHD_SMOKE_TYPICAL";
 #endif
     }
