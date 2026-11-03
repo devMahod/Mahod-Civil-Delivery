@@ -45,6 +45,23 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             ("0", 7, null),
         };
 
+        /// <summary>
+        /// The colour each layer's entities are drawn in (2026-11-03, owner: "hard to see on a white background, make it
+        /// more natural and contrast"). The office's layer colours are screen colours for a dark background and its plot
+        /// style (yellow callouts, cyan frames, light green); on white paper they wash out. Set on the entities, so the
+        /// office's layers keep their own colours: 7 (black on white, white on dark) for text and the road, greys for
+        /// dimensions, layer lines and frames, brown ground, dark green grass, red for the right of way and the axis.
+        /// </summary>
+        internal static readonly IReadOnlyDictionary<string, short> Palette = new Dictionary<string, short>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["HW-TYP-TEXT"] = 7, ["HW-TYP-DIM"] = 8, ["HW-TYP-CL"] = 1, ["HW-CS-ALGN"] = 1, ["HW-CS"] = 7,
+            ["HW-CS-EX"] = 32, ["HW-CS-SLOP"] = 7, ["HW-STRC-MISC"] = 8, ["HW-TYP-ASPH1"] = 252, ["HW-CS-HTCH-3"] = 33,
+            ["HW-CS-HTCH-2"] = 8, ["EBUD-h-r"] = 252, ["HW-CS-TX-BARRIER"] = 1, ["BL-Annotation Text"] = 7,
+            ["HW-CS-NOTE"] = 7, ["PGVUL3"] = 1, ["4MAN"] = 8, ["44_block"] = 8, ["LA-SYMB-BL"] = 8,
+            ["HW-TYP-BARI-FLEX"] = 8, ["HW-BARI-RIGD-BL"] = 8, ["TR-MARK-YLW-807"] = 40, ["LA-CS-VEGT-BL"] = 94,
+            [FrameLayer] = 8, ["0"] = 7,
+        };
+
         /// <summary>What one panel is drawn from.</summary>
         internal sealed record Input(
             TypicalSectionPick Pick, DraftedSection Section, SectionGeometry? Design, double? DesignSpeedKmh, IReadOnlyList<string> Notes);
@@ -73,7 +90,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             T Add<T>(T e, string lay) where T : Entity
             {
                 e.LayerId = layer[lay];
-                e.ColorIndex = 256;
+                e.ColorIndex = Palette.TryGetValue(lay, out var colour) ? colour : (short)256;
                 definition.AppendEntity(e);
                 tr.AddNewlyCreatedDBObject(e, true);
                 return e;
@@ -178,7 +195,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             {
                 var id = EnsureSymbol(tr, db, table, name);
                 var r = Add(new BlockReference(new Point3d(x, y, 0), id) { ScaleFactors = new Scale3d(sx, sy, 1), Rotation = rotation }, lay);
-                r.ColorIndex = color;
+                if (color != 256) r.ColorIndex = color;
                 try { var e = r.GeometricExtents; Grow(e.MinPoint.X, e.MinPoint.Y); Grow(e.MaxPoint.X, e.MaxPoint.Y); } catch { Grow(x, y); }
             }
             void Hatch(string lay, IReadOnlyList<(double X, double Y)> outline, string pattern, double scale, double angleDeg, short? color = null)
@@ -569,7 +586,19 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
         {
             const string name = "MHD-TYP-m-100";
             var table = (DimStyleTable)tr.GetObject(db.DimStyleTableId, OpenMode.ForRead);
-            if (table.Has(name)) return table[name];
+            var byBlock = Color.FromColorIndex(ColorMethod.ByBlock, 0);
+            var numbers = Color.FromColorIndex(ColorMethod.ByAci, 7);   // black on white paper, white on a dark screen
+            if (table.Has(name))
+            {
+                // A drawing styled by 2.1.22 has the parts by layer (red on the office's HW-TYP-DIM): set as below.
+                var existing = (DimStyleTableRecord)tr.GetObject(table[name], OpenMode.ForRead);
+                if (!existing.Dimclrd.IsByBlock || !existing.Dimclre.IsByBlock || existing.Dimclrt.ColorIndex != 7)
+                {
+                    existing.UpgradeOpen();
+                    existing.Dimclrd = byBlock; existing.Dimclre = byBlock; existing.Dimclrt = numbers;
+                }
+                return table[name];
+            }
             table.UpgradeOpen();
             var oblique = ArrowBlock(tr, db, "_OBLIQUE");
             var style = new DimStyleTableRecord
@@ -577,8 +606,8 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                 Name = name, Dimscale = 1, Dimtxt = 0.2, Dimasz = 0.1, Dimsah = true, Dimblk1 = oblique, Dimblk2 = oblique,
                 Dimexo = 0.05, Dimexe = 0, Dimgap = 0.1, Dimtad = 1, Dimjust = 0, Dimtih = false, Dimtoh = false,
                 Dimatfit = 3, Dimtmove = 1, Dimdec = 2, Dimzin = 0, Dimdsep = '.', Dimtxsty = textStyle,
-                Dimclrd = Color.FromColorIndex(ColorMethod.ByLayer, 256), Dimclre = Color.FromColorIndex(ColorMethod.ByLayer, 256),
-                Dimclrt = Color.FromColorIndex(ColorMethod.ByLayer, 256),
+                // lines by block (the palette's grey for HW-TYP-DIM), the widths in 7 so they read on any background
+                Dimclrd = byBlock, Dimclre = byBlock, Dimclrt = numbers,
             };
             var id = table.Add(style);
             tr.AddNewlyCreatedDBObject(style, true);
@@ -601,7 +630,8 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
         /// <summary>The office symbol as a block of this drawing ("MHD-TYP-SYM-Car..."), defined once from its primitives.</summary>
         private static ObjectId EnsureSymbol(Transaction tr, Database db, BlockTable table, string name)
         {
-            var blockName = "MHD-TYP-SYM-" + name;
+            // v2: every primitive by block, so the panel's palette colours the symbol (v1 kept the office's red cars)
+            var blockName = "MHD-TYP-SYM2-" + name;
             if (table.Has(blockName)) return table[blockName];
             var def = new BlockTableRecord { Name = blockName, Origin = Point3d.Origin };
             var id = table.Add(def);
@@ -610,7 +640,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             void Put(Entity e, int color)
             {
                 e.LayerId = zero;
-                e.Color = color is 0 or 256 ? Color.FromColorIndex(ColorMethod.ByBlock, 0) : Color.FromColorIndex(ColorMethod.ByAci, (short)color);
+                e.Color = Color.FromColorIndex(ColorMethod.ByBlock, 0);
                 def.AppendEntity(e);
                 tr.AddNewlyCreatedDBObject(e, true);
             }

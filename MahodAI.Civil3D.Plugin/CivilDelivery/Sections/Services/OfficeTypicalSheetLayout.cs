@@ -70,7 +70,13 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                 var textLayer = TypicalSectionPicker.EnsureLayer(tr, db, "HW-TYP-TEXT", 2);
                 var hebrew = StyleOr(tr, db, "MHD-TYP-MIRYL");
                 var shx = hebrew != db.Textstyle && IsShx(tr, hebrew);
-                T Add<T>(T e, ObjectId layer) where T : Entity { e.LayerId = layer; paper.AppendEntity(e); tr.AddNewlyCreatedDBObject(e, true); return e; }
+                // the sheet's text black (7), its frames and viewport borders grey, as the panels (OfficeTypicalRenderer.Palette)
+                T Add<T>(T e, ObjectId layer) where T : Entity
+                {
+                    e.LayerId = layer;
+                    e.ColorIndex = layer == textLayer ? (short)7 : (short)8;
+                    paper.AppendEntity(e); tr.AddNewlyCreatedDBObject(e, true); return e;
+                }
                 void Rect(double x0, double y0, double x1, double y1, ObjectId layer)
                 {
                     var pl = new Polyline { Closed = true };
@@ -90,7 +96,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                 // legend
                 var lx = Margin + Column - 8;
                 Text("מקרא:", lx, SheetH - 40, 6);
-                var legend = new[] { ("אספלט", "SOLID", 1.0, (short)254), ("אגו\"מ", "AR-SAND", 0.05, (short)145), ("מצע סוג א'", "AR-CONC", 0.03, (short)145), ("מצע סוג ב'", "ANSI31", 0.6, (short)8) };
+                var legend = new[] { ("אספלט", "SOLID", 1.0, (short)252), ("אגו\"מ", "AR-SAND", 0.05, (short)33), ("מצע סוג א'", "AR-CONC", 0.03, (short)33), ("מצע סוג ב'", "ANSI31", 0.6, (short)8) };
                 for (var i = 0; i < legend.Length; i++)
                 {
                     var (label, pattern, scale, color) = legend[i];
