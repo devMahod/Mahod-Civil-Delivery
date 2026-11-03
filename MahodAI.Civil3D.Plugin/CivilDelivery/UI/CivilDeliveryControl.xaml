@@ -156,6 +156,8 @@
                     <Button x:Name="BtnShow" Content="הצג מיקום בתכנית" Click="OnShow" Style="{StaticResource PillButton}" Tag="locate"/>
                     <Button x:Name="BtnTypicalSections" Content="חתכים טיפוסיים" Click="OnTypicalSections" Style="{StaticResource PillButton}" Tag="pin"/>
                     <Button x:Name="BtnTypicalCancel" Content="בטל סימון" Click="OnCancelTypicalPicks" Style="{StaticResource PillButton}" Visibility="Collapsed"/>
+                    <Button x:Name="BtnTypicalSheet" Content="גיליון חתכים" Click="OnTypicalSheet" Style="{StaticResource PillButton}" Tag="sheet"
+                            ToolTip="מעמיד חתכים טיפוסיים שכבר נוצרו על גיליונות A0 (1:100, מקרא וכותרת). בחר אותם בשרטוט, או Enter לכולם."/>
                     <Button x:Name="BtnNameAllSpans" Content="סקירת רצועות בכל החתכים…" Click="OnNameAllSectionSpans" Style="{StaticResource PillButton}" Tag="layers"
                             ToolTip="סקור את הרצועות בכל התכנון בחלון אחד. נשמרים רק שמות שבחרת ואישרת במפורש; אין אישור אוטומטי של הצעות."/>
                   </WrapPanel>

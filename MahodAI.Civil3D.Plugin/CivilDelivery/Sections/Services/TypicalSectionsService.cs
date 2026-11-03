@@ -30,6 +30,9 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             string AlignmentName, string CorridorName, string ExistingSurface, string TopSurface,
             string BottomSurface, string SectionLayer);
 
+        /// <summary>A switched-off baseline of <paramref name="Corridor"/> along <paramref name="Alignment"/>, to switch on at these stations.</summary>
+        internal sealed record SwitchOnRequest(string Corridor, string Alignment, IReadOnlyList<double> Stations);
+
         internal sealed class SectionOutcome
         {
             public required string LineHandle { get; init; }
@@ -68,9 +71,22 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             public List<string> ExistingSurfaceChoicesNeeded { get; } = new();
             /// <summary>Chosen corridors Civil has not rebuilt: the tool can rebuild them when the engineer says so.</summary>
             public List<string> CorridorsToRebuild { get; } = new();
+            /// <summary>
+            /// Baselines (and the regions at the marked stations) the drawing has switched off — "build" unticked in the
+            /// corridor's Parameters, so Civil 3D never computes them (6403's R-14 along RAMP-14, 2026-11-03). The tool
+            /// switches them on before the rebuild.
+            /// </summary>
+            public List<SwitchOnRequest> CorridorsToSwitchOn { get; } = new();
             /// <summary>Chosen corridors with no corridor surface at all: the tool can add "&lt;corridor&gt; - Top" from the Top links.</summary>
             public List<string> CorridorsWithoutSurface { get; } = new();
             public bool CanFixCorridors => CorridorsToRebuild.Count > 0 || CorridorsWithoutSurface.Count > 0;
+            /// <summary>
+            /// The lines of <see cref="Blockers"/> the tool mends itself (rebuild, add the top surface). When every
+            /// blocker is one of them the run is one step short, not failed: the window says so in green (2026-11-03,
+            /// a coworker's R-14 was only unbuilt and read as two errors).
+            /// </summary>
+            public List<string> FixSteps { get; } = new();
+            public bool OnlyFixSteps => Blockers.Count > 0 && CanFixCorridors && Blockers.All(FixSteps.Contains);
             /// <summary>Why each corridor was chosen (session, profile, covers the stations…), for the run folder.</summary>
             public Dictionary<string, string> CorridorChoiceReasons { get; } = new(StringComparer.OrdinalIgnoreCase);
             public List<SectionOutcome> Sections { get; } = new();
@@ -125,6 +141,11 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             {
                 if (!result.Blockers.Contains(reason, StringComparer.Ordinal)) result.Blockers.Add(reason);
             }
+            void Step(string reason)
+            {
+                Block(reason);
+                if (!result.FixSteps.Contains(reason, StringComparer.Ordinal)) result.FixSteps.Add(reason);
+            }
             var cuttable = new List<(string Alignment, string Corridor, string Top, string Bottom)>();
             var everyCorridor = new List<TypicalCorridorChoiceLogic.Candidate>();
             string? projectSettings;
@@ -172,20 +193,43 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                             $"תחנה {station:0.00} בתוואי {alignmentName} נמצאת מחוץ לאזורי הקורידור {chosen.Name}."));
                     if (!FirstBaselineHasProfile(tr, chosen.Id))
                         Block($"לקורידור {chosen.Name} אין פרופיל תכנון (הפרופיל שהוא נשען עליו נמחק או לא נטען) — תוכנת החתכים לא יכולה לחתוך אותו. יש לחבר לו פרופיל במאפייני הקורידור (Baselines) ולבנות אותו מחדש.");
-                    // The firm's program draws the road from the corridor's coded links (by links): with no code at all it
-                    // draws ground only, and no Top surface can be built either (6403 ROAD-16-ZMANI, 2026-11-02).
-                    if (!CorridorHasLinkCodes(tr, chosen.Id))
-                        Block($"בקורידור {chosen.Name} אין קודי קישור (Top / Bot) — ה-Assembly שלו אינו מקודד, ולכן תוכנת החתכים לא תשרטט בו את הכביש. יש לתקן את ה-Assembly ולבנות את הקורידור מחדש.");
                     var computed = AssemblyStations(tr, chosen.Id, alignmentName);
-                    // An unbuilt corridor has no computed sections either: one fix, one line.
-                    if (chosen.Candidate.OutOfDate || computed.Count == 0)
+                    // An unbuilt corridor has no computed sections either: one fix, one line — a step the tool takes, when
+                    // this computer can build it: the office's corridors need the office's subassemblies, and a rebuild
+                    // without them computes nothing and wipes what was built (CorridorRebuildLogic, 2026-11-03).
+                    var switchedOff = IsSwitchedOff(tr, chosen.Id, alignmentName, stations);
+                    var unbuilt = chosen.Candidate.OutOfDate || computed.Count == 0 || switchedOff;
+                    var missing = unbuilt ? MissingSubassemblyFiles(tr, chosen.Id) : Array.Empty<string>();
+                    var year = CorridorRebuildLogic.YearOf(SubassemblyVersionFolder);
+                    var civil = year.Length > 0 ? "Civil 3D " + year : "Civil 3D הזה";
+                    if (unbuilt && missing.Count > 0 && computed.Count > 0 && !switchedOff)
                     {
-                        Block(chosen.Candidate.OutOfDate
-                            ? $"הקורידור {chosen.Name} אינו מעובד (Out of date) — צריך לבנות אותו מחדש (Rebuild)."
-                            : $"בקורידור {chosen.Name} אין חתכים מחושבים לאורך {alignmentName} — צריך לבנות אותו מחדש (Rebuild).");
+                        // Out of date but built: its last build is cut as it is, rather than lost to a rebuild.
+                        result.Warnings.Add($"הקורידור {chosen.Name} אינו מעובד (Out of date), ואי אפשר לבנות אותו מחדש במחשב הזה (חסר {string.Join(", ", missing)} ל-{civil}) — החתכים נחתכו מהבנייה האחרונה שלו.");
+                        unbuilt = false;
+                    }
+                    if (unbuilt && missing.Count > 0)
+                    {
+                        Block($"את הקורידור {chosen.Name} אי אפשר לבנות במחשב הזה: הוא בנוי מה-Subassemblies של המשרד ({string.Join(", ", missing)}), והם לא מותקנים כאן ל-{civil}. יש להתקין את חבילת MAHOD_3D של המשרד, או לפתוח את השרטוט במחשב שהיא מותקנת בו, וליצור שוב.");
+                    }
+                    else if (unbuilt)
+                    {
+                        Step(switchedOff
+                            ? $"להפעיל את הקורידור {chosen.Name} לאורך {alignmentName} ולבנות אותו — הוא כבוי במאפייני הקורידור (Parameters), ולכן Civil 3D לא בונה אותו."
+                            : chosen.Candidate.OutOfDate
+                                ? $"לבנות מחדש את הקורידור {chosen.Name} — הוא אינו מעובד (Out of date)."
+                                : $"לבנות מחדש את הקורידור {chosen.Name} — אין בו עדיין חתכים מחושבים לאורך {alignmentName}.");
                         if (!result.CorridorsToRebuild.Contains(chosen.Name, StringComparer.OrdinalIgnoreCase))
                             result.CorridorsToRebuild.Add(chosen.Name);
+                        if (switchedOff)
+                            result.CorridorsToSwitchOn.Add(new SwitchOnRequest(chosen.Name, alignmentName, stations));
                     }
+                    // The firm's program draws the road from the corridor's coded links (by links): with no code at all it
+                    // draws ground only, and no Top surface can be built either (6403 ROAD-16-ZMANI, 2026-11-02). An
+                    // unbuilt corridor lists no codes until it is built (a coworker's R-14, 2026-11-03): judged after the
+                    // rebuild, on the retry.
+                    else if (!CorridorHasLinkCodes(tr, chosen.Id))
+                        Block($"בקורידור {chosen.Name} אין קודי קישור (Top / Bot) — ה-Assembly שלו אינו מקודד, ולכן תוכנת החתכים לא תשרטט בו את הכביש. יש לתקן את ה-Assembly ולבנות את הקורידור מחדש.");
                     corridorStations[alignmentName] = computed;
                     stationing[alignmentName] = Stationing(tr, civilDoc, alignmentName);
 
@@ -205,9 +249,15 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                     {
                         // No corridor surface at all is mendable: "<corridor> - Top" from the Top links, as the firm names it.
                         // Surfaces that exist but none reads as the top are the engineer's to name.
-                        if (chosen.Candidate.SurfaceNames.Count == 0)
+                        // The surface is added and built by a rebuild: only where this computer can build the corridor.
+                        var cannotBuild = missing.Count > 0 ? missing : MissingSubassemblyFiles(tr, chosen.Id);
+                        if (chosen.Candidate.SurfaceNames.Count == 0 && cannotBuild.Count > 0)
                         {
-                            Block($"לקורידור {chosen.Name} אין משטח קורידור — צריך משטח עליון (Top).");
+                            Block($"לקורידור {chosen.Name} אין משטח קורידור (Top), ובמחשב הזה אי אפשר לבנות אותו כדי להוסיף משטח: חסרים ה-Subassemblies של המשרד ({string.Join(", ", cannotBuild)}) ל-{civil}. יש להתקין את חבילת MAHOD_3D של המשרד, או להוסיף את המשטח במחשב שהיא מותקנת בו.");
+                        }
+                        else if (chosen.Candidate.SurfaceNames.Count == 0)
+                        {
+                            Step($"להוסיף לקורידור {chosen.Name} משטח עליון (\"{chosen.Name} - Top\") ולבנות אותו מחדש.");
                             if (!result.CorridorsWithoutSurface.Contains(chosen.Name, StringComparer.OrdinalIgnoreCase))
                                 result.CorridorsWithoutSurface.Add(chosen.Name);
                         }
@@ -512,7 +562,9 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
         /// break lines) to a corridor with no corridor surface, then rebuilds every corridor named. One Hebrew line per
         /// corridor; a failure is reported, never thrown, so the others are still mended.
         /// </summary>
-        public static List<string> FixCorridors(Document doc, IEnumerable<string> rebuild, IEnumerable<string> addTop, StageLog? log)
+        public static List<string> FixCorridors(
+            Document doc, IEnumerable<string> rebuild, IEnumerable<string> addTop, StageLog? log,
+            IReadOnlyList<SwitchOnRequest>? switchOn = null)
         {
             var lines = new List<string>();
             var withTop = new HashSet<string>(addTop, StringComparer.OrdinalIgnoreCase);
@@ -539,6 +591,10 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                             continue;
                         }
                         corridor.UpgradeOpen();
+                        var switched = new List<string>();
+                        foreach (var request in (switchOn ?? Array.Empty<SwitchOnRequest>())
+                                     .Where(r => string.Equals(r.Corridor, name, StringComparison.OrdinalIgnoreCase)))
+                            if (SwitchOn(tr, corridor, request)) switched.Add(request.Alignment);
                         var added = false;
                         if (withTop.Contains(name) && corridor.CorridorSurfaces.Count == 0)
                         {
@@ -550,7 +606,9 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                         tr.Commit();
                         lines.Add(added
                             ? $"לקורידור {name} נוסף המשטח \"{name} - Top\" והוא נבנה מחדש."
-                            : $"הקורידור {name} נבנה מחדש.");
+                            : switched.Count > 0
+                                ? $"הקורידור {name} הופעל לאורך {string.Join(", ", switched)} ונבנה מחדש."
+                                : $"הקורידור {name} נבנה מחדש.");
                     }
                     catch (Exception ex)
                     {
@@ -784,6 +842,90 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
         }
 
         /// <summary>True when the corridor's assemblies carry at least one link code; a corridor Civil cannot read is given the benefit.</summary>
+        /// <summary>
+        /// Whether the corridor's baseline along the alignment, or a region at one of the stations, is switched off ("build"
+        /// unticked in the corridor's Parameters): Civil 3D computes nothing there however often it is rebuilt.
+        /// </summary>
+        private static bool IsSwitchedOff(Transaction tr, ObjectId corridorId, string alignmentName, IReadOnlyList<double> stations)
+        {
+            try
+            {
+                if (tr.GetObject(corridorId, OpenMode.ForRead) is not CivilDb.Corridor corridor) return false;
+                foreach (var baseline in corridor.Baselines)
+                {
+                    if (tr.GetObject(baseline.AlignmentId, OpenMode.ForRead) is not CivilDb.Alignment alignment ||
+                        !string.Equals(alignment.Name, alignmentName, StringComparison.OrdinalIgnoreCase)) continue;
+                    if (!baseline.NeedsProcessing) return true;
+                    foreach (CivilDb.BaselineRegion region in baseline.BaselineRegions)
+                        if (!region.NeedsProcessing && stations.Any(station => Within(region, station))) return true;
+                }
+            }
+            catch { /* an older host without the switch: judged by its computed sections alone */ }
+            return false;
+        }
+
+        /// <summary>Switches on the baseline of the request and its regions at the request's stations; true when it changed anything.</summary>
+        private static bool SwitchOn(Transaction tr, CivilDb.Corridor corridor, SwitchOnRequest request)
+        {
+            var changed = false;
+            foreach (var baseline in corridor.Baselines)
+            {
+                if (tr.GetObject(baseline.AlignmentId, OpenMode.ForRead) is not CivilDb.Alignment alignment ||
+                    !string.Equals(alignment.Name, request.Alignment, StringComparison.OrdinalIgnoreCase)) continue;
+                if (!baseline.NeedsProcessing) { baseline.NeedsProcessing = true; changed = true; }
+                foreach (CivilDb.BaselineRegion region in baseline.BaselineRegions)
+                    if (!region.NeedsProcessing && request.Stations.Any(station => Within(region, station)))
+                    {
+                        region.NeedsProcessing = true;
+                        changed = true;
+                    }
+            }
+            return changed;
+        }
+
+        private static bool Within(CivilDb.BaselineRegion region, double station) =>
+            station >= region.StartStation - TypicalCorridorChoiceLogic.RegionToleranceM &&
+            station <= region.EndStation + TypicalCorridorChoiceLogic.RegionToleranceM;
+
+        /// <summary>The running Civil 3D's subassembly folder (<c>%ProgramData%\Autodesk\C3D &lt;year&gt;\enu</c>), or null.</summary>
+        private static string? SubassemblyVersionFolder => CorridorRebuildLogic.VersionFolder(
+            typeof(CivilApplication).Assembly.Location, Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData));
+
+        /// <summary>The .NET subassembly DLLs the corridor's assemblies use that this computer cannot find; none when unsure.</summary>
+        private static IReadOnlyList<string> MissingSubassemblyFiles(Transaction tr, ObjectId corridorId)
+        {
+            try
+            {
+                if (tr.GetObject(corridorId, OpenMode.ForRead) is not CivilDb.Corridor corridor) return Array.Empty<string>();
+                var generators = new List<CorridorRebuildLogic.Generator>();
+                var assemblies = new HashSet<ObjectId>();
+                foreach (var baseline in corridor.Baselines)
+                foreach (CivilDb.BaselineRegion region in baseline.BaselineRegions)
+                {
+                    try
+                    {
+                        if (region.AssemblyId.IsNull || !assemblies.Add(region.AssemblyId) ||
+                            tr.GetObject(region.AssemblyId, OpenMode.ForRead) is not CivilDb.Assembly assembly) continue;
+                        foreach (CivilDb.AssemblyGroup group in assembly.Groups)
+                        foreach (ObjectId id in group.GetSubassemblyIds())
+                        {
+                            try
+                            {
+                                if (tr.GetObject(id, OpenMode.ForRead) is CivilDb.Subassembly subassembly)
+                                    generators.Add(new CorridorRebuildLogic.Generator(
+                                        subassembly.GeometryGenerator.GeometryGenerateMode.ToString(),
+                                        subassembly.GeometryGenerator.ProjectOrAssemblyName));
+                            }
+                            catch { /* a subassembly Civil cannot open is not judged */ }
+                        }
+                    }
+                    catch { /* a region without an assembly is not judged */ }
+                }
+                return CorridorRebuildLogic.MissingFiles(generators, SubassemblyVersionFolder, System.IO.File.Exists);
+            }
+            catch { return Array.Empty<string>(); }
+        }
+
         private static bool CorridorHasLinkCodes(Transaction tr, ObjectId corridorId)
         {
             try

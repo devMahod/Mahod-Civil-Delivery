@@ -167,10 +167,59 @@ public sealed class TypicalSectionsSourceContractTests
 
         var panel = Ui("CivilDeliveryControl.TypicalSections.cs");
         var show = Method(panel, "private void ShowTypicalSectionsResult(");
-        show.Should().Contain("result.CanFixCorridors ? TypicalFixLabel : null")
-            .And.Contain("blocked.Choice == TypicalSectionsDialog.Outcome.Fix");
+        show.Should().Contain("var offerFix = result.CanFixCorridors && !afterFix;")
+            .And.Contain("offerFix ? TypicalFixLabel : null")
+            .And.Contain("offerFix && blocked.Choice == TypicalSectionsDialog.Outcome.Fix");
         var retry = Method(panel, "private void FixCorridorsAndRetryTypical(");
         At(retry, "TypicalSectionsService.FixCorridors(").Should().BeLessThan(At(retry, "CreateTypicalWithChoices(doc,"));
+        retry.Should().Contain("afterFix: true", "a mend that did not help is not offered again");
+    }
+
+    [Fact]
+    public void ARunOnlyAStepShort_IsAGreenStep_NotAnError()
+    {
+        // 2026-11-03, a coworker's 6403: R-14 was only unbuilt, and the window showed two red errors — "no link codes"
+        // (an unbuilt corridor lists none) and "no computed sections".
+        var service = Read("CivilDelivery", "Sections", "Services", "TypicalSectionsService.cs");
+        At(service, "var unbuilt = chosen.Candidate.OutOfDate || computed.Count == 0 || switchedOff;")
+            .Should().BeLessThan(At(service, "else if (!CorridorHasLinkCodes(tr, chosen.Id))"),
+                "the link codes of an unbuilt corridor are judged after the rebuild");
+        service.Should().Contain("public bool OnlyFixSteps => Blockers.Count > 0 && CanFixCorridors && Blockers.All(FixSteps.Contains);");
+        // A rebuild is offered only where it can work: without the office's subassemblies it computes nothing and wipes
+        // a built corridor (R-14 / RD-40 on a computer without MahodSubassemblies.dll for its Civil 3D).
+        At(service, "var missing = unbuilt ? MissingSubassemblyFiles(tr, chosen.Id)").Should().BeLessThan(At(service, "else if (unbuilt)"));
+        service.Should().Contain("if (unbuilt && missing.Count > 0 && computed.Count > 0 && !switchedOff)")
+            .And.Contain("CorridorRebuildLogic.MissingFiles(generators, SubassemblyVersionFolder, System.IO.File.Exists)");
+        // 6403's R-14: its baseline and regions were switched off in the corridor's Parameters — a rebuild alone computes
+        // nothing on any computer; the step switches them on at the marked stations first.
+        service.Should().Contain("var unbuilt = chosen.Candidate.OutOfDate || computed.Count == 0 || switchedOff;")
+            .And.Contain("result.CorridorsToSwitchOn.Add(new SwitchOnRequest(chosen.Name, alignmentName, stations))");
+        var fix = Method(service, "public static List<string> FixCorridors(");
+        At(fix, "SwitchOn(tr, corridor, request)").Should().BeLessThan(At(fix, "corridor.Rebuild()"));
+
+        var panel = Ui("CivilDeliveryControl.TypicalSections.cs");
+        var show = Method(panel, "private void ShowTypicalSectionsResult(");
+        show.Should().Contain("var onlySteps = offerFix && result.OnlyFixSteps;")
+            .And.Contain("TypicalSectionsDialog.ForSteps(shown, TypicalSubtitle(_typicalPicks), TypicalGoLabel(result))");
+    }
+
+    [Fact]
+    public void TheSheet_IsOneClick_FromTheResultAndFromThePanel_WithoutTypingACommand()
+    {
+        var panel = Ui("CivilDeliveryControl.TypicalSections.cs");
+        var show = Method(panel, "private void ShowTypicalSectionsResult(");
+        show.Should().Contain("window.Choice == TypicalSectionsDialog.Outcome.Sheet")
+            .And.Contain("CreateTypicalSheet(doc, sheetHandles)");
+        var sheet = Method(panel, "private void CreateTypicalSheet(");
+        sheet.Should().Contain("MhdTypicalSheetCommand.RunInCommandContext(doc, handles,")
+            .And.NotContain("SendStringToExecute");
+        Ui("CivilDeliveryControl.xaml").Should().Contain("x:Name=\"BtnTypicalSheet\"").And.Contain("Click=\"OnTypicalSheet\"");
+
+        var command = Read("CivilDelivery", "Commands", "MhdTypicalSheetCommand.cs");
+        command.Should().Contain("ExecuteInCommandContextAsync(")
+            .And.Contain("if (queued is { } q && q.Database == db.UnmanagedObject)");
+        At(command, "if (given == null)").Should().BeLessThan(At(command, "ed.GetSelection(options, filter)"),
+            "queued sections are placed without asking");
     }
 
     [Fact]

@@ -28,6 +28,14 @@ public class OfficeTypicalSheetTests
     public void RoadName_FromTheAlignment(string alignment, string name) => Assert.Equal(name, OfficeTypicalSheet.RoadName(alignment));
 
     [Fact]
+    public void ANewSheet_ContinuesTheNumbering()
+    {
+        Assert.Equal(1, OfficeTypicalSheet.FirstFreeSheetNumber(new[] { "Model", "Layout1" }, "MHD-TYP"));
+        Assert.Equal(2, OfficeTypicalSheet.FirstFreeSheetNumber(new[] { "Layout1", "MHD-TYP-01" }, "MHD-TYP"));
+        Assert.Equal(4, OfficeTypicalSheet.FirstFreeSheetNumber(new[] { "MHD-TYP-01", "MHD-TYP-03", "MHD-TYP-01_2", "MHD-TYPX-09" }, "MHD-TYP"));
+    }
+
+    [Fact]
     public void RoadTitle_SaysWhetherTheStructureHasAgum()
     {
         Assert.Equal("מסעה חדשה (כולל אגו\"מ)-כביש 40", OfficeTypicalSheet.RoadTitle("ROAD-40", true));

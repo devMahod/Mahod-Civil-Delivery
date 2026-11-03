@@ -378,6 +378,42 @@
       </Setter.Value>
     </Setter>
   </Style>
+  <!-- the green button: a step the tool takes for the engineer (rebuild and create, make the sheet), 2026-11-03 -->
+  <Style x:Key="GoButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+    <Setter Property="Background" Value="{StaticResource Accent}"/>
+    <Setter Property="BorderBrush" Value="{StaticResource Accent}"/>
+    <Setter Property="Foreground" Value="White"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Border x:Name="b" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10" SnapsToDevicePixels="True">
+            <DockPanel Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center">
+              <Path x:Name="icon" DockPanel.Dock="Left" Visibility="Collapsed" Width="15" Height="15" Margin="0,0,7,0"
+                    Stretch="Uniform" StrokeThickness="1.7" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                    FlowDirection="LeftToRight" VerticalAlignment="Center"
+                    Stroke="{Binding Foreground, RelativeSource={RelativeSource TemplatedParent}}"/>
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </DockPanel>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="b" Property="Background" Value="#FF178A50"/><Setter TargetName="b" Property="BorderBrush" Value="#FF178A50"/></Trigger>
+            <Trigger Property="IsPressed" Value="True"><Setter TargetName="b" Property="Background" Value="{StaticResource AccentInk}"/></Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="b" Property="BorderBrush" Value="{StaticResource AccentInk}"/></Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter TargetName="b" Property="Background" Value="#FF9AA39E"/>
+              <Setter TargetName="b" Property="BorderBrush" Value="#FF9AA39E"/>
+              <Setter Property="Cursor" Value="Arrow"/>
+            </Trigger>
+            <Trigger Property="Tag" Value="check"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconCheck}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+            <Trigger Property="Tag" Value="refresh"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconRefresh}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+            <Trigger Property="Tag" Value="sheet"><Setter TargetName="icon" Property="Data" Value="{StaticResource IconSheet}"/><Setter TargetName="icon" Property="Visibility" Value="Visible"/></Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
   <!-- pills inside the green group panel -->
   <Style x:Key="PillButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
     <Setter Property="Background" Value="{StaticResource GroupTileFill}"/>

@@ -148,6 +148,23 @@ public static class OfficeTypicalSheet
     /// <summary>"סה"כ עובי מבנה" over "84 ס"מ": the structure's total, the sum of its measured layers.</summary>
     public static (string Line1, string Line2, string Line3) Total(double totalM) => ("סה\"כ עובי", "מבנה", Cm(totalM) + " ס\"מ");
 
+    /// <summary>
+    /// The number of the first new sheet: one past the highest "&lt;base&gt;-NN" layout already in the drawing, so a second
+    /// run adds MHD-TYP-02 beside MHD-TYP-01 (2026-11-03; it made "MHD-TYP-01_2").
+    /// </summary>
+    public static int FirstFreeSheetNumber(IEnumerable<string> layoutNames, string baseName)
+    {
+        var pattern = new Regex("^" + Regex.Escape(baseName) + @"-(\d+)(?:_\d+)?$", RegexOptions.IgnoreCase);
+        var highest = 0;
+        foreach (var name in layoutNames)
+        {
+            var match = pattern.Match(name ?? "");
+            if (match.Success && int.TryParse(match.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var n))
+                highest = Math.Max(highest, n);
+        }
+        return highest + 1;
+    }
+
     // ------------------------------------------------------------------------------------------------ symbols
 
     /// <summary>One primitive of an office symbol, in block units (see <see cref="TypicalSymbolData"/>).</summary>

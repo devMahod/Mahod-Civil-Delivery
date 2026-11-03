@@ -19,7 +19,14 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
     /// </summary>
     public partial class TypicalSectionsDialog : Window
     {
-        public enum Outcome { None, Create, AddMore, Fix }
+        public enum Outcome { None, Create, AddMore, Fix, Sheet }
+
+        /// <summary>One line of a stopped run: an error, or a step the tool takes itself (<see cref="Fixable"/>).</summary>
+        public sealed class IssueRow
+        {
+            public required string Text { get; init; }
+            public bool Fixable { get; init; }
+        }
 
         public sealed class PickRow
         {
@@ -80,7 +87,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
         /// <summary>After a run that created sections (all or some): numbers, the sections with show, notes.</summary>
         public static TypicalSectionsDialog ForResult(
             int created, int named, int unmatched, IReadOnlyList<SectionRow> sections, string subtitle,
-            IReadOnlyList<string> notes, bool stoppedEarly)
+            IReadOnlyList<string> notes, bool stoppedEarly, bool offerSheet = false)
         {
             var dialog = new TypicalSectionsDialog();
             dialog.Title = "חתכים טיפוסיים · תוצאה";
@@ -102,8 +109,45 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
             dialog.BtnAddMore.Content = "חתכים נוספים";
             dialog.BtnFolder.Visibility = Visibility.Visible;
             dialog.BtnClose.Content = "סגור";
-            dialog.BtnClose.Style = (Style)dialog.FindResource("PrimaryButton");
+            // The sections on the office's A0 sheet, one click (2026-11-03: it was a typed command nobody found).
+            if (offerSheet)
+            {
+                dialog.BtnSheet.Visibility = Visibility.Visible;
+                dialog.BtnSheet.IsDefault = true;
+            }
+            else
+                dialog.BtnClose.Style = (Style)dialog.FindResource("PrimaryButton");
             dialog.ShowNotes(notes);
+            return dialog;
+        }
+
+        /// <summary>
+        /// When the run is only a step short (every line is one the tool mends: rebuild a corridor, add its top surface):
+        /// the steps in green and one green button that takes them and creates the sections (2026-11-03, a coworker's
+        /// unbuilt R-14 read as two errors). Closes with <see cref="Outcome.Fix"/>.
+        /// </summary>
+        public static TypicalSectionsDialog ForSteps(IReadOnlyList<string> steps, string subtitle, string goLabel)
+        {
+            var dialog = new TypicalSectionsDialog();
+            dialog.Title = "חתכים טיפוסיים · עוד שלב";
+            dialog.HeadTitle.Text = steps.Count == 1 ? "עוד שלב אחד לפני היצירה" : $"עוד {steps.Count} שלבים לפני היצירה";
+            dialog.HeadSub.Text = subtitle;
+            dialog.SetHeadChip("IconRefresh", good: true);
+            dialog.Stats.Visibility = Visibility.Collapsed;
+            dialog.PickList.Visibility = Visibility.Collapsed;
+            dialog.BlockerList.Visibility = Visibility.Visible;
+            dialog.BlockerList.ItemsSource = steps.Select(step => new IssueRow { Text = step, Fixable = true }).ToList();
+            dialog.BtnAddMore.Visibility = Visibility.Collapsed;
+            dialog._fixOffered = true;
+            dialog.BtnCreate.Content = goLabel;
+            dialog.BtnCreate.Style = (Style)dialog.FindResource("GoButton");
+            dialog.BtnCreate.Tag = "refresh";
+            dialog.BtnCreate.IsEnabled = true;
+            dialog.BtnClose.Content = "לא עכשיו";
+            dialog.ShowNotes(new[]
+            {
+                "הכלי בונה את הקורידור בשרטוט הפתוח ואז יוצר את החתכים. אפשר לבטל את הבנייה עם U.",
+            });
             return dialog;
         }
 
@@ -112,7 +156,8 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
         /// tool can mend some of it itself (rebuild a corridor, add its top surface): the primary button says so and
         /// closes with <see cref="Outcome.Fix"/>.
         /// </summary>
-        public static TypicalSectionsDialog ForBlocked(IReadOnlyList<string> blockers, string subtitle, string? fixLabel = null)
+        public static TypicalSectionsDialog ForBlocked(
+            IReadOnlyList<string> blockers, string subtitle, string? fixLabel = null, IReadOnlyCollection<string>? fixable = null)
         {
             var dialog = new TypicalSectionsDialog();
             dialog.Title = "חתכים טיפוסיים · לא נוצרו";
@@ -122,7 +167,9 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
             dialog.Stats.Visibility = Visibility.Collapsed;
             dialog.PickList.Visibility = Visibility.Collapsed;
             dialog.BlockerList.Visibility = Visibility.Visible;
-            dialog.BlockerList.ItemsSource = blockers;
+            dialog.BlockerList.ItemsSource = blockers
+                .Select(line => new IssueRow { Text = line, Fixable = fixLabel != null && fixable?.Contains(line) == true })
+                .ToList();
             dialog.BtnAddMore.Visibility = Visibility.Collapsed;
             if (string.IsNullOrWhiteSpace(fixLabel))
             {
@@ -184,6 +231,12 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
         private void OnAddMore(object sender, RoutedEventArgs e) => UiGuard.Run("סימון חתכים נוספים", () =>
         {
             Choice = Outcome.AddMore;
+            CloseWith(true);
+        });
+
+        private void OnSheet(object sender, RoutedEventArgs e) => UiGuard.Run("גיליון חתכים", () =>
+        {
+            Choice = Outcome.Sheet;
             CloseWith(true);
         });
 

@@ -41,6 +41,8 @@ public partial class CivilDeliveryControl
         if (_typicalPicks.Count > 0 && (doc?.Database.UnmanagedObject ?? IntPtr.Zero) != _typicalPicksDatabase)
             _typicalPicks.Clear();
         BtnTypicalSections.IsEnabled = CanStartTypicalSections(doc, profileUsable);
+        // The sheet needs only typical sections already in the drawing: no profile, no CL.
+        BtnTypicalSheet.IsEnabled = doc != null && _pendingTypicalPickDocument == null && _busyProgress == null;
         BtnTypicalCancel.Visibility = _typicalPicks.Count > 0 && _pendingTypicalPickDocument == null
             ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
     }
@@ -275,6 +277,18 @@ public partial class CivilDeliveryControl
     /// <summary>The blocked window's one-click mend: rebuild the corridors, add the missing top surfaces, try again.</summary>
     internal const string TypicalFixLabel = "תקן ונסה שוב";
 
+    /// <summary>The green button when the run is only a step short: what it does, then creates.</summary>
+    internal static string TypicalGoLabel(TypicalSectionsService.Result result) =>
+        result.CorridorsWithoutSurface.Count > 0 ? "השלם וצור חתכים"
+            : result.CorridorsToSwitchOn.Count > 0 ? "הפעל, בנה וצור חתכים"
+            : "בנה מחדש וצור חתכים";
+
+    /// <summary>Said in place of the steps when the mend did not give the corridor what the sections need.</summary>
+    internal static string TypicalFixDidNotHelp(IReadOnlyList<string> corridors) =>
+        $"{(corridors.Count == 1 ? "הקורידור " + corridors[0] + " נבנה" : "הקורידורים " + string.Join(", ", corridors) + " נבנו")} מחדש, " +
+        "ו-Civil 3D עדיין לא חישב בו חתכים לאורך התוואי — יש לבדוק ב-Civil 3D את ה-Baseline, האזורים וה-Assembly שלו " +
+        "(Corridor Properties → Parameters) ואת ה-Event Viewer.";
+
     private void FixCorridorsAndRetryTypical(Document doc, TypicalSectionsService.Result blocked)
     {
         try
@@ -282,7 +296,7 @@ public partial class CivilDeliveryControl
             List<string>? lines = null;
             using (var log = new StageLog("ui_typical_fix_corridors"))
                 RunBusy("מתקן קורידורים…", () => lines = TypicalSectionsService.FixCorridors(
-                    doc, blocked.CorridorsToRebuild, blocked.CorridorsWithoutSurface, log));
+                    doc, blocked.CorridorsToRebuild, blocked.CorridorsWithoutSurface, log, blocked.CorridorsToSwitchOn));
             foreach (var line in lines ?? new List<string>()) Log(line);
             SetStatus(string.Join(" · ", lines ?? new List<string>()));
         }
@@ -294,7 +308,7 @@ public partial class CivilDeliveryControl
         finally { RefreshGates(); }
 
         var result = CreateTypicalWithChoices(doc, _typicalPicks.ToList());
-        if (result != null) ShowTypicalSectionsResult(doc, result);
+        if (result != null) ShowTypicalSectionsResult(doc, result, afterFix: true);
     }
 
     /// <summary>The engineer's corridor choices in this session (alignment → corridor), asked only when ambiguous.</summary>
@@ -342,21 +356,32 @@ public partial class CivilDeliveryControl
     /// <summary>The result window is modeless: "הצג" moves the drawing while it stays open.</summary>
     private TypicalSectionsDialog? _typicalResultWindow;
 
-    private void ShowTypicalSectionsResult(Document doc, TypicalSectionsService.Result result)
+    private void ShowTypicalSectionsResult(Document doc, TypicalSectionsService.Result result, bool afterFix = false)
     {
         try
         {
             if (result.Blockers.Count > 0)
             {
-                var reasons = string.Join("\n• ", result.Blockers);
-                SetStatus("החתכים לא נוצרו — " + result.Blockers[0]);
-                SectionDetail.Text = "יצירת חתכים טיפוסיים נעצרה:\n• " + reasons;
-                SectionDiagnostics.IsExpanded = true;
-                // An unbuilt corridor or one without a surface is the tool's to mend, once the engineer says so.
-                var blocked = TypicalSectionsDialog.ForBlocked(
-                    result.Blockers, TypicalSubtitle(_typicalPicks), result.CanFixCorridors ? TypicalFixLabel : null);
+                // An unbuilt corridor or one without a surface is the tool's to mend, once the engineer says so — once:
+                // a mend that did not help is not offered again.
+                var offerFix = result.CanFixCorridors && !afterFix;
+                var shown = afterFix && result.CanFixCorridors
+                    ? result.Blockers.Where(line => !result.FixSteps.Contains(line))
+                        .Append(TypicalFixDidNotHelp(result.CorridorsToRebuild.Concat(result.CorridorsWithoutSurface)
+                            .Distinct(StringComparer.OrdinalIgnoreCase).ToList())).ToList()
+                    : result.Blockers.ToList();
+                var reasons = string.Join("\n• ", shown);
+                var onlySteps = offerFix && result.OnlyFixSteps;
+                SetStatus((onlySteps ? "עוד שלב לפני היצירה — " : "החתכים לא נוצרו — ") + shown[0]);
+                SectionDetail.Text = (onlySteps ? "לפני היצירה:\n• " : "יצירת חתכים טיפוסיים נעצרה:\n• ") + reasons;
+                SectionDiagnostics.IsExpanded = !onlySteps;
+                // Only a step short (2026-11-03, a coworker's unbuilt R-14): the step in green, one green button that
+                // takes it and creates. Anything else is an error, with the mendable lines still marked as steps.
+                var blocked = onlySteps
+                    ? TypicalSectionsDialog.ForSteps(shown, TypicalSubtitle(_typicalPicks), TypicalGoLabel(result))
+                    : TypicalSectionsDialog.ForBlocked(shown, TypicalSubtitle(_typicalPicks), offerFix ? TypicalFixLabel : null, result.FixSteps);
                 CivilModalHost.ShowFromPalette(blocked);
-                if (result.CanFixCorridors && blocked.Choice == TypicalSectionsDialog.Outcome.Fix)
+                if (offerFix && blocked.Choice == TypicalSectionsDialog.Outcome.Fix)
                     Dispatcher.BeginInvoke(new Action(() => FixCorridorsAndRetryTypical(doc, result)));
                 return;
             }
@@ -414,15 +439,24 @@ public partial class CivilDeliveryControl
                     FormattableString.Invariant($"{section.Station:0.00}: ") + note))
                 .Concat(result.Warnings)
                 .ToList();
+            // The sections in the office's sheet format (the MTS_ block above each firm section, or the drafted one):
+            // what "צור גיליון A0" places.
+            var sheetHandles = result.Sections.Where(section => section.Created)
+                .Select(section => section.OverlayHandle ?? section.BlockHandle)
+                .OfType<string>().ToList();
+            var offerSheet = result.Sections.Any(section => section.Created && section.OverlayHandle != null) ||
+                             createdPicks.Any(pick => pick.FromPlan);
             _typicalResultWindow?.Close();
             var window = TypicalSectionsDialog.ForResult(
-                result.CreatedCount, result.NamedCount, result.UnmatchedCount, rows, subtitle, notes, failed != null);
+                result.CreatedCount, result.NamedCount, result.UnmatchedCount, rows, subtitle, notes, failed != null, offerSheet);
             window.RunFolder = result.ArtifactPath == null ? null : System.IO.Path.GetDirectoryName(result.ArtifactPath);
             window.ShowSectionRequested += handle => ZoomToTypicalSection(handle);
             window.Closed += (_, _) =>
             {
                 if (window.Choice == TypicalSectionsDialog.Outcome.AddMore)
                     Dispatcher.BeginInvoke(new Action(() => OnTypicalSections(this, new RoutedEventArgs())));
+                if (window.Choice == TypicalSectionsDialog.Outcome.Sheet)
+                    Dispatcher.BeginInvoke(new Action(() => CreateTypicalSheet(doc, sheetHandles)));
                 if (ReferenceEquals(_typicalResultWindow, window)) _typicalResultWindow = null;
             };
             _typicalResultWindow = window;
@@ -431,6 +465,55 @@ public partial class CivilDeliveryControl
         }
         catch (Exception ex) { ShowError("סיכום חתכים טיפוסיים", ex); }
         finally { RefreshGates(); }
+    }
+
+    /// <summary>
+    /// The panel's "גיליון חתכים" (2026-11-03: the sheet was a typed command nobody found): the engineer selects the
+    /// typical sections in the drawing, Enter takes every one. Runs the sheet command without typing it.
+    /// </summary>
+    private void OnTypicalSheet(object sender, RoutedEventArgs e)
+    {
+        var doc = Doc();
+        if (doc == null) return;
+        CreateTypicalSheet(doc, null);
+    }
+
+    /// <summary>
+    /// The A0 sheets of the given typical sections (by handle), or of the ones the engineer selects when none are given.
+    /// The sheet command runs on its own, after the typical run is over: building a layout inside that run took
+    /// Civil 3D down (2026-11-02).
+    /// </summary>
+    private void CreateTypicalSheet(Document doc, IReadOnlyList<string>? handles)
+    {
+        try
+        {
+            if (!ReferenceEquals(Doc(), doc))
+            {
+                SetStatus("השרטוט הוחלף — הגיליון לא נוצר");
+                return;
+            }
+            if (!string.IsNullOrWhiteSpace(doc.CommandInProgress))
+            {
+                SetStatus("פקודה אחרת פעילה בשרטוט — יש לסיים אותה וללחוץ שוב על 'גיליון חתכים'");
+                return;
+            }
+            SetStatus(handles == null
+                ? "גיליון חתכים: בחר בשרטוט את החתכים הטיפוסיים, או Enter לכולם"
+                : "יוצר גיליון A0 לחתכים שנוצרו…");
+            MhdTypicalSheetCommand.RunInCommandContext(doc, handles, sheets => Dispatcher.BeginInvoke(new Action(() =>
+            {
+                var message = sheets == null
+                    ? "הגיליון לא נוצר (הבחירה בוטלה או שהפעולה נכשלה — ראה שורת הפקודה)"
+                    : sheets.Count == 0
+                        ? "אין בשרטוט חתכים טיפוסיים בפורמט הגיליון — יש ליצור אותם קודם ('חתכים טיפוסיים')"
+                        : sheets.Count == 1
+                            ? $"נוצר גיליון {sheets[0]} והוא פתוח"
+                            : $"נוצרו {sheets.Count} גיליונות ({string.Join(", ", sheets)}); הראשון פתוח";
+                SetStatus(message);
+                Log(message);
+            })));
+        }
+        catch (Exception ex) { ShowError("גיליון חתכים", ex); }
     }
 
     /// <summary>Zoom margins, as a factor of the extents (the zoom refuses anything below 1).</summary>

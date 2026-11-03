@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
 using MahodAI.CivilDelivery.Shared;
+using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
 {
@@ -42,13 +44,22 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
 
             var manager = LayoutManager.Current;
             var returnTo = manager.CurrentLayout;
+            int first;
+            using (var check = db.TransactionManager.StartOpenCloseTransaction())
+            {
+                var existing = new List<string>();
+                // DBDictionary's typed enumerator (its non-generic one yields DictionaryEntry: Cast<> threw, live)
+                foreach (DBDictionaryEntry entry in (DBDictionary)check.GetObject(db.LayoutDictionaryId, OpenMode.ForRead))
+                    existing.Add(entry.Key);
+                first = OfficeTypicalSheet.FirstFreeSheetNumber(existing, baseName);
+            }
             for (var s = 0; s < sheets.Count; s++)
             {
-                var name = $"{baseName}-{s + 1:00}";
+                var name = $"{baseName}-{first + s:00}";
                 using (var check = db.TransactionManager.StartOpenCloseTransaction())
                 {
                     var dict = (DBDictionary)check.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
-                    for (var i = 2; dict.Contains(name); i++) name = $"{baseName}-{s + 1:00}_{i}";
+                    for (var i = 2; dict.Contains(name); i++) name = $"{baseName}-{first + s:00}_{i}";
                 }
                 var layoutId = manager.CreateLayout(name);
                 // A viewport is switched on only in the current layout (eNotInPaperspace otherwise).
@@ -148,8 +159,130 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                 tr.Commit();
                 names.Add(name);
             }
-            try { manager.CurrentLayout = returnTo; } catch { /* stays on the sheet */ }
+            // The engineer asked for the sheet: it opens on the first one (2026-11-03; before, the model came back and the
+            // new layouts waited unseen in the tabs).
+            try { manager.CurrentLayout = names.Count > 0 ? names[0] : returnTo; } catch { /* stays where it is */ }
             return names;
+        }
+
+        /// <summary>Sheets (drawing, layout) whose viewports have not been redrawn yet.</summary>
+        private static readonly HashSet<(IntPtr Database, string Layout)> Unshown = new();
+        private static bool _switchHooked;
+
+        /// <summary>
+        /// Viewports made and switched on inside a command stay blank on screen (live 2026-11-03, Civil 3D 2027: an empty
+        /// frame on MHD-TYP-01 through a regen and a layout switch, the section there at once after off/on from outside the
+        /// command). So each new sheet is redrawn once AutoCAD is idle while it is the current layout: the first one right
+        /// after the command, the others when the engineer opens them.
+        /// </summary>
+        internal static void RedrawWhenShown(Document doc, IEnumerable<string> sheets)
+        {
+            lock (Unshown)
+                foreach (var sheet in sheets) Unshown.Add((doc.Database.UnmanagedObject, sheet));
+            if (!_switchHooked)
+            {
+                _switchHooked = true;
+                LayoutManager.Current.LayoutSwitched += (_, _) =>
+                {
+                    if (AcadApp.DocumentManager.MdiActiveDocument is { } active) RedrawWhenIdle(active);
+                };
+            }
+            RedrawWhenIdle(doc);
+        }
+
+        private static void RedrawWhenIdle(Document doc, int idlesLeft = 30)
+        {
+            EventHandler? once = null;
+            once = (_, _) =>
+            {
+                AcadApp.Idle -= once;
+                try
+                {
+                    if (doc.IsDisposed) return;
+                    var current = LayoutManager.Current.CurrentLayout;
+                    bool pending;
+                    lock (Unshown) pending = Unshown.Contains((doc.Database.UnmanagedObject, current));
+                    // still inside a command, another drawing in front, or the sheet not current yet: a later idle
+                    if (!ReferenceEquals(AcadApp.DocumentManager.MdiActiveDocument, doc) ||
+                        !string.IsNullOrEmpty(doc.CommandInProgress) || !pending)
+                    {
+                        if (idlesLeft > 0) RedrawWhenIdle(doc, idlesLeft - 1);
+                        return;
+                    }
+                    // a moment after the command, in application context under the document's lock (as the code runner's
+                    // off/on that showed it, live): switched inside the sheet's command, or in a command context of its
+                    // own, the frame stayed blank
+                    var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(800) };
+                    timer.Tick += (_, _) =>
+                    {
+                        timer.Stop();
+                        try
+                        {
+                            if (!ReferenceEquals(AcadApp.DocumentManager.MdiActiveDocument, doc) || doc.IsDisposed ||
+                                !string.Equals(LayoutManager.Current.CurrentLayout, current, StringComparison.OrdinalIgnoreCase))
+                            {
+                                MahodAI.Civil3D.Plugin.Utilities.MahodLogger.Info($"typical sheet redraw skipped: now {LayoutManager.Current.CurrentLayout}, was {current}");
+                                return;
+                            }
+                            if (!string.IsNullOrEmpty(doc.CommandInProgress)) { RedrawWhenIdle(doc); return; }
+                            lock (Unshown)
+                                if (!Unshown.Remove((doc.Database.UnmanagedObject, current))) return;
+                            // the whole A0 first, then the frames: zoomed after the off/on, or regenerated, they went blank again
+                            ZoomToSheet(doc);
+                            int shown;
+                            using (doc.LockDocument())
+                                shown = ShowViewports(doc.Database, LayoutManager.Current.GetLayoutId(current));
+                            MahodAI.Civil3D.Plugin.Utilities.MahodLogger.Info($"typical sheet {current}: {shown} viewports redrawn");
+                        }
+                        catch (Exception ex) { MahodAI.Civil3D.Plugin.Utilities.MahodLogger.Error("typical sheet redraw", ex); }
+                    };
+                    timer.Start();
+                }
+                catch (Exception ex) { MahodAI.Civil3D.Plugin.Utilities.MahodLogger.Error("typical sheet redraw", ex); }
+            };
+            AcadApp.Idle += once;
+        }
+
+        /// <summary>The whole A0 in view (a new layout opens on a corner of it, the title box).</summary>
+        private static void ZoomToSheet(Document doc)
+        {
+            try
+            {
+                using var view = doc.Editor.GetCurrentView();
+                var aspect = view.Width / view.Height;
+                var height = Math.Max(SheetH, SheetW / aspect) * 1.04;
+                view.CenterPoint = new Point2d(SheetW / 2, SheetH / 2);
+                view.Height = height;
+                view.Width = height * aspect;
+                doc.Editor.SetCurrentView(view);
+            }
+            catch { /* the sheet is there; ZOOM E shows all of it */ }
+        }
+
+        /// <summary>Our viewports of the current layout, switched off, on and redrawn (see <see cref="RedrawWhenShown"/>).</summary>
+        private static int ShowViewports(Database db, ObjectId layoutId)
+        {
+            var shown = 0;
+            try
+            {
+                using var tr = db.TransactionManager.StartTransaction();
+                var layout = (Layout)tr.GetObject(layoutId, OpenMode.ForRead);
+                var paper = (BlockTableRecord)tr.GetObject(layout.BlockTableRecordId, OpenMode.ForRead);
+                foreach (ObjectId id in paper)
+                {
+                    // ours only, by their frame layer: never the paper's own viewport
+                    if (tr.GetObject(id, OpenMode.ForRead) is not Viewport vp ||
+                        !string.Equals(vp.Layer, OfficeTypicalRenderer.FrameLayer, StringComparison.OrdinalIgnoreCase)) continue;
+                    vp.UpgradeOpen();
+                    vp.On = false;
+                    vp.On = true;
+                    vp.UpdateDisplay();
+                    shown++;
+                }
+                tr.Commit();
+            }
+            catch { /* the sheet is there; a blank frame shows the section after a VIEWPORT off/on */ }
+            return shown;
         }
 
         /// <summary>A0 landscape on DWG To PDF, 1:1 in millimetres, as the office plots its DD sheets; the host's default

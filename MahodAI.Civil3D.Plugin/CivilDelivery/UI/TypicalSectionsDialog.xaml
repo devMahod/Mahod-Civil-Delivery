@@ -96,6 +96,8 @@
     <WrapPanel DockPanel.Dock="Bottom" Margin="0,14,0,0">
       <Button x:Name="BtnCreate" Content="צור 8 חתכים" Style="{StaticResource PrimaryButton}" Tag="check" IsDefault="True" Click="OnCreate" MinWidth="140"/>
       <Button x:Name="BtnAddMore" Content="סמן עוד" Tag="pin" Click="OnAddMore"/>
+      <Button x:Name="BtnSheet" Content="צור גיליון A0" Style="{StaticResource GoButton}" Tag="sheet" Click="OnSheet" Visibility="Collapsed" MinWidth="140"
+              ToolTip="מעמיד את החתכים שנוצרו על גיליונות A0 בקנה מידה 1:100, עם מקרא וכותרת — Layout חדש לכל גיליון"/>
       <Button x:Name="BtnFolder" Content="תיקיית הריצה" Tag="folder" Click="OnOpenFolder" Visibility="Collapsed"/>
       <Button x:Name="BtnClose" Content="ביטול" IsCancel="True" Click="OnClose"/>
     </WrapPanel>
@@ -285,12 +287,20 @@
                       <ColumnDefinition Width="Auto"/>
                       <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-                    <Border Style="{StaticResource IconChip}" Background="{StaticResource BlockedTint}" VerticalAlignment="Top">
-                      <Path Style="{StaticResource ChipIcon}" Stroke="{StaticResource Blocked}" Data="{StaticResource IconX}"/>
+                    <Border x:Name="IssueChip" Style="{StaticResource IconChip}" Background="{StaticResource BlockedTint}" VerticalAlignment="Top">
+                      <Path x:Name="IssueIcon" Style="{StaticResource ChipIcon}" Stroke="{StaticResource Blocked}" Data="{StaticResource IconX}"/>
                     </Border>
-                    <TextBlock Grid.Column="1" Text="{Binding}" Margin="12,0,0,0" TextWrapping="Wrap" VerticalAlignment="Center" FontSize="13"/>
+                    <TextBlock Grid.Column="1" Text="{Binding Text}" Margin="12,0,0,0" TextWrapping="Wrap" VerticalAlignment="Center" FontSize="13"/>
                   </Grid>
                 </Border>
+                <!-- a line the tool mends itself is a step, in green, not an error -->
+                <DataTemplate.Triggers>
+                  <DataTrigger Binding="{Binding Fixable}" Value="True">
+                    <Setter TargetName="IssueChip" Property="Background" Value="{StaticResource AccentTint}"/>
+                    <Setter TargetName="IssueIcon" Property="Stroke" Value="{StaticResource AccentInk}"/>
+                    <Setter TargetName="IssueIcon" Property="Data" Value="{StaticResource IconRefresh}"/>
+                  </DataTrigger>
+                </DataTemplate.Triggers>
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>

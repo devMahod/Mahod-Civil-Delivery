@@ -111,6 +111,54 @@ public sealed class TypicalSectionsDialogInteractionTests
         dialog.Choice.Should().Be(TypicalSectionsDialog.Outcome.Fix);
     });
 
+    [Fact]
+    public void Steps_AreGreen_AndTheGreenButtonClosesWithFix() => RunSta(() =>
+    {
+        // 2026-11-03, a coworker's R-14: only unbuilt — one more step, not an error.
+        var dialog = TypicalSectionsDialog.ForSteps(
+            new[] { "לבנות מחדש את הקורידור R-14 (Rebuild) — אין בו עדיין חתכים מחושבים לאורך RAMP-14." },
+            "ROAD-40, RAMP-14", "בנה מחדש וצור חתכים");
+        ((TextBlock)dialog.FindName("HeadTitle")).Text.Should().Be("עוד שלב אחד לפני היצירה");
+        var go = (Button)dialog.FindName("BtnCreate");
+        go.Content.Should().Be("בנה מחדש וצור חתכים");
+        go.Style.Should().BeSameAs(dialog.FindResource("GoButton"));
+        ((Button)dialog.FindName("BtnClose")).Content.Should().Be("לא עכשיו");
+        var rows = ((ItemsControl)dialog.FindName("BlockerList")).ItemsSource.Cast<TypicalSectionsDialog.IssueRow>().ToList();
+        rows.Should().ContainSingle().Which.Fixable.Should().BeTrue();
+
+        Layout(dialog);
+        go.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        dialog.Choice.Should().Be(TypicalSectionsDialog.Outcome.Fix);
+    });
+
+    [Fact]
+    public void Blocked_MarksTheMendableLinesAsSteps() => RunSta(() =>
+    {
+        var dialog = TypicalSectionsDialog.ForBlocked(
+            new[] { "לתוואי Road34 אין קורידור", "לבנות מחדש את הקורידור RD-40 (Rebuild) — הוא אינו מעובד (Out of date)." },
+            "Road34", "תקן ונסה שוב", new[] { "לבנות מחדש את הקורידור RD-40 (Rebuild) — הוא אינו מעובד (Out of date)." });
+        ((TextBlock)dialog.FindName("HeadTitle")).Text.Should().Be("החתכים לא נוצרו");
+        var rows = ((ItemsControl)dialog.FindName("BlockerList")).ItemsSource.Cast<TypicalSectionsDialog.IssueRow>().ToList();
+        rows.Select(row => row.Fixable).Should().Equal(false, true);
+        dialog.Close();
+    });
+
+    [Fact]
+    public void Result_OffersTheSheet_OnlyWhenThereIsASectionInTheSheetFormat() => RunSta(() =>
+    {
+        var rows = new[] { new TypicalSectionsDialog.SectionRow { Title = "ROAD-40 (800500.00)", Detail = "8 מתוך 8", Good = true, BlockHandle = "3F2" } };
+        var with = TypicalSectionsDialog.ForResult(1, 8, 0, rows, "ROAD-40", Array.Empty<string>(), false, offerSheet: true);
+        var sheet = (Button)with.FindName("BtnSheet");
+        sheet.Visibility.Should().Be(Visibility.Visible);
+        Layout(with);
+        sheet.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        with.Choice.Should().Be(TypicalSectionsDialog.Outcome.Sheet);
+
+        var without = TypicalSectionsDialog.ForResult(1, 8, 0, rows, "ROAD-40", Array.Empty<string>(), false);
+        ((Button)without.FindName("BtnSheet")).Visibility.Should().Be(Visibility.Collapsed);
+        without.Close();
+    });
+
     private static void Layout(Window window)
     {
         var content = (FrameworkElement)window.Content;
