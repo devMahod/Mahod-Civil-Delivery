@@ -122,8 +122,24 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                 HasMarkingPlan = true;
             }
 
+            // A traffic plan carries its lane lines itself (2026-11-04, TR-M34: TR-MARK-WHT-801_3-3 in the host): any
+            // lane-line layer in the drawing or its loaded references is a marking plan.
+            if (!HasMarkingPlan) HasMarkingPlan = HasLaneLineLayer();
             if (TypicalPlanReferenceLogic.OpenedNoteHe(loadedNames, attachedNames) is { } opened) Notes.Add(opened);
             if (TypicalPlanReferenceLogic.NotFoundNoteHe(notFound) is { } missing) Notes.Add(missing);
+        }
+
+        private bool HasLaneLineLayer()
+        {
+            using var tr = _db.TransactionManager.StartOpenCloseTransaction();
+            var layers = (LayerTable)tr.GetObject(_db.LayerTableId, OpenMode.ForRead);
+            foreach (ObjectId id in layers)
+            {
+                var name = ((LayerTableRecord)tr.GetObject(id, OpenMode.ForRead)).Name;
+                if (DraftedTypicalSectionLogic.ClassifyLayer(name) is DraftedTypicalSectionLogic.Kind.Marking or
+                    DraftedTypicalSectionLogic.Kind.EdgeLine or DraftedTypicalSectionLogic.Kind.HovLine) return true;
+            }
+            return false;
         }
 
         private static string? ResolvedFile(BlockTableRecord record)

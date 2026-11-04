@@ -104,6 +104,17 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             if (found.Any(f => f.Name.StartsWith("AX", StringComparison.OrdinalIgnoreCase)))
                 found = found.Where(f => f.Name.StartsWith("AX", StringComparison.OrdinalIgnoreCase)).ToList();
             var axes = new List<PlanAxis>();
+            // No drawn axis at all: the alignments may have been exploded onto their layer (2026-11-04, a TR plan).
+            if (found.Count == 0)
+            {
+                foreach (var axis in CollectExplodedAlignments(tr, db))
+                {
+                    if (allowed.Count > 0 && !allowed.Any(pattern => ClInstructionReader.WildcardMatch(axis.Name, pattern))) continue;
+                    try { axes.Add(new PlanAxis(axis.Name, axis.Vertices, axis.StartStation)); }
+                    catch (ArgumentException) { /* degenerate */ }
+                }
+                return axes;
+            }
             foreach (var group in found.GroupBy(f => f.Name, StringComparer.OrdinalIgnoreCase))
             {
                 var index = 0;
@@ -117,6 +128,140 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             }
             return axes;
         }
+
+        /// <summary>
+        /// Exploded Civil alignments (<see cref="ExplodedAlignmentLogic"/>): the axis pieces (polylines and arcs on an
+        /// alignment layer; its Lines are the curves' tangent construction lines), the station ticks (AeccTickLine
+        /// blocks) paired with their printed values, and the curve labels with the PI their leader points at.
+        /// </summary>
+        public static List<ExplodedAlignmentLogic.Axis> CollectExplodedAlignments(Transaction tr, Database db)
+        {
+            var pieces = new List<IReadOnlyList<P2>>();
+            var lines = new List<(P2 A, P2 B)>();
+            var ticks = new List<(P2 At, string Layer)>();
+            var tickTexts = new List<(P2 At, double Value, string Layer)>();
+            var tickLayers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var labelTexts = new List<(P2 At, string Name, double Station)>();
+            var leaders = new List<(P2 Tip, P2 Tail)>();
+            string? layerName = null;
+            Walk(tr, ModelSpace(tr, db), Matrix3d.Identity, null, 0, (entity, toWcs, layer) =>
+            {
+                switch (entity)
+                {
+                    case Leader leader when leader.NumVertices >= 2:
+                        var tip = leader.VertexAt(0).TransformBy(toWcs);
+                        var tail = leader.VertexAt(leader.NumVertices - 1).TransformBy(toWcs);
+                        leaders.Add((new P2(tip.X, tip.Y), new P2(tail.X, tail.Y)));
+                        return;
+                    case BlockReference reference:
+                        string name;
+                        try { name = ((BlockTableRecord)tr.GetObject(reference.BlockTableRecord, OpenMode.ForRead)).Name; }
+                        catch { return; }
+                        if (name.StartsWith("AeccTickLine", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var p = reference.Position.TransformBy(toWcs);
+                            ticks.Add((new P2(p.X, p.Y), layer));
+                            tickLayers.Add(layer);
+                        }
+                        return;
+                    case DBText text:
+                        AddText(text.TextString, text.Position.TransformBy(toWcs), layer);
+                        return;
+                    case MText mtext:
+                        AddText(mtext.Text, mtext.Location.TransformBy(toWcs), layer);
+                        return;
+                    case Line line when ExplodedAlignmentLogic.IsAlignmentLayer(layer):
+                        var a = line.StartPoint.TransformBy(toWcs);
+                        var b = line.EndPoint.TransformBy(toWcs);
+                        lines.Add((new P2(a.X, a.Y), new P2(b.X, b.Y)));
+                        return;
+                    case Curve curve when ExplodedAlignmentLogic.IsAlignmentLayer(layer):
+                        var vertices = Sample(curve, toWcs);
+                        if (vertices.Count >= 2) pieces.Add(vertices);
+                        layerName ??= PlanAxis.LayerLeaf(layer);
+                        return;
+                }
+            });
+            if (pieces.Count == 0) return new List<ExplodedAlignmentLogic.Axis>();
+
+            void AddText(string? text, Point3d at, string layer)
+            {
+                var p = new P2(at.X, at.Y);
+                if (ExplodedAlignmentLogic.TickValue(text) is { } value) tickTexts.Add((p, value, layer));
+                else if (ExplodedAlignmentLogic.ParseLabel(text) is { } label) labelTexts.Add((p, label.Name, label.Station));
+            }
+            static double Dist(P2 a, P2 b) => Math.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Y - b.Y) * (a.Y - b.Y));
+
+            // A tick and its value are each other's nearest (two roads side by side print their values close together).
+            // A tick's value is the text on its own layer (a "3.50" width beside a tick is not a station; TR-M34's section
+            // numbers stand on their own ticks on HW-ALGN-SEC-NAME-C, the stations on HW-ALGN-SEC-NAME), and the two are
+            // each other's nearest (two roads side by side print their values close together).
+            tickTexts.RemoveAll(t => !tickLayers.Contains(t.Layer));
+            var pairedTicks = new List<ExplodedAlignmentLogic.Tick>();
+            foreach (var group in ticks.GroupBy(t => t.Layer, StringComparer.OrdinalIgnoreCase))
+            {
+                var layerTicks = group.Select(t => t.At).ToList();
+                var layerTexts = tickTexts.Where(t => string.Equals(t.Layer, group.Key, StringComparison.OrdinalIgnoreCase)).ToList();
+                if (layerTexts.Count == 0) continue;
+                foreach (var tick in layerTicks)
+                {
+                    var text = layerTexts.OrderBy(t => Dist(t.At, tick)).First();
+                    if (Dist(text.At, tick) > 30) continue;
+                    var nearestTick = layerTicks.OrderBy(t => Dist(t, text.At)).First();
+                    if (Dist(nearestTick, tick) > 1e-6) continue;
+                    pairedTicks.Add(new ExplodedAlignmentLogic.Tick(tick, text.Value));
+                }
+            }
+            // A label's PI is the tip of the leader whose tail is nearest its text; the tangent lines from the PI touch the axis.
+            var labels = new List<ExplodedAlignmentLogic.Label>();
+            foreach (var (at, name, station) in labelTexts)
+            {
+                if (leaders.Count == 0) break;
+                var leader = leaders.OrderBy(l => Dist(l.Tail, at)).First();
+                if (Dist(leader.Tail, at) > 30) continue;
+                var touches = lines
+                    .Select(l => Dist(l.A, leader.Tip) < 0.05 ? l.B : Dist(l.B, leader.Tip) < 0.05 ? l.A : (P2?)null)
+                    .Where(p => p != null).Select(p => p!.Value).ToList();
+                labels.Add(new ExplodedAlignmentLogic.Label(name, station, leader.Tip, touches));
+            }
+            return ExplodedAlignmentLogic.Build(pieces, pairedTicks, labels, layerName ?? "ALGN", MinAxisLengthM);
+        }
+
+        /// <summary>How far along the road a dash may stand from the cut and still be its line (half the longest gap).</summary>
+        public const double DashReachM = 6.0;
+
+        /// <summary>
+        /// The offset of a painted dash that stands beside the cut: short (at most <see cref="DashMaxM"/>), running with
+        /// the road, its nearest end within <see cref="DashReachM"/> along the road and within the section's width.
+        /// Null for anything else - a line that merely ends near the cut is not on it.
+        /// </summary>
+        private static double? DashOffset(Curve curve, Matrix3d toWcs, Point3d axis, Vector3d chordDir, Vector3d right, double chordLength)
+        {
+            double length;
+            try { length = curve.GetDistanceAtParameter(curve.EndParam) - curve.GetDistanceAtParameter(curve.StartParam); }
+            catch { return null; }
+            if (!(length > 0) || length > 2 * DashMaxM + 1) return null;
+            // The road runs across the chord: its direction is the chord's normal.
+            var road = new Vector3d(-chordDir.Y, chordDir.X, 0);
+            var points = new List<Point3d>();
+            for (var i = 0; i <= 8; i++)
+            {
+                try { points.Add(curve.GetPointAtDist(length * i / 8).TransformBy(toWcs)); }
+                catch { return null; }
+            }
+            double Along(Point3d p) => (new Point3d(p.X, p.Y, 0) - axis).DotProduct(road);
+            double Across(Point3d p) => (new Point3d(p.X, p.Y, 0) - axis).DotProduct(right);
+            var spanAlong = points.Max(Along) - points.Min(Along);
+            var spanAcross = points.Max(Across) - points.Min(Across);
+            if (spanAlong > DashMaxM || spanAlong < 2 * spanAcross) return null;
+            var nearest = points.OrderBy(p => Math.Abs(Along(p))).First();
+            if (Math.Abs(Along(nearest)) > DashReachM) return null;
+            var offset = Across(nearest);
+            return Math.Abs(offset) <= chordLength / 2 ? offset : null;
+        }
+
+        /// <summary>The longest painted dash read as a stroke of a broken line.</summary>
+        public const double DashMaxM = 6.5;
 
         private static List<P2> Sample(Curve curve, Matrix3d toWcs)
         {
@@ -144,7 +289,10 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
         /// The plan along one pick's chord: every classified line it crosses (signed offset from the axis, right
         /// positive) and every tree, pole or sign standing within <see cref="ObjectReachM"/> of it.
         /// </summary>
-        public static (List<Crossing> Crossings, List<PlacedObject> Objects) Cut(Transaction tr, Database db, TypicalSectionPick pick)
+        /// <param name="corridorEdges">Read "&lt;corridor&gt;+&lt;piece&gt;+W" lines as pavement edges: on drafted drawings,
+        /// where no corridor is in the drawing to read them from (<see cref="DraftedTypicalSectionLogic.IsCorridorEdgeLayer"/>).</param>
+        public static (List<Crossing> Crossings, List<PlacedObject> Objects) Cut(Transaction tr, Database db, TypicalSectionPick pick,
+            bool corridorEdges = false)
         {
             var a = new Point3d(pick.AX, pick.AY, 0);
             var b = new Point3d(pick.BX, pick.BY, 0);
@@ -186,7 +334,8 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                     }
                     if (entity is not Curve curve) return;
                     if (!layerKinds.TryGetValue(layer, out var kind))
-                        layerKinds[layer] = kind = DraftedTypicalSectionLogic.ClassifyLayer(layer);
+                        layerKinds[layer] = kind = DraftedTypicalSectionLogic.ClassifyLayer(layer) ??
+                            (corridorEdges && DraftedTypicalSectionLogic.IsCorridorEdgeLayer(layer) ? DraftedTypicalSectionLogic.Kind.Edge : null);
                     if (kind == null) return;
                     if (!chordCache.TryGetValue(toWcs, out var chord))
                     {
@@ -197,6 +346,14 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                     try { chord.IntersectWith(curve, Intersect.OnBothOperands, hits, IntPtr.Zero, IntPtr.Zero); }
                     catch { return; }
                     var source = layer.Contains('|') ? layer[..layer.IndexOf('|')] : "host";
+                    // A broken lane line drawn dash by dash (2026-11-04, TR-M34: 801 3-3 as separate strokes): a cut
+                    // between two dashes crosses none, so the nearest dash along the road stands for the line.
+                    if (hits.Count == 0 && kind is DraftedTypicalSectionLogic.Kind.Marking or DraftedTypicalSectionLogic.Kind.EdgeLine or DraftedTypicalSectionLogic.Kind.HovLine &&
+                        DashOffset(curve, toWcs, axis, along, right, chordLength) is { } dash)
+                    {
+                        crossings.Add(new Crossing(dash, kind, PlanAxis.LayerLeaf(layer), source));
+                        return;
+                    }
                     foreach (Point3d hit in hits)
                         crossings.Add(new Crossing(OffsetOf(hit.TransformBy(toWcs)), kind, PlanAxis.LayerLeaf(layer), source));
                 });
@@ -219,6 +376,13 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
         private const string PavementLayer = "MHD-TYP-PAVE";
         private const string VehicleLayer = "MHD-TYP-VEH";
         private const string RowLayer = "MHD-TYP-ROW";
+
+        /// <summary>Every layer a plan-drawn section draws on: the A0 sheet keeps them visible in its viewport.</summary>
+        internal static readonly string[] OwnLayers =
+        {
+            RoadLayer, AsphaltLayer, GreenLayer, AxisLayer, ChainLayer, ObjectLayer, WorkLayer, GroundLayer, PavementLayer,
+            VehicleLayer, RowLayer, TypicalSectionContracts.NamesLayer,
+        };
 
         /// <summary>Height of the width chain above the highest point of the road (the office's sheet: ~6.5 m at 1:100).</summary>
         private const double ChainAboveM = 6.5;
@@ -652,6 +816,34 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                     Note(FormattableString.Invariant($"תחנה {pick.Station:0.00}"), cx, chainY + 2.5, TextHeight * 1.1, TypicalSectionContracts.NamesLayer);
                     if (geometry == null)
                         Note("סכמטי, ללא גבהים — נקרא מקווי התנוחה", cx, chainY + 1.9, TextHeight * 0.75, TypicalSectionContracts.NamesLayer);
+                }
+            }
+
+            // The sheet's frame around everything drawn (2026-11-04, TR-M34): MHD_TYPICAL_SHEET places a section by its
+            // frame, and a plan-drawn section without one never reached the A0 sheet.
+            if (!overlay)
+            {
+                Extents3d? all = null;
+                foreach (ObjectId id in definition)
+                {
+                    try
+                    {
+                        var e = ((Entity)tr.GetObject(id, OpenMode.ForRead)).GeometricExtents;
+                        if (all is { } a) { a.AddExtents(e); all = a; } else all = e;
+                    }
+                    catch { /* an entity with no extents */ }
+                }
+                if (all is { } box)
+                {
+                    const double margin = 1.0;
+                    var frameLayer = TypicalSectionPicker.EnsureLayer(tr, db, OfficeTypicalRenderer.FrameLayer, 4);
+                    var frame = new Polyline { Closed = true, LayerId = frameLayer, ColorIndex = 8 };
+                    frame.AddVertexAt(0, new Point2d(box.MinPoint.X - margin, box.MinPoint.Y - margin), 0, 0, 0);
+                    frame.AddVertexAt(1, new Point2d(box.MaxPoint.X + margin, box.MinPoint.Y - margin), 0, 0, 0);
+                    frame.AddVertexAt(2, new Point2d(box.MaxPoint.X + margin, box.MaxPoint.Y + margin), 0, 0, 0);
+                    frame.AddVertexAt(3, new Point2d(box.MinPoint.X - margin, box.MaxPoint.Y + margin), 0, 0, 0);
+                    definition.AppendEntity(frame);
+                    tr.AddNewlyCreatedDBObject(frame, true);
                 }
             }
 

@@ -552,6 +552,13 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
 
         // ------------------------------------------------------------------------------------------- styles
 
+        /// <summary>The office's Hebrew text style (the SHX one where installed, else the TrueType fallback) and whether it is SHX.</summary>
+        internal static (ObjectId Style, bool IsShx, ObjectId Number) EnsureHebrewStyle(Transaction tr, Database db)
+        {
+            var fonts = Fonts.Ensure(tr, db);
+            return (fonts.Hebrew, fonts.HebrewIsShx, fonts.Number);
+        }
+
         private sealed record Fonts(ObjectId Hebrew, bool HebrewIsShx, ObjectId Number, ObjectId Axis, ObjectId Fallback)
         {
             /// <summary>

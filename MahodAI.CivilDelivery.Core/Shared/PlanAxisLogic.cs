@@ -17,8 +17,11 @@ public sealed class PlanAxis
     private readonly P2[] _vertices;
     private readonly double[] _stations;
 
-    public PlanAxis(string name, IReadOnlyList<P2> vertices)
+    /// <param name="startStation">The station of the first vertex: 0 for a drawn polyline, the alignment's own
+    /// stationing for an exploded alignment (<see cref="ExplodedAlignmentLogic"/>).</param>
+    public PlanAxis(string name, IReadOnlyList<P2> vertices, double startStation = 0)
     {
+        StartStation = double.IsFinite(startStation) ? startStation : 0;
         Name = string.IsNullOrWhiteSpace(name) ? throw new ArgumentException("An axis needs a name.", nameof(name)) : name;
         if (vertices == null) throw new ArgumentNullException(nameof(vertices));
         var clean = new List<P2>();
@@ -35,6 +38,9 @@ public sealed class PlanAxis
     }
 
     public string Name { get; }
+
+    /// <summary>The station of the first vertex.</summary>
+    public double StartStation { get; }
 
     public double Length => _stations[^1];
 
@@ -66,7 +72,7 @@ public sealed class PlanAxis
             best = distance;
             if (beyond) { station = double.NaN; continue; }
             var length = Math.Sqrt(lengthSq);
-            station = _stations[i] + clamped * length;
+            station = StartStation + _stations[i] + clamped * length;
             // Cross product sign: positive when the point is LEFT of the drawn direction; Civil's offset is right-positive.
             var cross = dx * (point.Y - a.Y) - dy * (point.X - a.X);
             offset = cross > 0 ? -distance : distance;
@@ -78,7 +84,7 @@ public sealed class PlanAxis
     /// <summary>The plan point at a station and signed offset (right positive), the station clamped to the axis.</summary>
     public P2 PointAt(double station, double offset)
     {
-        var (a, b, t) = SegmentAt(station);
+        var (a, b, t) = SegmentAt(station - StartStation);
         var dx = b.X - a.X;
         var dy = b.Y - a.Y;
         var length = Math.Sqrt(dx * dx + dy * dy);
@@ -91,7 +97,7 @@ public sealed class PlanAxis
     /// <summary>The axis direction at a station, degrees in [0, 360).</summary>
     public double TangentDegAt(double station)
     {
-        var (a, b, _) = SegmentAt(station);
+        var (a, b, _) = SegmentAt(station - StartStation);
         return NormalizeDeg(Math.Atan2(b.Y - a.Y, b.X - a.X) * 180.0 / Math.PI);
     }
 

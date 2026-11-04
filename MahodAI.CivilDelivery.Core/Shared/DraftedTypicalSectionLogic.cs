@@ -89,6 +89,20 @@ public static class DraftedTypicalSectionLogic
     /// <summary>Wider than this a strip around the axis is a carriageway, not a median.</summary>
     public const double MedianMaxM = 3.0;
 
+    /// <summary>
+    /// A strip around the axis with a barrier in it is the median up to this wide (2026-11-04, TR-M34 Main-40: 10.10 m
+    /// between the two 803 edge lines, the barrier walls inside it drawn as blocks, no line between).
+    /// </summary>
+    public const double BarrierMedianMaxM = 12.0;
+
+    /// <summary>
+    /// A corridor's piece edge exported to the plan as "&lt;corridor&gt;+&lt;piece&gt;+W" (TR-M34: RD-40+110+W at
+    /// 12.40, where the marking plan draws no lane line). Read as a pavement edge on drafted drawings only - where the
+    /// corridor itself is in the drawing, it is read instead.
+    /// </summary>
+    public static bool IsCorridorEdgeLayer(string? layer) =>
+        System.Text.RegularExpressions.Regex.IsMatch(PlanAxis.LayerLeaf(layer), @"^[^+]+\+[^+]+\+W$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
     // Ordered: the first pattern that matches the layer leaf wins (a sidewalk CURB is a curb, not a sidewalk).
     private static readonly (string Pattern, string Kind)[] LayerKinds =
     {
@@ -304,6 +318,12 @@ public static class DraftedTypicalSectionLogic
                 groups.Add(new Zone(strips[centre - 1].FromM, strips[centre + 1].ToM, "מפרדה"));
                 if (!barriers.Any(b => b.OffsetM > mid.FromM && b.OffsetM < mid.ToM))
                     barriers.Add(new Crossing((mid.FromM + mid.ToM) / 2, Kind.Barrier, "median", "median"));
+            }
+            else if (RoadLine(At(mid.FromM).Kind) && RoadLine(At(mid.ToM).Kind) && mid.WidthM > MedianMaxM && mid.WidthM <= BarrierMedianMaxM &&
+                     barriers.Any(b => b.OffsetM > mid.FromM && b.OffsetM < mid.ToM))
+            {
+                // A wide strip around the axis with a barrier in it: the median, its walls drawn as blocks (TR-M34).
+                strips[centre] = mid with { Name = "מפרדה" };
             }
             else if (RoadLine(At(mid.FromM).Kind) && RoadLine(At(mid.ToM).Kind) && mid.WidthM >= MedianMinM && mid.WidthM <= MedianMaxM)
             {

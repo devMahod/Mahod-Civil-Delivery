@@ -75,12 +75,15 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                 var frameLayer = TypicalSectionPicker.EnsureLayer(tr, db, OfficeTypicalRenderer.FrameLayer, 4);
                 var keep = new HashSet<string>(OfficeTypicalRenderer.Layers.Select(x => x.Name), StringComparer.OrdinalIgnoreCase)
                     { DraftedTypicalSectionService.SectionLayer };
+                // A section drawn from plan lines only (no corridor, 2026-11-04 TR-M34) draws on its own layers.
+                keep.UnionWith(DraftedTypicalSectionService.OwnLayers);
                 var freeze = new List<ObjectId>();
                 foreach (ObjectId lid in (LayerTable)tr.GetObject(db.LayerTableId, OpenMode.ForRead))
                     if (!keep.Contains(((LayerTableRecord)tr.GetObject(lid, OpenMode.ForRead)).Name)) freeze.Add(lid);
                 var textLayer = TypicalSectionPicker.EnsureLayer(tr, db, "HW-TYP-TEXT", 2);
-                var hebrew = StyleOr(tr, db, "MHD-TYP-MIRYL");
-                var shx = hebrew != db.Textstyle && IsShx(tr, hebrew);
+                // The office's Hebrew style, made here when no office-format section made it first (2026-11-04: on a
+                // plan-only drawing the sheet fell back to the drawing's own style and printed "????").
+                var (hebrew, shx, number) = OfficeTypicalRenderer.EnsureHebrewStyle(tr, db);
                 // the sheet's text black (7), its frames and viewport borders grey, as the panels (OfficeTypicalRenderer.Palette)
                 T Add<T>(T e, ObjectId layer) where T : Entity
                 {
@@ -97,9 +100,42 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                 }
                 void Text(string value, double x, double y, double h)
                 {
-                    var t = Add(new DBText { TextString = shx ? OfficeTypicalSheet.ShxHebrew(value) : value, Height = h, TextStyleId = hebrew, Position = new Point3d(x, y, 0) }, textLayer);
-                    // right-aligned at x, as the office's column reads
-                    try { var e = t.GeometricExtents; t.Position = new Point3d(x - (e.MaxPoint.X - x), y, 0); } catch { }
+                    // One text per script, laid right to left and ending at x, as the office's column reads (a DBText
+                    // mixing Hebrew and digits comes out scrambled in TrueType, and the office's Hebrew SHX draws Latin
+                    // letters as Hebrew ones - "Main-40" came out garbled on the TR-M34 sheet, 2026-11-04): Hebrew in the
+                    // Hebrew style, names and numbers in the number style.
+                    static bool Heb(char c) => c >= '֐' && c <= '׿';
+                    var hasHebrew = value.Any(Heb);
+                    var hasLatin = value.Any(c => c is >= 'A' and <= 'Z' or >= 'a' and <= 'z');
+                    if (!hasHebrew || (shx && !hasLatin))
+                    {
+                        // One text: a name or number in the number style; Hebrew with digits in the office's SHX, which
+                        // lays them out itself (split, its runs lost their spaces).
+                        var one = Add(new DBText
+                        {
+                            TextString = hasHebrew ? OfficeTypicalSheet.ShxHebrew(value) : value, Height = h,
+                            TextStyleId = hasHebrew ? hebrew : number, Position = new Point3d(x, y, 0),
+                        }, textLayer);
+                        try { var e = one.GeometricExtents; one.Position = new Point3d(x - (e.MaxPoint.X - x), y, 0); } catch { }
+                        return;
+                    }
+                    var right = x;
+                    foreach (var run in TypicalSheetText.Runs(value))
+                    {
+                        var isHebrew = run.Any(c => c >= '֐' && c <= '׿');
+                        var r = Add(new DBText
+                        {
+                            TextString = isHebrew && shx ? OfficeTypicalSheet.ShxHebrew(run) : run,
+                            Height = h, TextStyleId = isHebrew ? hebrew : number, Position = new Point3d(x, y, 0),
+                        }, textLayer);
+                        try
+                        {
+                            var e = r.GeometricExtents;
+                            r.Position = new Point3d(r.Position.X - (e.MaxPoint.X - right), y, 0);
+                            right -= e.MaxPoint.X - e.MinPoint.X + h * 0.35;
+                        }
+                        catch { }
+                    }
                 }
 
                 Rect(Margin, Margin, SheetW - Margin, SheetH - Margin, frameLayer);
@@ -308,13 +344,5 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             catch { /* the default paper; the frame is still A0 */ }
         }
 
-        private static ObjectId StyleOr(Transaction tr, Database db, string name)
-        {
-            var table = (TextStyleTable)tr.GetObject(db.TextStyleTableId, OpenMode.ForRead);
-            return table.Has(name) ? table[name] : db.Textstyle;
-        }
-
-        private static bool IsShx(Transaction tr, ObjectId style) =>
-            ((TextStyleTableRecord)tr.GetObject(style, OpenMode.ForRead)).FileName.EndsWith(".shx", StringComparison.OrdinalIgnoreCase);
     }
 }

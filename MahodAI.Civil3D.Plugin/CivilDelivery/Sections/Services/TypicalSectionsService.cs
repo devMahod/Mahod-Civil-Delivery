@@ -476,7 +476,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                     try
                     {
                         using var tr = db.TransactionManager.StartTransaction();
-                        var (crossings, objects) = DraftedTypicalSectionService.Cut(tr, db, pick);
+                        var (crossings, objects) = DraftedTypicalSectionService.Cut(tr, db, pick, corridorEdges: true);
                         var panels = DraftedTypicalSectionLogic.BuildPanels(crossings, objects, pick.HalfWidthM);
                         var title = FormattableString.Invariant($"חתך טיפוסי — {pick.AlignmentName}, תחנה {pick.Station:0.00}");
                         // Rows grow upward; the block hangs below its insertion point by its chain, names and title.
