@@ -310,8 +310,16 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             }
             (double MinX, double MinY, double MaxX, double MaxY)? previousExtents = null;
             var cut = new Dictionary<string, TypicalSectionPick>(StringComparer.OrdinalIgnoreCase);
+            var hasMarkingPlan = true;
             using (doc.LockDocument())
             {
+                // The plan references the cut reads (2026-11-04, a coworker's 6403: all of them unloaded, no marking plan
+                // referenced) are opened for the run and put back after it.
+                log?.Begin("typical.plan_references", "");
+                using var planReferences = TypicalPlanReferences.Open(db);
+                log?.End("typical.plan_references", $"marking={planReferences.HasMarkingPlan}");
+                result.Warnings.AddRange(planReferences.Notes);
+                hasMarkingPlan = planReferences.HasMarkingPlan;
                 foreach (var picked in picks)
                 {
                     // The firm's code draws the road only where the corridor applied its assembly: cut at the nearest.
@@ -384,6 +392,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                 }
             }
             log?.End("typical.firm_sections", $"created={result.CreatedCount}");
+            if (!hasMarkingPlan) AddLaneNote(result);
 
             // The office's sheet (DD-5001: A0, 1:100, the panels stacked) is its own command: building a layout right after
             // the firm's section program took Civil 3D down (2026-11-02).
@@ -450,8 +459,12 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                 tr.Abort();
             }
             (double MinX, double MinY, double MaxX, double MaxY)? previousExtents = null;
+            var hasMarkingPlan = true;
             using (doc.LockDocument())
             {
+                using var planReferences = TypicalPlanReferences.Open(db);
+                result.Warnings.AddRange(planReferences.Notes);
+                hasMarkingPlan = planReferences.HasMarkingPlan;
                 foreach (var pick in picks)
                 {
                     var outcome = new SectionOutcome
@@ -491,6 +504,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             }
             // Each drawn block marks itself for redraw (DraftedTypicalSectionService.Draw): no full regen of a large drawing.
             log?.End("typical.drafted", $"created={result.CreatedCount} named={result.NamedCount}");
+            if (!hasMarkingPlan) AddLaneNote(result);
             return Finish(result, request, started);
         }
 
@@ -541,6 +555,18 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                 MahodAI.Civil3D.Plugin.Utilities.MahodLogger.Error("[TypicalSections] plan overlay failed", ex);
                 return blockExtents;
             }
+        }
+
+        /// <summary>
+        /// A section whose carriageway has no lane lines says how to get them (2026-11-04: the coworker asked where the
+        /// lanes and the cars are) - once per run.
+        /// </summary>
+        internal static void AddLaneNote(Result result)
+        {
+            var laneless = result.Sections.Any(section => section.Notes.Any(note =>
+                note.Contains("בלי קווי נתיב", StringComparison.Ordinal) || note.Contains("נשאר רק הציר", StringComparison.Ordinal)));
+            if (laneless && !result.Warnings.Contains(TypicalPlanReferenceLogic.NoMarkingPlanHe))
+                result.Warnings.Add(TypicalPlanReferenceLogic.NoMarkingPlanHe);
         }
 
         /// <summary>One line on what the cut found, so the engineer sees the section was read and from what.</summary>

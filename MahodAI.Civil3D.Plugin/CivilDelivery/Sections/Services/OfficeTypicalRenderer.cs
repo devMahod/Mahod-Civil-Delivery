@@ -238,11 +238,17 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             var groupInner = new HashSet<double>(section.Groups.SelectMany(gr =>
                 breaks.Where(o => o > gr.FromM + 1e-6 && o < gr.ToM - 1e-6)));
             var extra = new List<double>();
-            if (design != null && breaks.Count > 0)
+            // With no plan line at all (2026-11-04, a coworker's 6403 with every plan reference missing) the chain is the
+            // corridor's own: its paved pieces from the axis out, so every width is still dimensioned.
+            var fromAxis = breaks.Count == 0;
+            if (design != null && fromAxis &&
+                design.Surface.Any(l => Math.Abs(l.A.X) < 0.05 || Math.Abs(l.B.X) < 0.05))
+                extra.Add(0);
+            if (design != null && (breaks.Count > 0 || fromAxis))
             {
                 foreach (var side in new[] { -1, 1 })
                 {
-                    var edge = side < 0 ? breaks[0] : breaks[^1];
+                    var edge = fromAxis ? 0 : side < 0 ? breaks[0] : breaks[^1];
                     var links = design.Surface
                         .Select(l => l.A.X <= l.B.X ? l : l with { A = l.B, B = l.A })
                         .Where(l => side < 0 ? l.A.X < edge - 0.05 : l.B.X > edge + 0.05)
