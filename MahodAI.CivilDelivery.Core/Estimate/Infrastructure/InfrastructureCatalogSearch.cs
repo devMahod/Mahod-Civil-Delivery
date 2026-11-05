@@ -47,7 +47,13 @@ public sealed class InfrastructureCatalogSearch
             return topic == InfrastructureBoq.Unknown ? term : Normalize(topic);
         }).Distinct(StringComparer.Ordinal).ToArray();
         var requestedTopics = terms.Where(TopicTerms.Contains).ToArray();
-        var rankingTopic = requestedTopics.Length == 1 ? requestedTopics[0] : group.Topic;
+        var demolish = group.Disposition == InfrastructureDisposition.ExistingDemolish;
+        // Demolition of an existing element is priced from the demolition chapter, ranked by what is demolished.
+        var rankingTopic = requestedTopics.Length == 1 ? requestedTopics[0] : demolish ? Demolition : group.Topic;
+        var element = ElementTerms(group);
+        // A pavement-structure row names its own layer (תא"צ 19 בעובי 5): that wording is the search.
+        var hint = group.GroupPart == RoadPavement.DerivedPart
+            ? Normalize(group.Element).Split(' ', StringSplitOptions.RemoveEmptyEntries) : Array.Empty<string>();
         var diameter = LayerDiameter(group.ShortLayer);
         var material = MaterialOf(group.ShortLayer);
         var hasQuery = terms.Length > 0;
@@ -66,6 +72,16 @@ public sealed class InfrastructureCatalogSearch
             var rank = topic + (focused ? 80 : 0);
             var reasons = new List<string>();
             if (topic > 0) reasons.Add(rankingTopic);
+            var elementMatch = element != null && element.IsMatch(e.Text);
+            var hintMatch = hint.Length > 0 && hint.All(t => MatchesTerm(e.Text, t));
+            if (hintMatch) { rank += 120; reasons.Add("לפי שכבת המבנה: " + group.Element); }
+            if (demolish && rankingTopic == Demolition)
+            {
+                if (_usesNtiChapters && e.Item.SubChapter == "51.01") rank += 60;
+                if (elementMatch) { rank += 45; reasons.Add("פירוק של " + (group.Element.Length > 0 ? group.Element : group.Topic)); }
+                else if (element != null) rank -= 25;
+            }
+            else if (group.Surface == RoadSurfaceKind.Milling && e.Text.Contains("קרצוף")) { rank += 60; reasons.Add("קרצוף"); }
             if (e.Item.Code.Equals(query.Trim(), StringComparison.OrdinalIgnoreCase)) rank += 10000;
             if (codeMatch) rank += 500;
             if (diameter is { } d && DiameterMatches(e.Item.Description, d.Value, d.Unit))
@@ -92,7 +108,10 @@ public sealed class InfrastructureCatalogSearch
             matches.Add(new(e.Item.Code, e.Item.Description, e.Item.UnitRaw, e.Price,
                 hasQuery ? "תוצאת חיפוש" + (reasons.Count > 0 ? " · " + string.Join(" · ", reasons) : "")
                     : string.Join(" · ", reasons) + " · בדוק חומר, עומק וסוג עבודה", rank)
-            { MatchesLayerTopic = !auxiliaryLength && TopicRank(group.Topic, e.Item, e.Text, e.ContextTopics) > 0 });
+            { MatchesLayerTopic = !auxiliaryLength && group.Role == LayerRole.Quantity && (demolish
+                ? TopicRank(Demolition, e.Item, e.Text, e.ContextTopics) > 0 && (element == null || elementMatch)
+                : hint.Length > 0 ? hintMatch
+                : TopicRank(group.Topic, e.Item, e.Text, e.ContextTopics) > 0 && (group.Surface != RoadSurfaceKind.Milling || e.Text.Contains("קרצוף"))) });
         }
         var options = matches.OrderByDescending(x => x.Rank).ThenBy(x => x.Code, StringComparer.Ordinal).Take(limit).ToArray();
         // A filter or an exact code search can return items unrelated to this layer.
@@ -110,6 +129,8 @@ public sealed class InfrastructureCatalogSearch
         foreach (var group in groups.Distinct())
         {
             if (group.Approved) { existing++; continue; }
+            // Existing that stays is never priced; edges and drafting are not pay items on their own.
+            if (group.Disposition == InfrastructureDisposition.ExistingKeep || group.Role != LayerRole.Quantity) { unmatched++; continue; }
             if (!double.IsFinite(group.Quantity) || group.Quantity <= 0) { unmeasured++; continue; }
             // A text query belongs to the current layer only, never to the whole batch.
             var recommendation = Find(group, category: category).FirstOrDefault(o => o.IsRecommended);
@@ -119,8 +140,29 @@ public sealed class InfrastructureCatalogSearch
         return new(_catalog, proposals, existing, unmeasured, unmatched);
     }
 
+    private const string Demolition = "פירוקים והריסות";
+
+    /// <summary>The element words a demolition item must name (אבני שפה, צינור ניקוז, שוחות…), from the firm convention or the topic.</summary>
+    private static Regex? ElementTerms(InfrastructureGroup group)
+    {
+        var terms = FirmLayerConventions.Match(group.Layer)?.DemolitionTerms;
+        if (string.IsNullOrEmpty(terms)) terms = group.Topic switch
+        {
+            "כבישים ואספלט" => "אספלט", "ריצופים" => "ריצוף|מדרכ", "אבני שפה" => "אבני שפה|אבן שפה", "מסגרות וגדרות" => "גדר|מעקה",
+            "ניקוז" => "ניקוז", "מים" => "מים", "ביוב" => "ביוב", "תקשורת" => "תקשורת", "תאורה" => "תאורה|עמוד", "חשמל" => "חשמל|כבל",
+            "סימון ושילוט" => "שלט|תמרור", "קירות ומבנים" or "קירות תומכים" => "קיר", "גינון" => "עצים|עקיר", _ => null
+        };
+        return string.IsNullOrEmpty(terms) ? null : new Regex(string.Join("|", terms.Split('|').Select(t => Regex.Escape(Normalize(t))).Where(t => t.Length > 0)), RegexOptions.CultureInvariant);
+    }
+
     public static string LayerNote(InfrastructureGroup group)
     {
+        if (group.Disposition == InfrastructureDisposition.ExistingKeep)
+            return "תשתית קיימת שנשארת — אינה נכנסת לכתב הכמויות. אם היא נהרסת או מפורקת, סמן \"קיים — לפירוק\" והיא תתומחר בגיליון הפירוקים.";
+        if (group.Disposition == InfrastructureDisposition.ExistingDemolish)
+            return "קיים לפירוק — ההצעות מפרק הפירוקים לפי סוג האלמנט. בדוק עובי, קוטר וסוג לפני השיוך.";
+        if (group.Role == LayerRole.Boundary) return "קו שפה / גבול שטח. אורכו אינו סעיף בפני עצמו — השטח נמדד מה־Hatch שבתוכו.";
+        if (group.Role == LayerRole.Annotation) return "שכבת שרטוט (כיתוב, מידות, חתך או חתך אורך) — לא כמות לביצוע.";
         if (group.MeasuredQuantity <= 0) return "אין מדידה מהשרטוט ביחידה זו. יש להזין כמות במפורש; לא נגזרים משקל, נפח או עובי משטח או מאורך.";
         if (Units.Parse(group.MeasurementUnit).Dimension == UnitDimension.Count) return "ספירת מופעי בלוק לפי שם ושכבה. בדוק שהבלוק מייצג את הפריט שבחרת; קווי המתאר שלו אינם אורך צינור.";
         if (Units.Parse(group.MeasurementUnit).Dimension == UnitDimension.Area) return "שטח גאומטרי של גבולות סגורים או Hatch, כולל חורים שמוגדרים בו. בדוק חפיפות ושהגבולות מייצגים את העבודה.";

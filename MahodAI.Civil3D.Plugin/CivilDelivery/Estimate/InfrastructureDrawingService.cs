@@ -58,12 +58,16 @@ internal sealed class InfrastructureDrawingService : IDisposable
                 var handle = chain + entity.Handle;
                 if (entity is BlockReference reference)
                 {
-                    var child = (BlockTableRecord)tr.GetObject(reference.BlockTableRecord, OpenMode.ForRead);
+                    // XREFs carry references whose definition did not survive (null / erased): one finding, the scan goes on.
+                    if (reference.BlockTableRecord.IsNull || reference.BlockTableRecord.IsErased ||
+                        tr.GetObject(reference.BlockTableRecord, OpenMode.ForRead) is not BlockTableRecord child)
+                    { _unsupported["BlockReference ללא הגדרת בלוק"] = _unsupported.GetValueOrDefault("BlockReference ללא הגדרת בלוק") + 1; continue; }
                     // One placed symbol is one count; its internal outline is never pipe length or paving area.
                     if (!child.IsFromExternalReference)
                     {
                         if (reference is MInsertBlock) { _unsupported["MInsertBlock — מערך בלוקים"] = _unsupported.GetValueOrDefault("MInsertBlock — מערך בלוקים") + 1; continue; }
-                        var definition = (BlockTableRecord)tr.GetObject(reference.IsDynamicBlock ? reference.DynamicBlockTableRecord : reference.BlockTableRecord, OpenMode.ForRead);
+                        var definition = reference.IsDynamicBlock && !reference.DynamicBlockTableRecord.IsNull
+                            ? (BlockTableRecord)tr.GetObject(reference.DynamicBlockTableRecord, OpenMode.ForRead) : child;
                         var normalized = InfrastructureLayerNames.Normalize(layer + " " + definition.Name);
                         if (System.Text.RegularExpressions.Regex.IsMatch(normalized, @"(?:^| )(TITLE|FRAME|LEGEND|TEXT|LABEL|DIM|כותרת|מקרא)(?: |$)")) continue;
                         _symbolBlocks++;
@@ -129,11 +133,48 @@ internal sealed class InfrastructureDrawingService : IDisposable
         var sourceKey = Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(source + "\n" + part)))[..8];
         var outputLayer = "BOQ_" + classification.Code + "__" + sourceKey + "__" + safe;
         if (outputLayer.Length > 240) outputLayer = outputLayer[..220] + "_" + Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(layer)))[..16];
-        Measurements.Add(new(new InfrastructureLine(source, handle, layer, original.GetType().Name, length,
+        Measurements.Add(new(InfrastructureBoq.Describe(new InfrastructureLine(source, handle, layer, original.GetType().Name, length,
             original is Curve c && c.Closed, classification.Topic, classification.Evidence, outputLayer)
-            { AreaSquareMetres = area, VolumeCubicMetres = volume, CountUnits = count, GroupPart = part }, copy)
+            { AreaSquareMetres = area, VolumeCubicMetres = volume, CountUnits = count, GroupPart = part }), copy)
             { SourceDatabase = sourceTransform.HasValue ? original.Database : null, SourceId = original.ObjectId, SourceTransform = sourceTransform ?? Matrix3d.Identity });
     }
+    /// <summary>A new solid hatch in <paramref name="model"/> with the source's boundary loops; null when a loop cannot be copied.</summary>
+    private static Hatch? RebuildHatch(Hatch source, BlockTableRecord model, Transaction tr)
+    {
+        var hatch = new Hatch();
+        try
+        {
+            hatch.Normal = source.Normal; hatch.Elevation = source.Elevation;
+            hatch.SetHatchPattern(HatchPatternType.PreDefined, "SOLID");
+            hatch.HatchStyle = source.HatchStyle;
+            model.AppendEntity(hatch); tr.AddNewlyCreatedDBObject(hatch, true);
+            for (var i = 0; i < source.NumberOfLoops; i++)
+            {
+                var loop = source.GetLoopAt(i);
+                if (loop.IsPolyline)
+                {
+                    var points = new Point2dCollection(); var bulges = new DoubleCollection();
+                    foreach (BulgeVertex v in loop.Polyline) { points.Add(v.Vertex); bulges.Add(v.Bulge); }
+                    hatch.AppendLoop(loop.LoopType, points, bulges);
+                    continue;
+                }
+                var edges = new IntegerCollection();
+                foreach (Curve2d c in loop.Curves)
+                    edges.Add(c switch { LineSegment2d => 1, CircularArc2d => 2, EllipticalArc2d => 3, _ => 4 });
+                hatch.AppendLoop(loop.LoopType, loop.Curves, edges);
+            }
+            hatch.EvaluateHatch(true);
+            // The audit drawing never carries an area other than the measured one.
+            if (Math.Abs(hatch.Area - source.Area) > Math.Max(1e-7, Math.Abs(source.Area) * 1e-9)) { hatch.Erase(); return null; }
+            return hatch;
+        }
+        catch (Autodesk.AutoCAD.Runtime.Exception)
+        {
+            if (hatch.ObjectId.IsNull) hatch.Dispose(); else hatch.Erase();
+            return null;
+        }
+    }
+
     private static double ClosedArea(Curve curve)
     {
         if (!curve.Closed) return 0;
@@ -176,8 +217,11 @@ internal sealed class InfrastructureDrawingService : IDisposable
             default: throw new InvalidOperationException("Fit/spline legacy polylines require a dedicated exact adapter; not approximated");
         }
     }
-    internal void SaveDrawing(string path, IEnumerable<InfrastructureGroup> included)
+    /// <summary>Writes the measured geometry to a metric DWG and verifies it. Returns the entities that could not be copied
+    /// (listed beside the DWG); the Excel quantities never depend on this drawing.</summary>
+    internal int SaveDrawing(string path, IEnumerable<InfrastructureGroup> included)
     {
+        var skipped = new List<(Measured Item, string Reason)>();
         var groups = included.ToDictionary(g => (g.Source, g.Layer, g.GroupPart));
         var selected = Measurements.Where(m => groups.ContainsKey((m.Line.Source, m.Line.Layer, m.Line.GroupPart)))
             .Select(m => m with { Line = InfrastructureBoq.ReviewedLine(m.Line, groups[(m.Line.Source, m.Line.Layer, m.Line.GroupPart)]) }).ToArray();
@@ -211,11 +255,23 @@ internal sealed class InfrastructureDrawingService : IDisposable
                 if (measured.SourceDatabase != null)
                 {
                     // Native cross-database cloning translates the Hatch/ACIS symbol references; a shallow Clone cannot.
-                    var mapping = new IdMapping();
-                    measured.SourceDatabase.WblockCloneObjects(new ObjectIdCollection { measured.SourceId }, model.ObjectId, mapping, DuplicateRecordCloning.Ignore, false);
-                    clone = (Entity)tr.GetObject(mapping[measured.SourceId].Value, OpenMode.ForWrite);
-                    if (clone is Hatch copiedHatch) copiedHatch.Associative = false;
-                    clone.TransformBy(measured.SourceTransform);
+                    // Some XREF hatches refuse it (eInvalidKey on a 40-XREF sheet, 2026-11-05): skip and list, never abort.
+                    try
+                    {
+                        var mapping = new IdMapping();
+                        measured.SourceDatabase.WblockCloneObjects(new ObjectIdCollection { measured.SourceId }, model.ObjectId, mapping, DuplicateRecordCloning.Ignore, false);
+                        clone = (Entity)tr.GetObject(mapping[measured.SourceId].Value, OpenMode.ForWrite);
+                        if (clone is Hatch copiedHatch) copiedHatch.Associative = false;
+                        clone.TransformBy(measured.SourceTransform);
+                    }
+                    catch (Autodesk.AutoCAD.Runtime.Exception ex)
+                    {
+                        // XREF hatches mostly refuse the native clone; rebuild the same boundary loops as a solid hatch
+                        // (already in host coordinates), so the audit drawing still carries every measured area.
+                        var rebuilt = measured.Geometry is Hatch source ? RebuildHatch(source, model, tr) : null;
+                        if (rebuilt == null) { skipped.Add((measured, ex.ErrorStatus.ToString())); continue; }
+                        clone = rebuilt;
+                    }
                 }
                 else clone = (Entity)measured.Geometry.Clone();
                 clone.SetDatabaseDefaults(output);
@@ -260,8 +316,10 @@ internal sealed class InfrastructureDrawingService : IDisposable
                 actual[entity.Layer] = (value.Count + 1, value.Length + length, value.Area + area,
                     value.Volume + (entity is Solid3d solid ? solid.MassProperties.Volume : 0), value.Units + (entity is DBPoint ? 1 : 0));
             }
-            var expected = selected.GroupBy(m => m.Line.OutputLayer)
-                .ToDictionary(g => g.Key, g => (Count: g.Count(), Length: g.Sum(m => m.Line.LengthMetres), Area: g.Sum(m => m.Line.AreaSquareMetres), Volume: g.Sum(m => m.Line.VolumeCubicMetres), Units: g.Sum(m => m.Line.CountUnits)));
+            var omitted = skipped.Select(s => s.Item).ToHashSet();
+            // Counted outlines (a closed manhole curve = 1 unit) stay curves in the DWG; only block markers are points.
+            var expected = selected.Where(m => !omitted.Contains(m)).GroupBy(m => m.Line.OutputLayer)
+                .ToDictionary(g => g.Key, g => (Count: g.Count(), Length: g.Sum(m => m.Line.LengthMetres), Area: g.Sum(m => m.Line.AreaSquareMetres), Volume: g.Sum(m => m.Line.VolumeCubicMetres), Units: g.Sum(m => m.Geometry is DBPoint ? m.Line.CountUnits : 0)));
             static bool Same(double a, double b) => Math.Abs(a - b) <= Math.Max(1e-7, Math.Abs(b) * 1e-8);
             if (actual.Count != expected.Count || expected.Any(e => !actual.TryGetValue(e.Key, out var a) || a.Count != e.Value.Count ||
                 !Same(a.Length, e.Value.Length) || !Same(a.Area, e.Value.Area) || !Same(a.Volume, e.Value.Volume) || !Same(a.Units, e.Value.Units)))
@@ -269,6 +327,9 @@ internal sealed class InfrastructureDrawingService : IDisposable
         }
         File.WriteAllText(path + ".sources.json", JsonSerializer.Serialize(selected
             .Select(m => m.Line), new JsonSerializerOptions { WriteIndented = true }));
+        if (skipped.Count > 0)
+            File.WriteAllLines(path + ".not-copied.txt", skipped.Select(s => string.Join(" | ", s.Item.Line.Source, s.Item.Line.Handle, s.Item.Line.Layer, s.Item.Line.EntityType, s.Reason)));
+        return skipped.Count;
     }
     public void Dispose() { foreach (var m in Measurements) m.Geometry.Dispose(); }
 }

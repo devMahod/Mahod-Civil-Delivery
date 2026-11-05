@@ -8,7 +8,8 @@ namespace MahodAI.CivilDelivery.Estimate.Infrastructure;
 public static class InfrastructureReviewStore
 {
     public sealed record Choice(string Key, string? Code, bool Excluded, string? CatalogHash = null, string? Topic = null,
-        string? MeasurementUnit = null, double? ManualQuantity = null, bool AutomaticallyAssigned = false);
+        string? MeasurementUnit = null, double? ManualQuantity = null, bool AutomaticallyAssigned = false,
+        InfrastructureDisposition? Disposition = null, RoadSurfaceKind? Surface = null);
     public sealed record Review(string DrawingHash, string CatalogHash, DateTime SavedAtUtc, Choice[] Choices);
     public static string FileName(string drawing) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(Path.GetFullPath(drawing).ToUpperInvariant()))) + ".json";
     private static string Key(InfrastructureGroup g) => JsonSerializer.Serialize(new { g.Source, g.Layer, g.Topic, g.Count, g.LengthMetres, g.ClosedCount });
@@ -23,7 +24,8 @@ public static class InfrastructureReviewStore
         var hashes = catalogs.Select(c => c.FileHash).ToHashSet(StringComparer.Ordinal);
         var review = new Review(drawingHash, catalogs.Count == 1 ? catalogs[0].FileHash : "multiple-editions", DateTime.UtcNow,
             groups.Select(g => new Choice(StableKey(g), g.CatalogHash != null && hashes.Contains(g.CatalogHash) ? g.Code : null,
-                excluded.Contains(g), g.CatalogHash, g.Topic, g.MeasurementUnit, g.ManualQuantity, g.AutomaticallyAssigned)).ToArray());
+                excluded.Contains(g), g.CatalogHash, g.Topic, g.MeasurementUnit, g.ManualQuantity, g.AutomaticallyAssigned,
+                g.DispositionChangedByEngineer ? g.Disposition : null, g.Surface != g.DetectedSurface ? g.Surface : null)).ToArray());
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         var temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try { File.WriteAllText(temporary, JsonSerializer.Serialize(review)); File.Move(temporary, path, true); }
@@ -46,6 +48,8 @@ public static class InfrastructureReviewStore
             if (!choices.TryGetValue(StableKey(group), out var choice) &&
                 !(group.GroupPart.Length == 0 && (choices.TryGetValue(LegacyKey(group), out choice) || choices.TryGetValue(Key(group), out choice)))) continue;
             if (choice.Topic != null && InfrastructureBoq.Topics.Contains(choice.Topic)) group.Topic = choice.Topic;
+            if (choice.Disposition is { } disposition && Enum.IsDefined(disposition)) group.Disposition = disposition;
+            if (choice.Surface is { } surface && Enum.IsDefined(surface)) group.Surface = surface;
             if (choice.MeasurementUnit != null) group.MeasurementUnit = choice.MeasurementUnit;
             if (choice.ManualQuantity is > 0 && double.IsFinite(choice.ManualQuantity.Value)) group.ManualQuantity = choice.ManualQuantity;
             if (choice.Code != null && books.TryGetValue(choice.CatalogHash ?? saved.CatalogHash, out var catalog) &&
