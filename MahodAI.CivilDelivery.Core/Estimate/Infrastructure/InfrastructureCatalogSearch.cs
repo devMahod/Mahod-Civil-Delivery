@@ -108,7 +108,7 @@ public sealed class InfrastructureCatalogSearch
             matches.Add(new(e.Item.Code, e.Item.Description, e.Item.UnitRaw, e.Price,
                 hasQuery ? "תוצאת חיפוש" + (reasons.Count > 0 ? " · " + string.Join(" · ", reasons) : "")
                     : string.Join(" · ", reasons) + " · בדוק חומר, עומק וסוג עבודה", rank)
-            { MatchesLayerTopic = !auxiliaryLength && group.Role == LayerRole.Quantity && (demolish
+            { MatchesLayerTopic = !auxiliaryLength && group.IsPayItem && (demolish
                 ? TopicRank(Demolition, e.Item, e.Text, e.ContextTopics) > 0 && (element == null || elementMatch)
                 : hint.Length > 0 ? hintMatch
                 : TopicRank(group.Topic, e.Item, e.Text, e.ContextTopics) > 0 && (group.Surface != RoadSurfaceKind.Milling || e.Text.Contains("קרצוף"))) });
@@ -129,8 +129,8 @@ public sealed class InfrastructureCatalogSearch
         foreach (var group in groups.Distinct())
         {
             if (group.Approved) { existing++; continue; }
-            // Existing that stays is never priced; edges and drafting are not pay items on their own.
-            if (group.Disposition == InfrastructureDisposition.ExistingKeep || group.Role != LayerRole.Quantity) { unmatched++; continue; }
+            // Existing that stays is never priced; edges, drafting and road areas priced by their structure are not pay items.
+            if (group.Disposition == InfrastructureDisposition.ExistingKeep || !group.IsPayItem) { unmatched++; continue; }
             if (!double.IsFinite(group.Quantity) || group.Quantity <= 0) { unmeasured++; continue; }
             // A text query belongs to the current layer only, never to the whole batch.
             var recommendation = Find(group, category: category).FirstOrDefault(o => o.IsRecommended);
@@ -161,6 +161,8 @@ public sealed class InfrastructureCatalogSearch
             return "תשתית קיימת שנשארת — אינה נכנסת לכתב הכמויות. אם היא נהרסת או מפורקת, סמן \"קיים — לפירוק\" והיא תתומחר בגיליון הפירוקים.";
         if (group.Disposition == InfrastructureDisposition.ExistingDemolish)
             return "קיים לפירוק — ההצעות מפרק הפירוקים לפי סוג האלמנט. בדוק עובי, קוטר וסוג לפני השיוך.";
+        if (group.PricedByStructure)
+            return $"שטח {group.SurfaceName} — מתומחר דרך שכבות המבנה שלו (מסך כבישים: שטח × עובי). סעיף לשטח עצמו היה סופר אותו פעמיים; כדי לתמחר את השטח ישירות, רוקן את מבנה המשטח.";
         if (group.Role == LayerRole.Boundary) return "קו שפה / גבול שטח. אורכו אינו סעיף בפני עצמו — השטח נמדד מה־Hatch שבתוכו.";
         if (group.Role == LayerRole.Annotation) return "שכבת שרטוט (כיתוב, מידות, חתך או חתך אורך) — לא כמות לביצוע.";
         if (group.MeasuredQuantity <= 0) return "אין מדידה מהשרטוט ביחידה זו. יש להזין כמות במפורש; לא נגזרים משקל, נפח או עובי משטח או מאורך.";

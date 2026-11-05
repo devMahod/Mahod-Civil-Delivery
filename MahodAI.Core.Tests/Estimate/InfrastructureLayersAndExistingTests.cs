@@ -280,4 +280,75 @@ public sealed class InfrastructureLayersAndExistingTests : IDisposable
         using var dz = ZipFile.OpenRead(demolitionOnly);
         Assert.Contains("ASMADE-CURB", XDocument.Load(dz.GetEntry("xl/worksheets/sheet1.xml")!.Open()).ToString());
     }
+
+    [Fact]
+    public void A_road_area_with_a_structure_is_priced_once_through_its_structure_rows()
+    {
+        // Live 2026-11-05: every road hatch was auto-priced "הסרת צמחיה" and the sidewalk hatch a paving item, on top
+        // of their structure rows; the bike path's asphalt row got the acrylic coating of the marking chapter.
+        var catalog = Nti();
+        var groups = InfrastructureBoq.Group(new[]
+        {
+            Line("HW-ROAD-HA", area: 1000, part: "שטחים"), Line("HW-SDWK-H", area: 200, part: "שטחים"),
+            Line("HW-BIKE-HA", area: 100, part: "שטחים"), Line("ASMADE-ROAD-HA", area: 300, part: "שטחים"),
+            Line("HW-CURB-GRDN", length: 90),
+        }).ToList();
+        Assert.Equal(3, RoadPavement.MarkPricedByStructure(groups, RoadPavement.Defaults));
+        var road = groups.Single(g => g.Layer == "HW-ROAD-HA");
+        Assert.True(road.PricedByStructure);
+        Assert.False(road.IsPayItem);
+        Assert.Equal("לפי מבנה", road.MappingDisplay);
+        Assert.False(groups.Single(g => g.Layer == "ASMADE-ROAD-HA").PricedByStructure); // existing keeps its own row
+
+        var derived = RoadPavement.DerivedGroups(RoadPavement.Structure(RoadPavement.Surfaces(groups), RoadPavement.Defaults));
+        var all = groups.Concat(derived).ToList();
+        new InfrastructureCatalogSearch(catalog).PlanAutomaticAssignment(all).Apply();
+
+        Assert.All(groups.Where(g => g.PricedByStructure), g => Assert.False(g.Approved, g.Layer));
+        Assert.True(groups.Single(g => g.Layer == "HW-CURB-GRDN").Approved);
+        Assert.All(derived, d => Assert.True(d.Approved, d.Layer));
+        Assert.All(derived, d => Assert.False(d.Code!.StartsWith("51.01") || d.Code.StartsWith("51.32"), d.Layer + " " + d.Code + " " + d.Description));
+        var bike = derived.Single(d => d.Layer.StartsWith("שביל אופניים") && d.MeasurementUnit == "מ״ר");
+        Assert.StartsWith("51.04", bike.Code);
+        Assert.Contains("12.5", bike.Description);
+        Assert.NotNull(bike.Price);
+        var paving = derived.Single(d => d.Layer.StartsWith("מדרכה") && d.MeasurementUnit == "מ״ר");
+        Assert.Contains("משתלבת", paving.Description);
+        Assert.Contains("/6", paving.Description);
+
+        // Approved before the structure existed: marking withdraws it, so the area cannot stay priced twice.
+        var early = InfrastructureBoq.Group(new[] { Line("HW-ROAD-HA", area: 50, part: "שטחים") }).Single();
+        var anyItem = new InfrastructureCatalogSearch(catalog).Find(early).First(o => o.IsRecommended);
+        early.Assign(catalog, anyItem.Code);
+        RoadPavement.MarkPricedByStructure(new[] { early }, RoadPavement.Defaults);
+        Assert.False(early.Approved);
+
+        // No structure for the surface: the area is priced as itself again.
+        var bare = RoadPavement.Defaults.Select(s => s.Surface == RoadSurfaceKind.Road ? s with { Layers = Array.Empty<PavementLayer>() } : s).ToArray();
+        RoadPavement.MarkPricedByStructure(groups, bare);
+        Assert.False(road.PricedByStructure);
+        Assert.True(road.IsPayItem);
+    }
+
+    [Fact]
+    public void Export_lists_a_structure_priced_area_on_the_roads_sheet_only()
+    {
+        var catalog = Nti();
+        var lines = new[] { Line("HW-ROAD-HA", area: 1000, part: "שטחים"), Line("HW-CURB-GRDN", length: 100) };
+        var groups = InfrastructureBoq.Group(lines).ToList();
+        RoadPavement.MarkPricedByStructure(groups, RoadPavement.Defaults);
+        var surfaces = RoadPavement.Surfaces(groups);
+        var structure = RoadPavement.Structure(surfaces, RoadPavement.Defaults);
+        var all = groups.Concat(RoadPavement.DerivedGroups(structure)).ToList();
+        new InfrastructureCatalogSearch(catalog).PlanAutomaticAssignment(all).Apply();
+        var path = Path.Combine(_dir, "roads-once.xlsx");
+        InfrastructureBoq.Export(path, all, lines, new[] { catalog }, Array.Empty<string>(), "d.dwg", "H", "TEST",
+            new RoadPavement.Report(surfaces, structure, Array.Empty<InfrastructureGroup>()));
+
+        using var zip = ZipFile.OpenRead(path);
+        var mainSheet = XDocument.Load(zip.GetEntry("xl/worksheets/sheet1.xml")!.Open()).ToString();
+        Assert.DoesNotContain("HW-ROAD-HA", mainSheet);
+        Assert.Contains("51.04.0340", mainSheet);
+        Assert.Contains("HW-CURB-GRDN", mainSheet);
+    }
 }

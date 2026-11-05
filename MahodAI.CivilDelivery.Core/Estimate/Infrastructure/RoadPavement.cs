@@ -66,17 +66,20 @@ public static class RoadPavement
         }),
         new PavementStructure(RoadSurfaceKind.BikePath, new[]
         {
-            new PavementLayer("תא״צ 12.5", 5, "מ״ר", "שבילי אופניים אספלט"),
+            // NTI words a bike-path ASPHALT layer as "תא''צ 12.5 בעובי 4"; "שבילי אופניים" alone found the coloured
+            // acrylic coating of the marking chapter (51.32.2649), and the 5 cm item carries no price.
+            new PavementLayer("תא״צ 12.5", 4, "מ״ר", "תא\"צ 12.5 בעובי 4"),
             new PavementLayer("מצע סוג א׳", 20, "מ״ק", "מצע סוג א"),
         }),
         new PavementStructure(RoadSurfaceKind.Sidewalk, new[]
         {
-            new PavementLayer("ריצוף אבנים משתלבות", 6, "מ״ר", "אבנים משתלבות"),
+            // The 6 cm stone (10/20/6, 20/20/6); "אבנים משתלבות" alone found the 10 cm cocktail paving.
+            new PavementLayer("ריצוף אבנים משתלבות", 6, "מ״ר", "אבן משתלבת 6"),
             new PavementLayer("מצע סוג א׳", 20, "מ״ק", "מצע סוג א"),
         }),
         new PavementStructure(RoadSurfaceKind.Island, new[]
         {
-            new PavementLayer("ריצוף / אבנים משתלבות", 6, "מ״ר", "אבנים משתלבות"),
+            new PavementLayer("ריצוף / אבנים משתלבות", 6, "מ״ר", "אבן משתלבת 6"),
         }),
         new PavementStructure(RoadSurfaceKind.Milling, new[]
         {
@@ -100,10 +103,30 @@ public static class RoadPavement
         var bySurface = structures.ToDictionary(s => s.Surface);
         return surfaces.Where(s => s.Disposition == InfrastructureDisposition.New && s.AreaSquareMetres > 0)
             .GroupBy(s => s.Surface)
-            .SelectMany(s => (bySurface.TryGetValue(s.Key, out var structure) ? structure.Layers : Array.Empty<PavementLayer>())
-                .Where(l => l.Name.Trim().Length > 0 && double.IsFinite(l.ThicknessCm) && l.ThicknessCm >= 0 && (!l.ByVolume || l.ThicknessCm > 0))
+            .SelectMany(s => Usable(bySurface.TryGetValue(s.Key, out var structure) ? structure.Layers : Array.Empty<PavementLayer>())
                 .Select(l => new LayerQuantity(s.Key, l, s.Sum(x => x.AreaSquareMetres))))
             .ToArray();
+    }
+
+    private static IEnumerable<PavementLayer> Usable(IEnumerable<PavementLayer> layers) =>
+        layers.Where(l => l.Name.Trim().Length > 0 && double.IsFinite(l.ThicknessCm) && l.ThicknessCm >= 0 && (!l.ByVolume || l.ThicknessCm > 0));
+
+    /// <summary>
+    /// Marks the new road areas whose surface has a structure: those are priced by the structure rows and are not
+    /// pay items themselves (see <see cref="InfrastructureGroup.PricedByStructure"/>). An area whose surface has no
+    /// structure, or that is existing, keeps its own row. Returns how many areas the structure prices.
+    /// </summary>
+    public static int MarkPricedByStructure(IEnumerable<InfrastructureGroup> groups, IReadOnlyList<PavementStructure> structures)
+    {
+        var priced = structures.Where(s => Usable(s.Layers).Any()).Select(s => s.Surface).ToHashSet();
+        var marked = 0;
+        foreach (var g in groups.Where(g => g.Source != DerivedSource))
+        {
+            g.PricedByStructure = g.Surface != RoadSurfaceKind.None && g.Disposition == InfrastructureDisposition.New &&
+                g.AreaSquareMetres > 0 && priced.Contains(g.Surface);
+            if (g.PricedByStructure) marked++;
+        }
+        return marked;
     }
 
     /// <summary>Structure quantities as BOQ rows, so they are priced, auto-assigned and exported like any measured layer.</summary>

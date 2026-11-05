@@ -249,7 +249,9 @@ internal sealed class InfrastructureBoqWindow : Window
         // 2 — what happens to it, 3 — price-list item
         var editor = new Grid();
         editor.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        editor.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star), MinHeight = 110 });
+        // No minimum: the item list scrolls, the assign row below it must not. With a 110 px minimum the assign
+        // button was cut off on a 1280×800 (200 %) screen — only its top edge showed (live 2026-11-05).
+        editor.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         editor.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         var editHead = new StackPanel(); editor.Children.Add(editHead);
         _subject.FontWeight = FontWeights.SemiBold; _subject.FontSize = 15; _subject.Foreground = Theme.Ink;
@@ -437,7 +439,7 @@ internal sealed class InfrastructureBoqWindow : Window
     }
 
     private IEnumerable<InfrastructureGroup> Active => _groups.Where(g => !_excluded.Contains(g));
-    private static bool PayItem(InfrastructureGroup g) => g.Role == LayerRole.Quantity;
+    private static bool PayItem(InfrastructureGroup g) => g.IsPayItem;
 
     private void Refresh()
     {
@@ -606,6 +608,8 @@ internal sealed class InfrastructureBoqWindow : Window
     {
         var old = _derived.ToDictionary(g => g.Layer);
         _groups.RemoveAll(g => g.Source == RoadPavement.DerivedSource);
+        // The structure rows price the area; the area row itself must not be priced a second time.
+        RoadPavement.MarkPricedByStructure(_groups, _structures);
         var surfaces = RoadPavement.Surfaces(_groups, _excluded);
         var layers = RoadPavement.Structure(surfaces, _structures);
         _derived = RoadPavement.DerivedGroups(layers).ToList();

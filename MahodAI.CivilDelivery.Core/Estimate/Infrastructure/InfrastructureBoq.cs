@@ -67,11 +67,20 @@ public sealed class InfrastructureGroup
     public string SurfaceName => FirmLayerConventions.SurfaceName(Surface);
     public LayerRole Role { get; init; } = LayerRole.Quantity;
     public bool IsDrafting => Role == LayerRole.Annotation;
+    private bool _pricedByStructure;
+    /// <summary>
+    /// A new road area whose surface has a pavement structure. The structure rows (asphalt, sprays, sub-base) carry
+    /// its price, so the area itself is not a pay item: pricing it too counted the road twice (live 2026-11-05: every
+    /// road hatch got "הסרת צמחיה" and the sidewalk hatch a paving item on top of its structure rows).
+    /// </summary>
+    public bool PricedByStructure { get => _pricedByStructure; set { if (value && !_pricedByStructure) Withdraw(); _pricedByStructure = value; } }
+    /// <summary>A row that takes its own price: a measured quantity that no structure prices for it.</summary>
+    public bool IsPayItem => Role == LayerRole.Quantity && !PricedByStructure;
     public string ElementDisplay => Element.Length > 0 ? Element : Topic;
     /// <summary>The source layer itself, without the XREF namespace or the measurement part.</summary>
     public string LayerName => Layer.Split('|').Last();
     public string ShortLayer => Layer.Split('|').Last() + (GroupPart.Length > 0 ? " · " + GroupPart : "");
-    public string MappingDisplay => Code ?? (Disposition == InfrastructureDisposition.ExistingKeep ? "לא מתומחר" : Role == LayerRole.Quantity ? "בחר סעיף" : "—");
+    public string MappingDisplay => Code ?? (Disposition == InfrastructureDisposition.ExistingKeep ? "לא מתומחר" : PricedByStructure ? "לפי מבנה" : Role == LayerRole.Quantity ? "בחר סעיף" : "—");
     public decimal? Total => Approved && Price is { } p ? (decimal)Quantity * p : null;
     public string Status => Approved ? (AutomaticallyAssigned ? "שויך אוטומטית" : "שויך") + (Price == null ? " — חסר מחיר" : "") : "טרם שויך";
     /// <summary>Selecting an item is the mapping decision. No name or unrelated form is required.</summary>
@@ -159,7 +168,8 @@ public static class InfrastructureBoq
         RoadPavement.Report? roads = null)
     {
         var (books, usedBooks) = Books(groups, catalogs);
-        var fresh = groups.Where(g => g.Disposition == InfrastructureDisposition.New).ToArray();
+        // A road area priced through its structure rows is listed on the roads sheet, not as a second pay row.
+        var fresh = groups.Where(g => g.Disposition == InfrastructureDisposition.New && !g.PricedByStructure).ToArray();
         var demolition = groups.Where(g => g.Disposition == InfrastructureDisposition.ExistingDemolish).ToArray();
         var keep = groups.Where(g => g.Disposition == InfrastructureDisposition.ExistingKeep).ToArray();
         var w = NewWorkbook(NewWorkSheet);

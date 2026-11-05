@@ -99,17 +99,41 @@ internal static class CivilDeliveryTheme
     /// <summary>The shared styles, loaded once per UI thread from this assembly (whichever assembly compiled the tool).</summary>
     public static ResourceDictionary Dictionary => _dictionary ??= Load();
 
+    /// <summary>
+    /// Where the build put the compiled markup. Both builds compile it as <c>CivilDelivery/UI/…</c>: this project by
+    /// its own folder, MahodAI by the <c>Link=</c> on its Page items. MahodAI used to be asked for
+    /// <c>Ported/CivilDelivery/UI/…</c>, which does not exist, so inside MahodAI every code-built dialog silently lost
+    /// the shared styles and the bill-of-quantities window did not open at all (live 2026-11-05: "Cannot locate
+    /// resource 'ported/civildelivery/ui/civildeliverytheme.xaml'"). The old path stays as the last try.
+    /// </summary>
+    internal static readonly string[] DictionaryPaths =
+    {
+        "CivilDelivery/UI/CivilDeliveryTheme.xaml",
+        "Ported/CivilDelivery/UI/CivilDeliveryTheme.xaml",
+    };
+
+    /// <summary>
+    /// The first path that loads. When none does, an empty dictionary: a window that looks a style up by key gets
+    /// nothing and keeps its plain look instead of failing to open.
+    /// </summary>
     private static ResourceDictionary Load()
     {
         var assembly = typeof(CivilDeliveryTheme).Assembly.GetName().Name;
-        var path =
-#if MAHOD_CD_STANDALONE
-            "CivilDelivery/UI/CivilDeliveryTheme.xaml";
-#else
-            "Ported/CivilDelivery/UI/CivilDeliveryTheme.xaml";
-#endif
-        var uri = new Uri($"/{assembly};component/{path}", UriKind.Relative);
-        return (ResourceDictionary)System.Windows.Application.LoadComponent(uri);
+        Exception? last = null;
+        foreach (var path in DictionaryPaths)
+        {
+            try
+            {
+                var uri = new Uri($"/{assembly};component/{path}", UriKind.Relative);
+                return (ResourceDictionary)System.Windows.Application.LoadComponent(uri);
+            }
+            catch (Exception ex) when (ex is System.IO.IOException or InvalidOperationException or System.Windows.Markup.XamlParseException)
+            {
+                last = ex;
+            }
+        }
+        try { MahodAI.Civil3D.Plugin.Utilities.MahodLogger.Warning("Civil Delivery theme not found: " + last?.Message); } catch { }
+        return new ResourceDictionary();
     }
 
     /// <summary>
