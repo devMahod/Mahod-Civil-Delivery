@@ -87,6 +87,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
         {
             InitializeComponent();
             FontFamily = CivilDeliveryTheme.Font;
+            InitializeBoqLauncher();
 #if MAHOD_CD_STANDALONE && MAHOD_CD_GUIDE
             // Only a build that stages the approved guide PDF shows the button (review GUIDE-1).
             BtnUserGuide.Visibility = Visibility.Visible;

@@ -21,6 +21,8 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Commands
 #if !MAHOD_CD_STANDALONE
         [CommandMethod("MHD_INFRASTRUCTURE", CommandFlags.Modal)]
         public void Infrastructure() => InfrastructureBoqWindow.Run();
+        [CommandMethod("MHD_BOQ", CommandFlags.Modal)]
+        public void Boq() => InfrastructureBoqWindow.Run();
 #endif
         [CommandMethod(CivilDeliveryCommandNames.AfterSave, CommandFlags.Modal | CommandFlags.NoHistory)]
         public void ResumeAfterSave()

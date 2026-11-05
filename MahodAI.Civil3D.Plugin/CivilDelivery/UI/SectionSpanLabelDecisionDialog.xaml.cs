@@ -40,7 +40,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
                 previousDecisions, includeResolvedSpans);
             InitializeComponent();
             FontFamily = CivilDeliveryTheme.Font;
-            UiGuard.Attach(this, "שמות רצועות");
+            NamelessDecisionField.Attach(this, ApproverBox); UiGuard.Attach(this, "שמות רצועות");
             // Opened behind Civil once (live r9): come to the front on first render; the taskbar button keeps it findable.
             DialogActivation.BringForwardOnFirstRender(this);
 

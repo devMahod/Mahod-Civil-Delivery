@@ -91,7 +91,7 @@ internal sealed class EstimateProjectStartDialog : Window
         System.Windows.Automation.AutomationProperties.SetName(ApproverInput, "שם מאשר מקורות האומדן");
         System.Windows.Automation.AutomationProperties.SetName(Roads, "תחום: כבישים ותנועה");
         System.Windows.Automation.AutomationProperties.SetName(Landscape, "תחום: פיתוח נופי וגינון");
-        Content = root; Refresh(); UiGuard.Attach(this, "תחילת אומדן בפרויקט חדש");
+        Content = root; Refresh(); NamelessDecisionField.Attach(this, ApproverInput); UiGuard.Attach(this, "תחילת אומדן בפרויקט חדש");
     }
 
     private EstimateProjectStartService.Decision CurrentDecision() =>

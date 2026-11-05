@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
+using Region = Autodesk.AutoCAD.DatabaseServices.Region;
 using MahodAI.CivilDelivery.Estimate.Infrastructure;
 
 namespace MahodAI.Civil3D.Plugin.CivilDelivery.Estimate;
@@ -13,13 +14,20 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Estimate;
 /// <summary>Read-only, occurrence-aware traversal. Only clones are transformed or written.</summary>
 internal sealed class InfrastructureDrawingService : IDisposable
 {
-    internal sealed record Measured(InfrastructureLine Line, Curve Geometry);
+    internal sealed record Measured(InfrastructureLine Line, Entity Geometry)
+    {
+        internal Database? SourceDatabase { get; init; }
+        internal ObjectId SourceId { get; init; }
+        internal Matrix3d SourceTransform { get; init; } = Matrix3d.Identity;
+    }
     internal List<Measured> Measurements { get; } = new();
     internal List<string> Findings { get; } = new();
     internal string Drawing { get; }
     internal string DrawingHash { get; }
     private readonly double _metres;
+    internal double MetresPerHostUnit => _metres;
     private readonly Dictionary<string, int> _unsupported = new();
+    private readonly Dictionary<(string Layer, string Source), (string Topic, string Evidence, string Code)> _classifications = new();
     private int _symbolBlocks;
     internal InfrastructureDrawingService(Database db, string drawing, double metresPerHostUnit)
     {
@@ -30,8 +38,8 @@ internal sealed class InfrastructureDrawingService : IDisposable
         using var tr = db.TransactionManager.StartTransaction();
         var bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
         Walk(tr, bt[BlockTableRecord.ModelSpace], Matrix3d.Identity, drawing, "", "0", new HashSet<ObjectId>(), 0);
-        foreach (var omitted in _unsupported.OrderBy(p => p.Key)) Findings.Add($"סוג גאומטרי שלא נמדד במסלול אורכי קווים: {omitted.Key} ({omitted.Value:N0} מופעים)");
-        if (_symbolBlocks > 0) Findings.Add($"{_symbolBlocks:N0} בלוקים שאינם XREF לא נמדדו כאורך צינור. סמלים, עמודים ושוחות מחייבים מדידת ספירה נפרדת.");
+        foreach (var omitted in _unsupported.OrderBy(p => p.Key)) Findings.Add($"סוג גאומטרי שלא נמדד: {omitted.Key} ({omitted.Value:N0} מופעים)");
+        if (_symbolBlocks > 0) Findings.Add($"{_symbolBlocks:N0} בלוקים נספרו לפי שם בלוק ושכבה. בשרטוט הייצוא מופיעים סימוני מיקום; הגדרות הבלוק המלאות נשארות במקור.");
         tr.Commit();
     }
     private void Walk(Transaction tr, ObjectId blockId, Matrix3d transform, string source, string chain,
@@ -51,8 +59,17 @@ internal sealed class InfrastructureDrawingService : IDisposable
                 if (entity is BlockReference reference)
                 {
                     var child = (BlockTableRecord)tr.GetObject(reference.BlockTableRecord, OpenMode.ForRead);
-                    // Symbol outlines are not pipe centre lines. Only external drawing references are traversed.
-                    if (!child.IsFromExternalReference) { _symbolBlocks++; continue; }
+                    // One placed symbol is one count; its internal outline is never pipe length or paving area.
+                    if (!child.IsFromExternalReference)
+                    {
+                        if (reference is MInsertBlock) { _unsupported["MInsertBlock — מערך בלוקים"] = _unsupported.GetValueOrDefault("MInsertBlock — מערך בלוקים") + 1; continue; }
+                        var definition = (BlockTableRecord)tr.GetObject(reference.IsDynamicBlock ? reference.DynamicBlockTableRecord : reference.BlockTableRecord, OpenMode.ForRead);
+                        var normalized = InfrastructureLayerNames.Normalize(layer + " " + definition.Name);
+                        if (System.Text.RegularExpressions.Regex.IsMatch(normalized, @"(?:^| )(TITLE|FRAME|LEGEND|TEXT|LABEL|DIM|כותרת|מקרא)(?: |$)")) continue;
+                        _symbolBlocks++;
+                        Add(tr, entity, new DBPoint(reference.Position.TransformBy(transform)), layer, source, handle, 0, 0, 0, 1, "בלוק " + definition.Name);
+                        continue;
+                    }
                     var childSource = child.IsFromExternalReference ? child.PathName : source;
                     if (child.IsFromExternalReference && (child.Name.Contains("LEGEND", StringComparison.OrdinalIgnoreCase) ||
                         childSource.Contains("LEGEND", StringComparison.OrdinalIgnoreCase)))
@@ -61,7 +78,23 @@ internal sealed class InfrastructureDrawingService : IDisposable
                         handle + "/", layer, ancestors, depth + 1);
                     continue;
                 }
-                if (entity is not (Polyline or Polyline2d or Polyline3d or Line or Arc))
+                if (entity is Hatch hatch)
+                {
+                    var copy = (Hatch)hatch.Clone();
+                    try { copy.Associative = false; copy.TransformBy(transform); var area = copy.Area * _metres * _metres;
+                        if (!double.IsFinite(area) || area <= 0) throw new InvalidOperationException("שטח Hatch אינו חיובי");
+                        Add(tr, entity, copy, layer, source, handle, 0, area, 0, 0, "שטחים", transform); }
+                    catch (System.Exception ex) { copy.Dispose(); Findings.Add($"לא נמדד שטח Hatch {source} / {handle}: {ex.Message}"); }
+                    continue;
+                }
+                if (entity is Solid3d solid)
+                {
+                    var copy = (Solid3d)solid.Clone();
+                    try { copy.TransformBy(transform); var volume = copy.MassProperties.Volume * Math.Pow(_metres, 3); if (!double.IsFinite(volume) || volume <= 0) throw new InvalidOperationException("נפח גוף אינו חיובי"); Add(tr, entity, copy, layer, source, handle, 0, 0, volume, 0, "גופים", transform); }
+                    catch (System.Exception ex) { copy.Dispose(); Findings.Add($"לא נמדד גוף {source} / {handle}: {ex.Message}"); }
+                    continue;
+                }
+                if (entity is not (Polyline or Polyline2d or Polyline3d or Line or Arc or Circle or Ellipse))
                 {
                     if (entity is Curve || entity.GetType().Name.Contains("Proxy", StringComparison.OrdinalIgnoreCase))
                         _unsupported[entity.GetType().Name] = _unsupported.GetValueOrDefault(entity.GetType().Name) + 1;
@@ -75,16 +108,7 @@ internal sealed class InfrastructureDrawingService : IDisposable
                         curve.TransformBy(transform);
                         var length = curve.GetDistanceAtParameter(curve.EndParam) - curve.GetDistanceAtParameter(curve.StartParam);
                         if (!double.IsFinite(length) || length <= 1e-9) { curve.Dispose(); continue; }
-                        var classification = InfrastructureBoq.Classify(layer, source);
-                        // Keep the original layer and source separation. A topic is a proposal, never a payable item.
-                        var leaf = layer.Split('|').Last();
-                        var safe = string.Concat(leaf.Select(c => "<>/\\\":;?*|,=".Contains(c) ? '_' : c));
-                        var sourceKey = Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(source)))[..8];
-                        var outputLayer = "BOQ_" + classification.Code + "__" + sourceKey + "__" + safe;
-                        if (outputLayer.Length > 240) outputLayer = outputLayer[..220] + "_" +
-                            Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(layer)))[..16];
-                        Measurements.Add(new(new InfrastructureLine(source, handle, layer, entity.GetType().Name,
-                            length * _metres, curve.Closed, classification.Topic, classification.Evidence, outputLayer), curve));
+                        Add(tr, entity, curve, layer, source, handle, length * _metres, ClosedArea(curve) * _metres * _metres, 0, 0, "");
                     }
                     catch { curve.Dispose(); throw; }
                 }
@@ -92,6 +116,36 @@ internal sealed class InfrastructureDrawingService : IDisposable
             }
         }
         finally { ancestors.Remove(blockId); }
+    }
+    private void Add(Transaction tr, Entity original, Entity copy, string layer, string source, string handle,
+        double length, double area, double volume, double count, string part, Matrix3d? sourceTransform = null)
+    {
+        if (!_classifications.TryGetValue((layer, source), out var classification))
+        {
+            var description = ((LayerTableRecord)tr.GetObject(original.LayerId, OpenMode.ForRead)).Description;
+            _classifications[(layer, source)] = classification = InfrastructureBoq.Classify(layer, source, description);
+        }
+        var safe = string.Concat(layer.Split('|').Last().Select(c => "<>/\\\":;?*|,=".Contains(c) ? '_' : c));
+        var sourceKey = Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(source + "\n" + part)))[..8];
+        var outputLayer = "BOQ_" + classification.Code + "__" + sourceKey + "__" + safe;
+        if (outputLayer.Length > 240) outputLayer = outputLayer[..220] + "_" + Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(layer)))[..16];
+        Measurements.Add(new(new InfrastructureLine(source, handle, layer, original.GetType().Name, length,
+            original is Curve c && c.Closed, classification.Topic, classification.Evidence, outputLayer)
+            { AreaSquareMetres = area, VolumeCubicMetres = volume, CountUnits = count, GroupPart = part }, copy)
+            { SourceDatabase = sourceTransform.HasValue ? original.Database : null, SourceId = original.ObjectId, SourceTransform = sourceTransform ?? Matrix3d.Identity });
+    }
+    private static double ClosedArea(Curve curve)
+    {
+        if (!curve.Closed) return 0;
+        DBObjectCollection? regions = null;
+        try
+        {
+            using var input = (Curve)curve.Clone();
+            regions = Region.CreateFromCurves(new DBObjectCollection { input });
+            return regions.Count == 1 && regions[0] is Region r && double.IsFinite(r.Area) ? Math.Abs(r.Area) : 0;
+        }
+        catch { return 0; }
+        finally { if (regions != null) foreach (DBObject r in regions) r.Dispose(); }
     }
     private static Curve CopyGeometry(Curve original, Transaction tr)
     {
@@ -101,6 +155,8 @@ internal sealed class InfrastructureDrawingService : IDisposable
         {
             case Line line: return new Line(line.StartPoint, line.EndPoint);
             case Arc arc: return new Arc(arc.Center, arc.Normal, arc.Radius, arc.StartAngle, arc.EndAngle);
+            case Circle circle: return new Circle(circle.Center, circle.Normal, circle.Radius);
+            case Ellipse ellipse: return new Ellipse(ellipse.Center, ellipse.Normal, ellipse.MajorAxis, ellipse.RadiusRatio, ellipse.StartAngle, ellipse.EndAngle);
             case Polyline pl:
                 var copy = new Polyline(pl.NumberOfVertices) { Normal = pl.Normal, Elevation = pl.Elevation, Closed = pl.Closed };
                 for (var i = 0; i < pl.NumberOfVertices; i++) copy.AddVertexAt(i, pl.GetPoint2dAt(i), pl.GetBulgeAt(i), pl.GetStartWidthAt(i), pl.GetEndWidthAt(i));
@@ -122,9 +178,9 @@ internal sealed class InfrastructureDrawingService : IDisposable
     }
     internal void SaveDrawing(string path, IEnumerable<InfrastructureGroup> included)
     {
-        var groups = included.ToDictionary(g => (g.Source, g.Layer));
-        var selected = Measurements.Where(m => groups.ContainsKey((m.Line.Source, m.Line.Layer)))
-            .Select(m => new Measured(InfrastructureBoq.ReviewedLine(m.Line, groups[(m.Line.Source, m.Line.Layer)]), m.Geometry)).ToArray();
+        var groups = included.ToDictionary(g => (g.Source, g.Layer, g.GroupPart));
+        var selected = Measurements.Where(m => groups.ContainsKey((m.Line.Source, m.Line.Layer, m.Line.GroupPart)))
+            .Select(m => m with { Line = InfrastructureBoq.ReviewedLine(m.Line, groups[(m.Line.Source, m.Line.Layer, m.Line.GroupPart)]) }).ToArray();
         using var output = new Database(true, true);
         // A bare database otherwise inherits imperial defaults. Civil 3D can
         // initialize drawing settings from MEASUREMENT when opening this DWG.
@@ -151,11 +207,22 @@ internal sealed class InfrastructureDrawingService : IDisposable
                         Color = Autodesk.AutoCAD.Colors.Color.FromColorIndex(Autodesk.AutoCAD.Colors.ColorMethod.ByAci, colour) };
                     layers.Add(layer); tr.AddNewlyCreatedDBObject(layer, true);
                 }
-                var clone = (Curve)measured.Geometry.Clone();
+                Entity clone;
+                if (measured.SourceDatabase != null)
+                {
+                    // Native cross-database cloning translates the Hatch/ACIS symbol references; a shallow Clone cannot.
+                    var mapping = new IdMapping();
+                    measured.SourceDatabase.WblockCloneObjects(new ObjectIdCollection { measured.SourceId }, model.ObjectId, mapping, DuplicateRecordCloning.Ignore, false);
+                    clone = (Entity)tr.GetObject(mapping[measured.SourceId].Value, OpenMode.ForWrite);
+                    if (clone is Hatch copiedHatch) copiedHatch.Associative = false;
+                    clone.TransformBy(measured.SourceTransform);
+                }
+                else clone = (Entity)measured.Geometry.Clone();
                 clone.SetDatabaseDefaults(output);
                 if (_metres != 1) clone.TransformBy(Matrix3d.Scaling(_metres, Point3d.Origin));
-                clone.Layer = name;
-                model.AppendEntity(clone); tr.AddNewlyCreatedDBObject(clone, true);
+                try { if (measured.SourceDatabase == null) { model.AppendEntity(clone); tr.AddNewlyCreatedDBObject(clone, true); } }
+                catch (System.Exception ex) { clone.Dispose(); throw new InvalidOperationException("לא ניתן לייצא " + measured.Line.EntityType + " / " + measured.Line.Handle, ex); }
+                clone.LayerId = layers[name];
                 var extents = clone.GeometricExtents;
                 if (bounds is { } accumulated) { accumulated.AddExtents(extents); bounds = accumulated; }
                 else bounds = extents;
@@ -183,18 +250,22 @@ internal sealed class InfrastructureDrawingService : IDisposable
             using var tr = verification.TransactionManager.StartTransaction();
             var bt = (BlockTable)tr.GetObject(verification.BlockTableId, OpenMode.ForRead);
             var model = (BlockTableRecord)tr.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForRead);
-            var actual = new Dictionary<string, (int Count, double Length)>();
+            var actual = new Dictionary<string, (int Count, double Length, double Area, double Volume, double Units)>();
             foreach (ObjectId id in model)
             {
-                if (tr.GetObject(id, OpenMode.ForRead) is not Curve curve) throw new InvalidOperationException("Unexpected entity in output DWG");
-                var value = actual.GetValueOrDefault(curve.Layer);
-                actual[curve.Layer] = (value.Count + 1, value.Length + curve.GetDistanceAtParameter(curve.EndParam) - curve.GetDistanceAtParameter(curve.StartParam));
+                var entity = (Entity)tr.GetObject(id, OpenMode.ForRead);
+                var value = actual.GetValueOrDefault(entity.Layer);
+                var length = entity is Curve curve ? curve.GetDistanceAtParameter(curve.EndParam) - curve.GetDistanceAtParameter(curve.StartParam) : 0;
+                var area = entity is Curve closed ? ClosedArea(closed) : entity is Hatch hatch ? hatch.Area : entity is Region region ? region.Area : 0;
+                actual[entity.Layer] = (value.Count + 1, value.Length + length, value.Area + area,
+                    value.Volume + (entity is Solid3d solid ? solid.MassProperties.Volume : 0), value.Units + (entity is DBPoint ? 1 : 0));
             }
             var expected = selected.GroupBy(m => m.Line.OutputLayer)
-                .ToDictionary(g => g.Key, g => (Count: g.Count(), Length: g.Sum(m => m.Line.LengthMetres)));
+                .ToDictionary(g => g.Key, g => (Count: g.Count(), Length: g.Sum(m => m.Line.LengthMetres), Area: g.Sum(m => m.Line.AreaSquareMetres), Volume: g.Sum(m => m.Line.VolumeCubicMetres), Units: g.Sum(m => m.Line.CountUnits)));
+            static bool Same(double a, double b) => Math.Abs(a - b) <= Math.Max(1e-7, Math.Abs(b) * 1e-8);
             if (actual.Count != expected.Count || expected.Any(e => !actual.TryGetValue(e.Key, out var a) || a.Count != e.Value.Count ||
-                Math.Abs(a.Length - e.Value.Length) > Math.Max(1e-7, e.Value.Length * 1e-10)))
-                throw new InvalidOperationException("Output DWG did not preserve measured counts and lengths; do not use this drawing");
+                !Same(a.Length, e.Value.Length) || !Same(a.Area, e.Value.Area) || !Same(a.Volume, e.Value.Volume) || !Same(a.Units, e.Value.Units)))
+                throw new InvalidOperationException("Output DWG did not preserve the measured lengths, areas, volumes and counts");
         }
         File.WriteAllText(path + ".sources.json", JsonSerializer.Serialize(selected
             .Select(m => m.Line), new JsonSerializerOptions { WriteIndented = true }));

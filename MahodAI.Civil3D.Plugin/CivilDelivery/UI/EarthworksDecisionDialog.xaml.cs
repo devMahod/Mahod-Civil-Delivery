@@ -20,7 +20,8 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
         {
             InitializeComponent();
             FontFamily = CivilDeliveryTheme.Font;
-            UiGuard.Attach(this, "החלטת היקף עבודות עפר");
+            NamelessDecisionField.Attach(this, ApproverBox); UiGuard.Attach(this, "החלטת היקף עבודות עפר");
+
             CurrentStateText.Text = current.DisplayText;
             // b24: a new decision starts from the session approver (or empty) — never the previous decider or Windows.
             ApproverBox.Text = ApproverContext.Session.Name ?? "";

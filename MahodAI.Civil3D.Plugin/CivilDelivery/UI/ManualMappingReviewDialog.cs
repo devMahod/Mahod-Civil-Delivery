@@ -221,7 +221,7 @@ public sealed partial class ManualMappingReviewDialog : Window
             if (GroupsGrid.SelectedItem is GroupRow row) GroupsGrid.ScrollIntoView(row);
         };
         RefreshSave();
-        UiGuard.Attach(this, "בדיקת שיוכים מרוכזת");
+        NamelessDecisionField.Attach(this, Approver); UiGuard.Attach(this, "בדיקת שיוכים מרוכזת");
     }
 
     private void RefreshGroups()

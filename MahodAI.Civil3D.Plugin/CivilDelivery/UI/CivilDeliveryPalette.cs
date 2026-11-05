@@ -71,7 +71,11 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
             // rendered clipped). Re-apply once on the next idle, when the restore is done.
             DeferEnsureUsableSize();
 #if !MAHOD_CD_STANDALONE
-            PaletteSizing.OpenLarge(_paletteSet);
+            // MahodAI's own helper (MahodAI-Plugin Utilities/PaletteSizing.cs, outside the mirrored folders), reached by
+            // name: in MahodAI it opens the palette large as before, and this repo's plugin build compiles without it.
+            typeof(CivilDeliveryPalette).Assembly.GetType("MahodAI.Civil3D.Plugin.Utilities.PaletteSizing")
+                ?.GetMethod("OpenLarge", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+                ?.Invoke(null, new object?[] { _paletteSet });
 #endif
         }
 

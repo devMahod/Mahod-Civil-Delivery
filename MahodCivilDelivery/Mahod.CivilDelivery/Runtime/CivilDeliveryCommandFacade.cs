@@ -69,6 +69,9 @@ public sealed class CivilDeliveryCommandFacade
     [CommandMethod("MCD_INFRASTRUCTURE", CommandFlags.Modal)]
     public void Infrastructure() { if (Ready()) InfrastructureBody(); }
 
+    [CommandMethod("MCD_BOQ", CommandFlags.Modal)]
+    public void Boq() { if (Ready()) InfrastructureBody(); }
+
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static void InfrastructureBody() => MahodAI.Civil3D.Plugin.CivilDelivery.UI.InfrastructureBoqWindow.Run();
 

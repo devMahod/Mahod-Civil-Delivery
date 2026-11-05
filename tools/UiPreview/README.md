@@ -24,6 +24,18 @@ dotnet run -c Release -- --snapshot out
 
 ## 2. לבדוק בתוך Civil 3D 2026
 
+הדרך הקצרה: פקודה אחת שבונה את התוסף, מעתיקה אותו לתיקיית בדיקה מקומית
+(`%USERPROFILE%\MahodCivilDelivery-test\plugin`), טוענת אותו ל-Civil 3D הפתוח (או פותחת אחד), פותחת שרטוט ואת הפאנל:
+
+```powershell
+.\tools\Test-InCivil3D.ps1 -Drawing "P:\data\6426\Civil3d\DD\CIVIL-6426-designid-mikta4.dwg"
+```
+
+שום דבר לא מותקן: בהפעלה הבאה של Civil 3D התוסף לא נטען. אחרי שינוי בקוד סוגרים את Civil 3D ומריצים שוב
+(תוסף שכבר נטען אי אפשר להחליף בלי לסגור). בלי `-Drawing` הפאנל נפתח על השרטוט הפעיל; `-SkipBuild` משתמש בבנייה האחרונה.
+
+ידנית:
+
 ```powershell
 dotnet build MahodCivilDelivery\Mahod.CivilDelivery\Mahod.CivilDelivery.csproj -c Release -p:AutoCADVersion=2026
 ```

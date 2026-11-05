@@ -10,9 +10,9 @@
 
     The staged bundle is verified from its bytes, without loading anything:
       - for each host (2026: net8, AutoCAD.NET 25.1.0 + Civil3D.NET 13.8.280 packages; 2027: net10, installed API):
-        exactly the expected five files in Contents\<year>;
+        exactly six runtime files and five pinned Fonts files in Contents\<year>;
       - each plugin's embedded Core identity names the SHA-256 of the Core beside it, for that year's framework;
-      - the four Civil Delivery assets are embedded byte-for-byte and equal their pinned SHA-256;
+      - the five Civil Delivery assets are embedded byte-for-byte and equal their pinned SHA-256;
       - plugins and Cores report this VERSION; PackageContents.xml has exactly one component per year (R25.1 → 2026, R26.0 → 2027).
     Then the setup EXE is asked to prove its embedded payload equals the staged one.
     Windows PowerShell 5.1 compatible.
@@ -26,6 +26,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'FontPayload.ps1')
 
 # The guide is an explicit build input, not a default/fallback or a release approval.
 function Assert-GuideLocalPath {
@@ -171,6 +172,7 @@ foreach ($year in $hosts.Keys) {
         throw "unexpected $year build output: $($built -join ', ') (expected $($expected -join ', '))"
     }
     foreach ($f in $expected) { Copy-Item (Join-Path $build $f) (Join-Path $contents $f) }
+    Copy-CivilDeliveryFonts (Join-Path $build 'Fonts') (Join-Path $contents 'Fonts')
 }
 Copy-Item (Join-Path $PSScriptRoot 'Uninstall-MahodCivilDelivery.ps1') (Join-Path $bundle 'Installer\Uninstall-MahodCivilDelivery.ps1')
 
@@ -205,6 +207,7 @@ $failures = @()
 $latin1 = [System.Text.Encoding]::GetEncoding(28591)
 foreach ($year in $hosts.Keys) {
 $contents = Join-Path $bundle "Contents\$year"
+Assert-CivilDeliveryFonts (Join-Path $contents 'Fonts')
 $pluginPath = Join-Path $contents 'Mahod.CivilDelivery.dll'
 $corePath = Join-Path $contents 'Mahod.CivilDelivery.Core.dll'
 $pluginText = $latin1.GetString([System.IO.File]::ReadAllBytes($pluginPath))
@@ -218,6 +221,7 @@ if ($pluginText -match 'name=MahodAI\.CivilDelivery\.Core') { $failures += "$yea
 
 $pins = [ordered]@{
     'mahod_logo_white.png' = '53ECFA0015AE0B6BF47CAD89E58D4C94EB9CD34ED74C1A39337C9C053162D1DB'
+    'mahod_mark.png'       = 'F725C0E958B691217EF987EF9364BE4B1616AC5A57260F8CE1FC23B8810317D3'
     'HW-CARFRBK-01.dwg'    = 'E2823D50D85E2F669944CDB68B2CC87F44090801CDA75A86F66A6CC11EA38968'
     'HW-CARFRFRW-01.dwg'   = '412E0E6F226271AA1A66A2749F598C2A2F13A237D94D0EB567E07EC206924428'
     'HW-ARRW-01.dwg'       = '3E18667013887CA89A64AA043B5EB4FCB7195631FDD18D841FE24E46F96B2943'
@@ -249,7 +253,7 @@ foreach ($year in $hosts.Keys) {
     if ($byYear["$s|$s"] -ne "./Contents/$year/Mahod.CivilDelivery.dll") { $failures += "PackageContents.xml does not load Contents/$year/Mahod.CivilDelivery.dll for $s" }
 }
 if ($failures.Count) { $failures | ForEach-Object { Write-Host "  FAIL $_" -ForegroundColor Red }; throw "$($failures.Count) payload check(s) failed" }
-Write-Host '  payload verified (2026 + 2027): Core pairs, 4 pinned assets, versions, one component per host'
+Write-Host '  payload verified (2026 + 2027): Core pairs, 5 pinned assets, 5 pinned font/license files per host, versions, one component per host'
 
 # ── 4. MANIFEST.json + payload.zip ─────────────────────────────────────────────
 $stagedGuide = Stage-ApprovedGuide $approvedGuide $bundle
