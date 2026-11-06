@@ -82,6 +82,10 @@ public sealed class InfrastructureCatalogSearch
                 else if (element != null) rank -= 25;
             }
             else if (group.Surface == RoadSurfaceKind.Milling && e.Text.Contains("קרצוף")) { rank += 60; reasons.Add("קרצוף"); }
+            // New work: an item that names the element (אבן שפה for a curb layer) beats its chapter neighbours. Chapter 51.06 is
+            // "ריצוף, אבני שפה…", so without this every item in it tied and the drainage pipe won (live 2026-11-06: 18.5 km of curbs).
+            // Not for a pavement-structure row: its own wording (the hint) chooses, e.g. the 6 cm stone 51.06.0451.
+            else if (elementMatch && !hasQuery && hint.Length == 0) { rank += 30; reasons.Add("האלמנט בשם הסעיף: " + (group.Element.Length > 0 ? group.Element : group.Topic)); }
             if (e.Item.Code.Equals(query.Trim(), StringComparison.OrdinalIgnoreCase)) rank += 10000;
             if (codeMatch) rank += 500;
             if (diameter is { } d && DiameterMatches(e.Item.Description, d.Value, d.Unit))
@@ -89,7 +93,8 @@ public sealed class InfrastructureCatalogSearch
                 rank += 100;
                 reasons.Add(d.Unit == null ? $"מספר קוטר {d.Value:G} בשם השכבה; היחידה לא צוינה" : $"קוטר {d.Value:G} {d.Unit}");
             }
-            if (Regex.IsMatch(e.Text, "צינור|קו מים|כבל")) rank += 15;
+            // A pipe or cable is the usual pay item of a utility line, and of nothing else: curbs, walls and marking are not pipes.
+            if (PipeTopics.Contains(rankingTopic) && Regex.IsMatch(e.Text, "צינור|קו מים|כבל")) rank += 15;
             if (material != null && e.Material != null)
             {
                 rank += material == e.Material ? 45 : -45;
@@ -141,6 +146,8 @@ public sealed class InfrastructureCatalogSearch
     }
 
     private const string Demolition = "פירוקים והריסות";
+    private static readonly HashSet<string> PipeTopics = new(StringComparer.Ordinal)
+        { "מים", "ביוב", "ניקוז", "גז", "חשמל", "תאורה", "תקשורת", "השקיה", "רמזורים", InfrastructureBoq.Unknown };
 
     /// <summary>The element words a demolition item must name (אבני שפה, צינור ניקוז, שוחות…), from the firm convention or the topic.</summary>
     private static Regex? ElementTerms(InfrastructureGroup group)

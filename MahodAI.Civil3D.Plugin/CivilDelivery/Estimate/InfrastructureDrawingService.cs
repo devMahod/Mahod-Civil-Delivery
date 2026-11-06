@@ -19,6 +19,15 @@ internal sealed class InfrastructureDrawingService : IDisposable
         internal Database? SourceDatabase { get; init; }
         internal ObjectId SourceId { get; init; }
         internal Matrix3d SourceTransform { get; init; } = Matrix3d.Identity;
+        /// <summary>Counted, but its geometry cannot be written to the audit DWG; listed in not-copied.txt instead.</summary>
+        internal string? ExportSkipReason { get; init; }
+        /// <summary>
+        /// A hatch area recovered from its boundary: the shape and its plane. Its region is built inside the audit DWG at
+        /// export, because a region built in memory belongs to the host drawing (eWrongDatabase on append, live 2026-11-06).
+        /// </summary>
+        internal NetTopologySuite.Geometries.Geometry? RecoveredShape { get; init; }
+        internal Vector3d RecoveredNormal { get; init; } = Vector3d.ZAxis;
+        internal double RecoveredElevation { get; init; }
     }
     internal List<Measured> Measurements { get; } = new();
     internal List<string> Findings { get; } = new();
@@ -85,10 +94,19 @@ internal sealed class InfrastructureDrawingService : IDisposable
                 if (entity is Hatch hatch)
                 {
                     var copy = (Hatch)hatch.Clone();
-                    try { copy.Associative = false; copy.TransformBy(transform); var area = copy.Area * _metres * _metres;
-                        if (!double.IsFinite(area) || area <= 0) throw new InvalidOperationException("שטח Hatch אינו חיובי");
-                        Add(tr, entity, copy, layer, source, handle, 0, area, 0, 0, "שטחים", transform); }
-                    catch (System.Exception ex) { copy.Dispose(); Findings.Add($"לא נמדד שטח Hatch {source} / {handle}: {ex.Message}"); }
+                    double area;
+                    try { copy.Associative = false; copy.TransformBy(transform); area = copy.Area * _metres * _metres; }
+                    catch (Autodesk.AutoCAD.Runtime.Exception ex)
+                    {
+                        // AutoCAD cannot compute the area of a self-touching / self-intersecting hatch. Measure its boundary
+                        // instead: silently dropping it lost ~59,000 m² of carriageway on a real interchange plan (2026-11-06).
+                        RecoverHatchArea(tr, entity, copy, layer, source, handle, ex.ErrorStatus.ToString());
+                        copy.Dispose();
+                        continue;
+                    }
+                    catch (System.Exception ex) { copy.Dispose(); Unmeasured(layer, source, handle, ex.Message); continue; }
+                    if (!double.IsFinite(area) || area <= 0) { copy.Dispose(); Unmeasured(layer, source, handle, "שטח Hatch אינו חיובי"); continue; }
+                    Add(tr, entity, copy, layer, source, handle, 0, area, 0, 0, "שטחים", transform);
                     continue;
                 }
                 if (entity is Solid3d solid)
@@ -122,7 +140,8 @@ internal sealed class InfrastructureDrawingService : IDisposable
         finally { ancestors.Remove(blockId); }
     }
     private void Add(Transaction tr, Entity original, Entity copy, string layer, string source, string handle,
-        double length, double area, double volume, double count, string part, Matrix3d? sourceTransform = null)
+        double length, double area, double volume, double count, string part, Matrix3d? sourceTransform = null, string? exportSkip = null,
+        Hatch? recoveredFrom = null, NetTopologySuite.Geometries.Geometry? recoveredShape = null)
     {
         if (!_classifications.TryGetValue((layer, source), out var classification))
         {
@@ -136,8 +155,155 @@ internal sealed class InfrastructureDrawingService : IDisposable
         Measurements.Add(new(InfrastructureBoq.Describe(new InfrastructureLine(source, handle, layer, original.GetType().Name, length,
             original is Curve c && c.Closed, classification.Topic, classification.Evidence, outputLayer)
             { AreaSquareMetres = area, VolumeCubicMetres = volume, CountUnits = count, GroupPart = part }), copy)
-            { SourceDatabase = sourceTransform.HasValue ? original.Database : null, SourceId = original.ObjectId, SourceTransform = sourceTransform ?? Matrix3d.Identity });
+            { SourceDatabase = sourceTransform.HasValue ? original.Database : null, SourceId = original.ObjectId, SourceTransform = sourceTransform ?? Matrix3d.Identity,
+              ExportSkipReason = exportSkip, RecoveredShape = recoveredShape,
+              RecoveredNormal = recoveredFrom?.Normal ?? Vector3d.ZAxis, RecoveredElevation = recoveredFrom?.Elevation ?? 0 });
     }
+    /// <summary>A hatch area the scan had to work around: recovered from the boundary (AutoCAD gave no area), or not measured at all.</summary>
+    internal sealed record AreaIssue(string Layer, string Source, string Handle, double AreaSquareMetres, string Reason)
+    {
+        internal string LayerName => Layer.Split('|').Last();
+    }
+    /// <summary>Hatches whose area AutoCAD could not compute and the scan measured from their boundary loops (counted; review).</summary>
+    internal List<AreaIssue> RecoveredAreas { get; } = new();
+    /// <summary>Hatches with no area at all: they are NOT in the bill of quantities, and the window says so.</summary>
+    internal List<AreaIssue> UnmeasuredAreas { get; } = new();
+
+    private void Unmeasured(string layer, string source, string handle, string reason)
+    {
+        UnmeasuredAreas.Add(new(layer, source, handle, 0, reason));
+        Findings.Add($"לא נמדד שטח Hatch — לא נכלל בכתב הכמויות: {layer.Split('|').Last()} / {handle} ({Path.GetFileName(source)}): {reason}");
+    }
+
+    private void RecoverHatchArea(Transaction tr, Entity original, Hatch hatch, string layer, string source, string handle, string error)
+    {
+        string refusal;
+        try
+        {
+            var tolerance = 0.001 / _metres;   // 1 mm chord error on curved edges
+            var loops = new List<IReadOnlyList<(double X, double Y)>>();
+            for (var i = 0; i < hatch.NumberOfLoops; i++) loops.Add(LoopPoints(hatch.GetLoopAt(i), tolerance));
+            if (HatchBoundaryArea.TryMeasure(loops, hatch.HatchStyle.ToString(), out var result, out refusal))
+            {
+                var expected = result!.Area * _metres * _metres;
+                if (expected < 0.01)
+                {
+                    // A collapsed sliver: no quantity, nothing to complete by hand.
+                    Findings.Add($"Hatch ללא שטח ממשי (AutoCAD: {error}) — {layer.Split('|').Last()} / {handle}: {expected:N4} מ״ר, לא נכלל");
+                    return;
+                }
+                // The audit DWG carries the same shape as a region when AutoCAD can build one; its area then is the
+                // quantity, so the DWG check still holds. When it cannot (dense or self-touching rings on the largest
+                // carriageway hatches, live 2026-11-06), the boundary area is still counted and the shape is listed
+                // in not-copied.txt, never dropped from the bill of quantities.
+                var region = BuildRegion(result.Shape, hatch.Normal, hatch.Elevation);
+                var area = region == null ? double.NaN : region.Area * _metres * _metres;
+                region?.Dispose();
+                string? exportSkip = null;
+                if (!double.IsFinite(area) || Math.Abs(area - expected) > Math.Max(1e-6, expected * 1e-6))
+                {
+                    area = expected;
+                    exportSkip = "שטח שחושב מגבולות Hatch שאינו ניתן לשחזור כאזור בשרטוט";
+                }
+                Add(tr, original, (Entity)hatch.Clone(), layer, source, handle, 0, area, 0, 0, "שטחים", exportSkip: exportSkip,
+                    recoveredFrom: hatch, recoveredShape: result.Shape);
+                RecoveredAreas.Add(new(layer, source, handle, area, error));
+                Findings.Add($"שטח Hatch חושב מגבולותיו (AutoCAD אינו מחשב לו שטח: {error}) — {layer.Split('|').Last()} / {handle}: {area:N2} מ״ר. נכלל בכמות — לבדיקה.");
+                return;
+            }
+        }
+        catch (System.Exception ex) { refusal = ex.Message; }
+        Unmeasured(layer, source, handle, $"{error}; {refusal}");
+    }
+
+    /// <summary>A hatch loop as a ring of points in the hatch plane; arcs and curves are densified to <paramref name="tolerance"/>.</summary>
+    private static IReadOnlyList<(double X, double Y)> LoopPoints(HatchLoop loop, double tolerance)
+    {
+        var points = new List<(double X, double Y)>();
+        if (loop.IsPolyline)
+        {
+            var vertices = new List<BulgeVertex>();
+            foreach (BulgeVertex v in loop.Polyline) vertices.Add(v);
+            for (var i = 0; i < vertices.Count; i++)
+            {
+                var a = vertices[i].Vertex; var b = vertices[(i + 1) % vertices.Count].Vertex; var bulge = vertices[i].Bulge;
+                points.Add((a.X, a.Y));
+                if (Math.Abs(bulge) < 1e-12 || a.GetDistanceTo(b) < 1e-12) continue;
+                // Bulge arc: sweep = 4·atan(bulge), centre on the left of the chord for a positive bulge.
+                var chord = b - a; var c = chord.Length;
+                var radius = c * (1 + bulge * bulge) / (4 * Math.Abs(bulge));
+                var offset = c * (1 - bulge * bulge) / (4 * bulge);
+                var mid = new Point2d((a.X + b.X) / 2, (a.Y + b.Y) / 2);
+                var centre = mid + new Vector2d(-chord.Y, chord.X) / c * offset;
+                var start = Math.Atan2(a.Y - centre.Y, a.X - centre.X);
+                var sweep = 4 * Math.Atan(bulge);
+                var n = ArcSegments(radius, Math.Abs(sweep), tolerance);
+                for (var k = 1; k < n; k++)
+                {
+                    var t = start + sweep * k / n;
+                    points.Add((centre.X + radius * Math.Cos(t), centre.Y + radius * Math.Sin(t)));
+                }
+            }
+            return points;
+        }
+        foreach (Curve2d curve in loop.Curves)
+        {
+            var interval = curve.GetInterval();
+            double lo = interval.LowerBound, hi = interval.UpperBound;
+            var first = curve.EvaluatePoint(lo);
+            points.Add((first.X, first.Y));
+            if (curve is LineSegment2d) continue;
+            var n = curve is CircularArc2d arc
+                ? ArcSegments(arc.Radius, Math.Abs(arc.EndAngle - arc.StartAngle), tolerance)
+                : Math.Clamp((int)Math.Ceiling(curve.GetLength(lo, hi) / (50 * tolerance)), 8, 4096);
+            for (var k = 1; k < n; k++) { var p = curve.EvaluatePoint(lo + (hi - lo) * k / n); points.Add((p.X, p.Y)); }
+        }
+        return points;
+    }
+
+    private static int ArcSegments(double radius, double sweep, double tolerance)
+    {
+        if (!(radius > tolerance)) return 2;
+        var step = 2 * Math.Acos(1 - tolerance / radius);
+        return Math.Clamp((int)Math.Ceiling(sweep / step), 2, 4096);
+    }
+
+    /// <summary>The recovered shape as one region in the hatch plane (outer rings minus their holes).</summary>
+    private static Region? BuildRegion(NetTopologySuite.Geometries.Geometry shape, Vector3d normal, double elevation)
+    {
+        Region? total = null;
+        try
+        {
+            foreach (var (outer, holes) in HatchBoundaryArea.Polygons(shape))
+            {
+                var region = RingRegion(outer, normal, elevation);
+                if (region == null) { total?.Dispose(); return null; }
+                foreach (var hole in holes)
+                {
+                    var cut = RingRegion(hole, normal, elevation);
+                    if (cut == null) { region.Dispose(); total?.Dispose(); return null; }
+                    region.BooleanOperation(BooleanOperationType.BoolSubtract, cut);
+                    cut.Dispose();
+                }
+                if (total == null) total = region;
+                else { total.BooleanOperation(BooleanOperationType.BoolUnite, region); region.Dispose(); }
+            }
+            return total;
+        }
+        catch (Autodesk.AutoCAD.Runtime.Exception) { total?.Dispose(); return null; }
+    }
+
+    private static Region? RingRegion(IReadOnlyList<(double X, double Y)> ring, Vector3d normal, double elevation)
+    {
+        using var outline = new Polyline(ring.Count) { Normal = normal, Elevation = elevation };
+        for (var i = 0; i < ring.Count; i++) outline.AddVertexAt(i, new Point2d(ring[i].X, ring[i].Y), 0, 0, 0);
+        outline.Closed = true;
+        var regions = Region.CreateFromCurves(new DBObjectCollection { outline });
+        if (regions.Count == 1) return (Region)regions[0];
+        foreach (DBObject r in regions) r.Dispose();
+        return null;
+    }
+
     /// <summary>A new solid hatch in <paramref name="model"/> with the source's boundary loops; null when a loop cannot be copied.</summary>
     private static Hatch? RebuildHatch(Hatch source, BlockTableRecord model, Transaction tr)
     {
@@ -239,6 +405,7 @@ internal sealed class InfrastructureDrawingService : IDisposable
             Extents3d? bounds = null;
             foreach (var measured in selected)
             {
+                if (measured.ExportSkipReason != null) { skipped.Add((measured, measured.ExportSkipReason)); continue; }
                 var name = measured.Line.OutputLayer;
                 if (!layers.Has(name))
                 {
@@ -252,7 +419,17 @@ internal sealed class InfrastructureDrawingService : IDisposable
                     layers.Add(layer); tr.AddNewlyCreatedDBObject(layer, true);
                 }
                 Entity clone;
-                if (measured.SourceDatabase != null)
+                if (measured.RecoveredShape != null)
+                {
+                    // Built while the audit DWG is the working database, so the region belongs to it.
+                    var working = HostApplicationServices.WorkingDatabase;
+                    Region? rebuilt;
+                    try { HostApplicationServices.WorkingDatabase = output; rebuilt = BuildRegion(measured.RecoveredShape, measured.RecoveredNormal, measured.RecoveredElevation); }
+                    finally { HostApplicationServices.WorkingDatabase = working; }
+                    if (rebuilt == null) { skipped.Add((measured, "לא ניתן לבנות אזור מהגבול בשרטוט הייצוא")); continue; }
+                    clone = rebuilt;
+                }
+                else if (measured.SourceDatabase != null)
                 {
                     // Native cross-database cloning translates the Hatch/ACIS symbol references; a shallow Clone cannot.
                     // Some XREF hatches refuse it (eInvalidKey on a 40-XREF sheet, 2026-11-05): skip and list, never abort.

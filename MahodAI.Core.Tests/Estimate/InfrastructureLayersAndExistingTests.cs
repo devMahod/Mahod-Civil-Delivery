@@ -200,6 +200,31 @@ public sealed class InfrastructureLayersAndExistingTests : IDisposable
         Assert.False(keep.Approved);
     }
 
+    /// <summary>Live 2026-11-06 (4NATIVIM, 18.5 km of curbs): every curb layer got 51.06.1830, a perforated drainage pipe.</summary>
+    [Theory]
+    [InlineData("HW-IC_4NATIV-GM-M44|HW-CURB-GRDN")]
+    [InlineData("HW-IC_4NATIV-GM-M44|TR-CURB3_MIDRAHA-17")]
+    [InlineData("HW-IC_4NATIV-GM-M44|TR-CURB2_MIFRADA-18")]
+    [InlineData("TR-CURB-RED")]
+    public void New_curbs_are_recommended_a_curb_item_never_a_pipe(string layer)
+    {
+        var curb = Group(layer, length: 6742.64);
+        var recommended = new InfrastructureCatalogSearch(Nti()).Find(curb).First(o => o.IsRecommended);
+        var text = InfrastructureCatalogSearch.Normalize(recommended.Description);   // "אבן-שפה" is written with a hyphen too
+        Assert.True(text.Contains("אבן שפה") || text.Contains("אבני שפה"), recommended.Code + " " + text);
+        Assert.DoesNotContain("צינור", text);
+        Assert.StartsWith("51.06", recommended.Code);
+    }
+
+    [Fact]
+    public void Utility_lines_still_get_their_pipe_item()
+    {
+        var search = new InfrastructureCatalogSearch(Nti());
+        var water = search.Find(Group("UT-W-DN200", length: 100)).First(o => o.IsRecommended);
+        var text = InfrastructureCatalogSearch.Normalize(water.Description);
+        Assert.True(text.Contains("צינור") || text.Contains("קו מים"), water.Code + " " + text);
+    }
+
     [Fact]
     public void Road_area_is_summed_per_surface_and_the_structure_gives_volumes()
     {
@@ -315,6 +340,8 @@ public sealed class InfrastructureLayersAndExistingTests : IDisposable
         var paving = derived.Single(d => d.Layer.StartsWith("מדרכה") && d.MeasurementUnit == "מ״ר");
         Assert.Contains("משתלבת", paving.Description);
         Assert.Contains("/6", paving.Description);
+        // The 6 cm stone chosen 2026-11-05, not the ₪91 "ריצוף באבן משתלבת" a layer-element bonus would prefer (2026-11-06).
+        Assert.Equal("51.06.0451", paving.Code);
 
         // Approved before the structure existed: marking withdraws it, so the area cannot stay priced twice.
         var early = InfrastructureBoq.Group(new[] { Line("HW-ROAD-HA", area: 50, part: "שטחים") }).Single();

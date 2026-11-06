@@ -129,6 +129,8 @@ internal sealed class InfrastructureBoqWindow : Window
             InfrastructureReviewStore.Restore(_reviewPath, scan.DrawingHash, _books.Select(b => b.Catalog).ToArray(), _groups, _excluded);
             RebuildRoads(persist: false);
             InfrastructureReviewStore.Restore(_reviewPath, scan.DrawingHash, _books.Select(b => b.Catalog).ToArray(), _derived, _excluded);
+            if (RefreshStaleAutomatic(_groups.Concat(_derived)) is > 0 and var refreshed)
+            { Persist(); restoreError = $"{refreshed} שיוכים אוטומטיים מגרסה קודמת עודכנו להצעה הנוכחית (שיוכים ידניים לא שונו)"; }
         }
         catch (System.Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException) { restoreError = "לא ניתן לטעון שיוכים קודמים: " + ex.Message; }
 
@@ -142,6 +144,7 @@ internal sealed class InfrastructureBoqWindow : Window
         var root = _layoutRoot; Content = root;
         root.Children.Add(Header());
         root.Children.Add(TilesRow());
+        if (AreaWarning() is { } areaWarning) root.Children.Add(areaWarning);
         var bottom = new DockPanel { Margin = new Thickness(2, 10, 2, 0) }; DockPanel.SetDock(bottom, Dock.Bottom); root.Children.Add(bottom);
         _undo.Click += (_, _) => UiGuard.Run("החזרת שורות", () => { _excluded.Clear(); Persist(); RebuildRoads(); Refresh(); });
         DockPanel.SetDock(_undo, Dock.Left); bottom.Children.Add(_undo);
@@ -154,6 +157,24 @@ internal sealed class InfrastructureBoqWindow : Window
         Closed += (_, _) => { _closed = true; _queryTimer.Stop(); };
         SetView(View.New);
         if (restoreError != null) _message.Text = restoreError;
+    }
+
+    /// <summary>
+    /// An automatic assignment is the program's proposal, saved with the drawing. When the ranking improves, a saved
+    /// proposal follows it; the engineer's own choices never change. Live 2026-11-06: 1.9.0 saved a drainage pipe on every
+    /// curb layer, and reopening the drawing after the fix kept it, because auto-assign skips rows that already have an item.
+    /// </summary>
+    private int RefreshStaleAutomatic(IEnumerable<InfrastructureGroup> groups)
+    {
+        var book = _books[0].Catalog; var changed = 0;
+        foreach (var g in groups.Where(g => g.Approved && g.AutomaticallyAssigned && g.CatalogHash == book.FileHash).ToArray())
+        {
+            var current = _search.Find(g).FirstOrDefault(o => o.IsRecommended)?.Code;
+            if (current == g.Code) continue;
+            if (current != null) g.Assign(book, current, automatic: true); else g.Withdraw();
+            changed++;
+        }
+        return changed;
     }
 
     // ───────────────────────────── layout ─────────────────────────────
@@ -175,6 +196,34 @@ internal sealed class InfrastructureBoqWindow : Window
         header.Children.Add(titles);
         DockPanel.SetDock(header, Dock.Top);
         return header;
+    }
+
+    /// <summary>
+    /// Hatches AutoCAD gives no area for, on the first screen. Before 2026-11-06 they were one handle-less line in the last
+    /// Excel sheet, and ~59,000 m² of a real carriageway went missing without anyone seeing it.
+    /// </summary>
+    private UIElement? AreaWarning()
+    {
+        var recovered = _scan.RecoveredAreas; var missing = _scan.UnmeasuredAreas;
+        if (recovered.Count == 0 && missing.Count == 0) return null;
+        static string Layers(IEnumerable<InfrastructureDrawingService.AreaIssue> items) => string.Join(" · ", items
+            .GroupBy(i => i.LayerName).OrderByDescending(g => g.Sum(i => i.AreaSquareMetres)).ThenByDescending(g => g.Count())
+            .Select(g => g.Sum(i => i.AreaSquareMetres) > 0 ? $"{g.Key} ({g.Count()}, {g.Sum(i => i.AreaSquareMetres):N0} מ״ר)" : $"{g.Key} ({g.Count()})"));
+        var stack = new StackPanel();
+        if (missing.Count > 0)
+            stack.Children.Add(new TextBlock { TextWrapping = TextWrapping.Wrap, FontWeight = FontWeights.SemiBold, Foreground = Theme.Blocked,
+                Text = $"{missing.Count} שטחי Hatch לא נמדדו ואינם בכתב הכמויות — יש להשלים כמות ידנית: {Layers(missing)}" });
+        if (recovered.Count > 0)
+            stack.Children.Add(new TextBlock { TextWrapping = TextWrapping.Wrap, Foreground = Theme.Ink, Margin = new Thickness(0, missing.Count > 0 ? 4 : 0, 0, 0),
+                Text = $"{recovered.Count} שטחי Hatch ש־AutoCAD אינו מחשב להם שטח נמדדו מגבולותיהם ונכללו בכמות — " +
+                       $"{recovered.Sum(r => r.AreaSquareMetres):N0} מ״ר, לבדיקה: {Layers(recovered)}" });
+        var banner = new Border { Child = stack, Background = missing.Count > 0 ? Theme.BlockedTint : Theme.ReviewTint,
+            BorderBrush = missing.Count > 0 ? Theme.Blocked : Theme.Review, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(12, 8, 12, 8), Margin = new Thickness(0, 10, 0, 0),
+            ToolTip = "הרשימה המלאה (שכבה, Handle, שטח) בגיליון \"בדיקות ומקור המחירון\" של קובץ ה־Excel." };
+        banner.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "boq-area-warning");
+        DockPanel.SetDock(banner, Dock.Top);
+        return banner;
     }
 
     private UIElement TilesRow()
