@@ -83,6 +83,15 @@ public static class DraftedTypicalSectionLogic
     /// <summary>A barrier strip in a median is at most this wide (a concrete barrier's faces: 0.6-0.8 m).</summary>
     public const double BarrierMaxM = 1.2;
 
+    /// <summary>
+    /// A barrier at least this far inside the strip beyond the edge line splits it into the shoulder and the berm
+    /// behind the barrier (<see cref="Build"/>); closer to a bound it stands on that line.
+    /// </summary>
+    public const double BarrierSplitMinM = 0.3;
+
+    /// <summary>The berm behind a roadside barrier ("כתף") is at most this wide (road 43: 1.30 m).</summary>
+    public const double BermMaxM = 2.5;
+
     /// <summary>A median the axis runs through is this wide (the office's temporary medians: 1.80 m).</summary>
     public const double MedianMinM = 0.6;
 
@@ -288,6 +297,8 @@ public static class DraftedTypicalSectionLogic
             strips.Add(new Strip(left.OffsetM, right.OffsetM, NameOf(left.Kind, right.Kind, width, isPaved), SurfaceOf(left.Kind, right.Kind)));
         }
 
+        SplitAtRoadsideBarriers(strips, breaks, Merge(within.Where(c => c.Kind == Kind.Barrier)));
+
         static bool RoadLine(string kind) => kind is Kind.Edge or Kind.Marking or Kind.EdgeLine or Kind.HovLine or Kind.Routing or Kind.Curb or Kind.Shoulder;
         var groups = new List<Zone>();
         var barriers = Merge(within.Where(c => c.Kind == Kind.Barrier));
@@ -392,6 +403,49 @@ public static class DraftedTypicalSectionLogic
             if (share > bestShare) { bestShare = share; best = panel.Order; }
         }
         return best;
+    }
+
+    /// <summary>
+    /// A roadside barrier splits the strip it stands in, outside the edge line (2026-11-09, GM-halufa_A_new2 road 43:
+    /// 807 | 3.00 | W3 barrier | 1.30 | HW-SHLD). The designer dimensions the paved shoulder up to the barrier and the
+    /// berm behind it; read as one 4.30 strip it had no name and a note that a lane line was probably missing. Only a
+    /// strip that does not hold the axis (medians are <see cref="Build"/>'s), from the 807 edge line out to the shoulder
+    /// line or the carriageway edge - or from the carriageway edge to the shoulder line - with exactly one barrier
+    /// inside it. The barrier becomes a break of the width chain; the shoulder keeps the strip's surface, the berm is
+    /// ground.
+    /// </summary>
+    private static void SplitAtRoadsideBarriers(List<Strip> strips, List<Crossing> breaks, IReadOnlyList<Crossing> barriers)
+    {
+        if (barriers.Count == 0) return;
+        Crossing At(double offset) => breaks.First(b => Math.Abs(b.OffsetM - offset) < 1e-9);
+        var added = false;
+        for (var i = strips.Count - 1; i >= 0; i--)
+        {
+            var strip = strips[i];
+            if (strip.FromM < -MergeM && strip.ToM > MergeM) continue;
+            var leftSide = strip.ToM <= MergeM;
+            var inner = At(leftSide ? strip.ToM : strip.FromM).Kind;
+            var outer = At(leftSide ? strip.FromM : strip.ToM).Kind;
+            var roadside = (inner == Kind.EdgeLine && outer is Kind.Shoulder or Kind.Edge) || (inner == Kind.Edge && outer == Kind.Shoulder);
+            if (!roadside) continue;
+            var inside = barriers
+                .Where(b => b.OffsetM > strip.FromM + BarrierSplitMinM && b.OffsetM < strip.ToM - BarrierSplitMinM)
+                .ToList();
+            if (inside.Count != 1) continue;
+            var at = inside[0].OffsetM;
+            var shoulderWidth = leftSide ? strip.ToM - at : at - strip.FromM;
+            var bermWidth = strip.WidthM - shoulderWidth;
+            if (shoulderWidth > ShoulderMaxM || bermWidth > BermMaxM) continue;
+            var shoulder = new Strip(leftSide ? at : strip.FromM, leftSide ? strip.ToM : at,
+                shoulderWidth >= MinNamedWidthM ? "שול" : null, strip.SurfaceKind);
+            var berm = new Strip(leftSide ? strip.FromM : at, leftSide ? at : strip.ToM,
+                bermWidth >= MinNamedWidthM ? "כתף" : null, "ground");
+            strips[i] = leftSide ? berm : shoulder;
+            strips.Insert(i + 1, leftSide ? shoulder : berm);
+            breaks.Add(inside[0]);
+            added = true;
+        }
+        if (added) breaks.Sort((x, y) => x.OffsetM.CompareTo(y.OffsetM));
     }
 
     /// <summary>Which of two lines on one spot names the strips beside it: the most specific first.</summary>

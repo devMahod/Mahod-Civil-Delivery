@@ -138,6 +138,30 @@ public sealed class PlanAxis
                || leaf.StartsWith("CENTRELINE", StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// The layer an axis the engineer picked is copied to (2026-11-09, GM-halufa_A_new2: a drafted plan with no axis
+    /// layer at all, the road's centre line a TR-MARK-808 marking). What the engineer typed names it - "43" becomes
+    /// "AX-43", "AX-43" stays - so the section title reads the road; nothing typed takes the first free AX-n. A name
+    /// AutoCAD cannot hold as a layer falls back to AX-n too. The copy then is found by <see cref="IsAxisLayer"/> on
+    /// every later run.
+    /// </summary>
+    public static string AxisLayerFor(string? typed, IEnumerable<string> existingLayers)
+    {
+        var existing = new HashSet<string>(existingLayers ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+        var name = (typed ?? string.Empty).Trim();
+        if (name.Length > 0 && name.IndexOfAny(InvalidLayerChars) < 0 && name.Length <= 200)
+            return name.StartsWith("AX-", StringComparison.OrdinalIgnoreCase) || name.StartsWith("AX_", StringComparison.OrdinalIgnoreCase)
+                ? name
+                : "AX-" + name;
+        for (var i = 1; ; i++)
+        {
+            var candidate = "AX-" + i.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            if (!existing.Contains(candidate)) return candidate;
+        }
+    }
+
+    private static readonly char[] InvalidLayerChars = { '<', '>', '/', '\\', '"', ':', ';', '?', '*', '|', ',', '=', '`' };
+
     /// <summary>The layer's own name without the XREF chain ("A|B|HW-TRWY" → "HW-TRWY").</summary>
     public static string LayerLeaf(string? layer)
     {

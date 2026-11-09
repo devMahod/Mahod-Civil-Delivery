@@ -331,4 +331,72 @@ public sealed class DraftedTypicalSectionLogicTests
         section.Strips.Should().NotContain(s => s.Name == "נתיב", "the plan has no lane line here");
         section.Findings.Where(f => f.Contains("מספר הנתיבים")).Should().HaveCount(2);
     }
+
+    // ------------------------------------------------------------------------- roadside barrier (2026-11-09, road 43)
+
+    /// <summary>GM-halufa_A_new2, road 43 at AX-43 800.34: the plan's crossings as the cut reads them.</summary>
+    private static Crossing[] Road43At800() => new[]
+    {
+        C(-7.62, Kind.Shoulder), C(-6.60, Kind.Barrier), C(-3.60, Kind.EdgeLine), C(0, Kind.Marking), C(3.60, Kind.Marking),
+        C(7.20, Kind.EdgeLine), C(10.20, Kind.Barrier), C(11.50, Kind.Shoulder),
+    };
+
+    [Fact]
+    public void RoadsideBarrier_SplitsTheStripOutsideTheEdgeLine_IntoShoulderAndBerm()
+    {
+        var section = DraftedTypicalSectionLogic.Build(Road43At800(), null, 20);
+
+        section.Strips.Select(s => (Math.Round(s.WidthM, 2), s.Name)).Should().Equal(
+            (1.02, "כתף"), (3.00, "שול"), (3.60, "נתיב"), (3.60, "נתיב"), (3.60, "נתיב"), (3.00, "שול"), (1.30, "כתף"));
+        section.Strips.First().SurfaceKind.Should().Be("ground", "the berm behind the barrier is not paved");
+        section.Strips[1].SurfaceKind.Should().Be("road");
+        section.Breaks.Select(b => b.OffsetM).Should().BeInAscendingOrder().And.Contain(new[] { -6.60, 10.20 },
+            "the width chain dimensions the shoulder up to the barrier, as the designer does");
+        section.Barriers.Should().HaveCount(2);
+        section.Findings.Should().NotContain(f => f.Contains("רחבה מנתיב"), "a shoulder with its berm is not a missing lane line");
+    }
+
+    [Fact]
+    public void RoadsideBarrier_TooWideABerm_OrTwoBarriers_LeavesTheStripAsItWas()
+    {
+        var wideBerm = DraftedTypicalSectionLogic.Build(new[]
+        {
+            C(-3.60, Kind.EdgeLine), C(0, Kind.Marking), C(3.60, Kind.EdgeLine), C(4.60, Kind.Barrier), C(7.90, Kind.Shoulder),
+        }, null, 20);
+        wideBerm.Strips.Should().HaveCount(3, "1.00 shoulder + 3.30 behind the barrier is not a berm");
+
+        var twoBarriers = DraftedTypicalSectionLogic.Build(new[]
+        {
+            C(-3.60, Kind.EdgeLine), C(0, Kind.Marking), C(3.60, Kind.EdgeLine), C(5.0, Kind.Barrier), C(6.5, Kind.Barrier),
+            C(7.90, Kind.Shoulder),
+        }, null, 20);
+        twoBarriers.Strips.Should().HaveCount(3);
+        twoBarriers.Breaks.Should().NotContain(b => b.Kind == Kind.Barrier);
+    }
+
+    [Fact]
+    public void RoadsideBarrier_InTheMedian_IsStillTheMedians()
+    {
+        // 6403 ROAD-40 79650: the barrier between two inner shoulders stays one "מפרדה" group, not a shoulder and berm.
+        var section = DraftedTypicalSectionLogic.Build(new[]
+        {
+            C(-5.30, Kind.EdgeLine), C(-1.70, Kind.EdgeLine), C(0.05, Kind.Barrier), C(0.85, Kind.Barrier), C(2.55, Kind.EdgeLine),
+            C(6.15, Kind.EdgeLine),
+        }, null, 20);
+        section.Strips.Should().NotContain(s => s.Name == "כתף");
+    }
+
+    [Theory]
+    [InlineData("43", "AX-43")]
+    [InlineData("AX-43", "AX-43")]
+    [InlineData("ax_main", "ax_main")]
+    [InlineData("", "AX-2")]
+    [InlineData(null, "AX-2")]
+    [InlineData("a|b", "AX-2")]
+    public void AxisLayerFor_NamesTheCopyAfterWhatTheEngineerTyped(string? typed, string expected)
+    {
+        var layer = PlanAxis.AxisLayerFor(typed, new[] { "0", "ax-1", "TR-MARK-808" });
+        layer.Should().Be(expected);
+        PlanAxis.IsAxisLayer(layer).Should().BeTrue("the next run must find the copy by itself");
+    }
 }

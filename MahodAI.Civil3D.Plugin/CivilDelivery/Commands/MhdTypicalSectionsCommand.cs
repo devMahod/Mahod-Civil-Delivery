@@ -52,7 +52,12 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Commands
                 else if (!CivilRuntime.IsCivilAvailable())
                     result.Error = "סימון חתכים דורש Civil 3D.";
                 else
+                {
                     Pick(doc, ed, request, result);
+                    // The palette shows this in its footer, which a docked or tall panel can hide (2026-11-09: the
+                    // button "did nothing" on a drawing with no axis); the command line always shows it.
+                    if (result.Error != null) ed.WriteMessage("\n" + result.Error + "\n");
+                }
             }
             catch (System.Exception ex)
             {
@@ -72,12 +77,33 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Commands
             double? halfWidth = TypicalSectionPickLogic.DefaultHalfWidth(request.DefaultHalfWidthM);
             result.HalfWidthM = halfWidth;
 
-            using var picker = TypicalSectionPicker.Open(doc.Database, CivilApplication.ActiveDocument, request.AllowedAlignmentNames);
-            if (picker.AlignmentNames.Count == 0)
+            var civilDoc = CivilApplication.ActiveDocument;
+            var opened = TypicalSectionPicker.Open(doc.Database, civilDoc, request.AllowedAlignmentNames);
+            if (opened.AlignmentNames.Count == 0)
             {
-                result.Error = "לא נמצא תוואי מתאים בשרטוט (לפי התוואים המותרים בפרופיל הפרויקט), ולא נמצא קו ציר בתנוחה (שכבות AX-*, CL, CENTERLINE).";
-                return;
+                opened.Dispose();
+                // A drafted plan with no axis at all (2026-11-09, GM-halufa_A_new2: road 43 drawn as markings, its centre
+                // line a TR-MARK-808 polyline): the engineer shows the axis instead of the tool guessing which marking
+                // is the centre. Not where Civil alignments exist - there the profile's list decides.
+                var hasAlignments = false;
+                try { hasAlignments = civilDoc.GetAlignmentIds().Count > 0; } catch { /* no Civil document */ }
+                var axisLayer = hasAlignments ? null : PromptAxisFromPlan(doc, ed);
+                if (axisLayer == null)
+                {
+                    result.Error = hasAlignments
+                        ? "לא נמצא תוואי מתאים בשרטוט (לפי התוואים המותרים בפרופיל הפרויקט)."
+                        : "לא נבחר קו ציר — לא סומן דבר. אפשר גם להעתיק את קו הציר של הכביש לשכבה AX-<שם> ולהריץ שוב.";
+                    return;
+                }
+                opened = TypicalSectionPicker.Open(doc.Database, civilDoc, Array.Empty<string>());
+                if (opened.AlignmentNames.Count == 0)
+                {
+                    opened.Dispose();
+                    result.Error = $"הקו שהועתק לשכבה {axisLayer} לא נקרא כציר — לא סומן דבר.";
+                    return;
+                }
             }
+            using var picker = opened;
             var names = string.Join(", ", picker.AlignmentNames);
             ed.WriteMessage(picker.CorridorOnly
                 ? FormattableString.Invariant($"\nתוואים עם קורידור: {names}. הקו הירוק עוקב אחרי העכבר — לחיצה מסמנת חתך. חצי רוחב {halfWidth.Value:0.##} מ' (לשינוי: רוחב).\n")
@@ -157,6 +183,69 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Commands
             ed.WriteMessage(session.Count == 0
                 ? "\nלא סומן אף חתך.\n"
                 : $"\n{session.Count} חתכים סומנו — חזור לפאנל ליצירה.\n");
+        }
+
+        /// <summary>
+        /// No Civil alignment and no axis line on the plan: asks the engineer to click the road's centre line (a line,
+        /// polyline or arc - inside an XREF too) and copies it, in world coordinates, to an axis layer named after what
+        /// they type (<see cref="PlanAxis.AxisLayerFor"/>), where every later run finds it by itself. The copy is part of
+        /// this command, so one Undo takes it away. Stations run from the line's first vertex. Null when the engineer
+        /// cancels.
+        /// </summary>
+        internal static string? PromptAxisFromPlan(Document doc, Editor ed)
+        {
+            ed.WriteMessage("\nלא נמצא בשרטוט תוואי Civil או קו ציר בתנוחה (שכבות AX-*, CL, CENTERLINE).\n");
+            var db = doc.Database;
+            while (true)
+            {
+                var picked = ed.GetNestedEntity(new PromptNestedEntityOptions(
+                    "\nבחר את קו הציר של הכביש (קו / פוליליין / קשת, גם בתוך XREF), או Esc לביטול: ") { AllowNone = false });
+                if (picked.Status != PromptStatus.OK) return null;
+
+                using var tr = db.TransactionManager.StartTransaction();
+                if (tr.GetObject(picked.ObjectId, OpenMode.ForRead) is not Curve curve)
+                {
+                    ed.WriteMessage("\nזה אינו קו — בחר קו, פוליליין או קשת שעוברים לאורך הכביש.\n");
+                    continue;
+                }
+                Entity copy;
+                try { copy = curve.GetTransformedCopy(picked.Transform); }
+                catch (System.Exception ex)
+                {
+                    ed.WriteMessage($"\nאי אפשר להעתיק את הקו הזה ({ex.Message}) — בחר קו אחר.\n");
+                    continue;
+                }
+                double length = 0;
+                if (copy is Curve copied)
+                    try { length = copied.GetDistanceAtParameter(copied.EndParam) - copied.GetDistanceAtParameter(copied.StartParam); }
+                    catch { length = 0; }
+                if (!(length >= DraftedTypicalSectionService.MinAxisLengthM))
+                {
+                    copy.Dispose();
+                    ed.WriteMessage(FormattableString.Invariant(
+                        $"\nהקו קצר מדי לציר ({length:0.#} מ', לפחות {DraftedTypicalSectionService.MinAxisLengthM:0} מ') — בחר את קו הציר לכל אורך הכביש.\n"));
+                    continue;
+                }
+
+                var typed = ed.GetString(new PromptStringOptions("\nשם הציר (יופיע בכותרת החתך, למשל 43), Enter לשם אוטומטי: ") { AllowSpaces = false });
+                if (typed.Status == PromptStatus.Cancel) { copy.Dispose(); return null; }
+                var layers = new List<string>();
+                foreach (ObjectId id in (LayerTable)tr.GetObject(db.LayerTableId, OpenMode.ForRead))
+                    layers.Add(((LayerTableRecord)tr.GetObject(id, OpenMode.ForRead)).Name);
+                var layer = PlanAxis.AxisLayerFor(typed.Status == PromptStatus.OK ? typed.StringResult : null, layers);
+                TypicalSectionPicker.EnsureLayer(tr, db, layer, 1);
+                copy.Layer = layer;
+                copy.ColorIndex = 256;
+                copy.Linetype = "ByLayer";
+                copy.LineWeight = LineWeight.ByLayer;
+                var modelSpace = (BlockTableRecord)tr.GetObject(SymbolUtilityServices.GetBlockModelSpaceId(db), OpenMode.ForWrite);
+                modelSpace.AppendEntity(copy);
+                tr.AddNewlyCreatedDBObject(copy, true);
+                tr.Commit();
+                ed.WriteMessage(FormattableString.Invariant(
+                    $"\nקו הציר הועתק לשכבה {layer} ({length:0.#} מ', תחנה 0 בתחילת הקו) — בהרצה הבאה הכלי ימצא אותו לבד.\n"));
+                return layer;
+            }
         }
 
         internal static double? PromptHalfWidth(Editor ed, double defaultValue)
