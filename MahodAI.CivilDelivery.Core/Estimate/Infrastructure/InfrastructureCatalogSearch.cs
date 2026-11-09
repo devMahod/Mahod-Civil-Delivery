@@ -54,6 +54,9 @@ public sealed class InfrastructureCatalogSearch
         // A pavement-structure row names its own layer (תא"צ 19 בעובי 5): that wording is the search.
         var hint = group.GroupPart == RoadPavement.DerivedPart
             ? Normalize(group.Element).Split(' ', StringSplitOptions.RemoveEmptyEntries) : Array.Empty<string>();
+        // A concrete row names its NTI item by phrases ("^קירות תומכים מבטון", "בקוטר 60 · 10.01"): the wall item and the
+        // wall-footing item share every word, so loose words could not tell them apart.
+        (string? Lead, string[] Phrases)? phrases = group.GroupPart == StructureConcrete.DerivedPart ? Phrases(group.Element) : null;
         var diameter = LayerDiameter(group.ShortLayer);
         var material = MaterialOf(group.ShortLayer);
         var hasQuery = terms.Length > 0;
@@ -68,13 +71,14 @@ public sealed class InfrastructureCatalogSearch
             if (hasQuery && !codeMatch && !terms.All(t => MatchesTerm(e.Text, t) ||
                 (TopicTerms.Contains(t) ? e.ContextTopics.Contains(t) : MatchesTerm(e.Context, t)))) continue;
             var topic = TopicRank(rankingTopic, e.Item, e.Text, e.ContextTopics);
-            if (!hasQuery && !focused && topic == 0) continue;
+            var hintMatch = phrases is { } ph ? PhrasesMatch(e.Text, ph) : hint.Length > 0 && hint.All(t => MatchesTerm(e.Text, t));
+            // Piles (23.01) sit in a chapter whose title names no topic: the row's own wording admits them.
+            if (!hasQuery && !focused && topic == 0 && !hintMatch) continue;
             var rank = topic + (focused ? 80 : 0);
             var reasons = new List<string>();
             if (topic > 0) reasons.Add(rankingTopic);
             var elementMatch = element != null && element.IsMatch(e.Text);
-            var hintMatch = hint.Length > 0 && hint.All(t => MatchesTerm(e.Text, t));
-            if (hintMatch) { rank += 120; reasons.Add("לפי שכבת המבנה: " + group.Element); }
+            if (hintMatch) { rank += 120; reasons.Add(phrases != null ? "לפי חישוב הבטון" : "לפי שכבת המבנה: " + group.Element); }
             if (demolish && rankingTopic == Demolition)
             {
                 if (_usesNtiChapters && e.Item.SubChapter == "51.01") rank += 60;
@@ -85,7 +89,7 @@ public sealed class InfrastructureCatalogSearch
             // New work: an item that names the element (אבן שפה for a curb layer) beats its chapter neighbours. Chapter 51.06 is
             // "ריצוף, אבני שפה…", so without this every item in it tied and the drainage pipe won (live 2026-11-06: 18.5 km of curbs).
             // Not for a pavement-structure row: its own wording (the hint) chooses, e.g. the 6 cm stone 51.06.0451.
-            else if (elementMatch && !hasQuery && hint.Length == 0) { rank += 30; reasons.Add("האלמנט בשם הסעיף: " + (group.Element.Length > 0 ? group.Element : group.Topic)); }
+            else if (elementMatch && !hasQuery && hint.Length == 0 && phrases == null) { rank += 30; reasons.Add("האלמנט בשם הסעיף: " + (group.Element.Length > 0 ? group.Element : group.Topic)); }
             if (e.Item.Code.Equals(query.Trim(), StringComparison.OrdinalIgnoreCase)) rank += 10000;
             if (codeMatch) rank += 500;
             if (diameter is { } d && DiameterMatches(e.Item.Description, d.Value, d.Unit))
@@ -115,7 +119,7 @@ public sealed class InfrastructureCatalogSearch
                     : string.Join(" · ", reasons) + " · בדוק חומר, עומק וסוג עבודה", rank)
             { MatchesLayerTopic = !auxiliaryLength && group.IsPayItem && (demolish
                 ? TopicRank(Demolition, e.Item, e.Text, e.ContextTopics) > 0 && (element == null || elementMatch)
-                : hint.Length > 0 ? hintMatch
+                : hint.Length > 0 || phrases != null ? hintMatch
                 : TopicRank(group.Topic, e.Item, e.Text, e.ContextTopics) > 0 && (group.Surface != RoadSurfaceKind.Milling || e.Text.Contains("קרצוף"))) });
         }
         var options = matches.OrderByDescending(x => x.Rank).ThenBy(x => x.Code, StringComparer.Ordinal).Take(limit).ToArray();
@@ -170,6 +174,10 @@ public sealed class InfrastructureCatalogSearch
             return "קיים לפירוק — ההצעות מפרק הפירוקים לפי סוג האלמנט. בדוק עובי, קוטר וסוג לפני השיוך.";
         if (group.PricedByStructure)
             return $"שטח {group.SurfaceName} — מתומחר דרך שכבות המבנה שלו (מסך כבישים: שטח × עובי). סעיף לשטח עצמו היה סופר אותו פעמיים; כדי לתמחר את השטח ישירות, רוקן את מבנה המשטח.";
+        if (group.PricedByConcrete)
+            return "אלמנט בטון — מתומחר דרך שורות הבטון, הכלונסאות והזיון שלו (לוח בטון וקונסטרוקציה: כמות בתכנית × חתך). סעיף לקו עצמו היה סופר אותו פעמיים.";
+        if (group.Source == StructureConcrete.DerivedSource)
+            return "שורת בטון: הכמות = הכמות בתכנית × החתך (הוזן, נקרא מהשרטוט או ברירת מחדל — מפורט בהערה). המידות משתנות בלוח בטון וקונסטרוקציה.";
         if (group.Role == LayerRole.Boundary) return "קו שפה / גבול שטח. אורכו אינו סעיף בפני עצמו — השטח נמדד מה־Hatch שבתוכו.";
         if (group.Role == LayerRole.Annotation) return "שכבת שרטוט (כיתוב, מידות, חתך או חתך אורך) — לא כמות לביצוע.";
         if (group.MeasuredQuantity <= 0) return "אין מדידה מהשרטוט ביחידה זו. יש להזין כמות במפורש; לא נגזרים משקל, נפח או עובי משטח או מאורך.";
@@ -281,6 +289,17 @@ public sealed class InfrastructureCatalogSearch
         if (Regex.IsMatch(t, @"(?:^| )(?:פלדה|steel)(?: |$)")) return "פלדה";
         return null;
     }
+
+    /// <summary>"^lead · phrase · phrase": the description starts with the lead and contains each phrase as whole words.</summary>
+    private static (string? Lead, string[] Phrases) Phrases(string element)
+    {
+        var parts = element.Split('·', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var lead = parts.Length > 0 && parts[0].StartsWith('^') ? Normalize(parts[0][1..]) : null;
+        return (lead, parts.Skip(lead != null ? 1 : 0).Select(Normalize).Where(p => p.Length > 0).ToArray());
+    }
+    private static bool PhrasesMatch(string description, (string? Lead, string[] Phrases) p) =>
+        (p.Lead == null || (description + " ").StartsWith(p.Lead + " ", StringComparison.Ordinal)) &&
+        p.Phrases.All(x => (" " + description + " ").Contains(" " + x + " ", StringComparison.Ordinal));
 
     private static bool MatchesTerm(string description, string term) => term.All(char.IsDigit)
         ? Regex.IsMatch(description, @"(?<!\d)" + Regex.Escape(term) + @"(?!\d)")

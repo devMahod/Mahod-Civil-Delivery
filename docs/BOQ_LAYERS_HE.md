@@ -84,7 +84,8 @@
 - `ASMADE`, `AS-MADE`, `AS MADE` (גם `ASBUILT`)
 - המילה `EX` (162 שכבות במדגם, למשל `DR-MNHL-EX`), `EXST`, `EXIST`
 - `KAYAM`, קיים
-- קובץ מקור שהוא מדידה: `SR-…`, `GIS-MADE`, `SEKER`
+- קובץ מקור שהוא מדידה: `SR-…` (גם אחרי מספר פרויקט: `6422-SR-WEST-MHD`), `GIS-MADE`, `SEKER`, `SURVEY`
+- אותם סימנים בשם קובץ ה־XREF שבתחילת שם השכבה (`6422-SR-SURVEY-MD17615-MHD|S_WALL_BT`, `6422-WALL-EX|…`) — XREF מקונן נקרא כמו קובץ מקור
 - XREF של מצב קיים, למשל `HW-IC_HA-EXST_TO4`
 
 כללים:

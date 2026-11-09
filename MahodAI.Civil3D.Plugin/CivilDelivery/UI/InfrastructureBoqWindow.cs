@@ -49,9 +49,9 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI;
 /// for demolition), its price-list item, and the road area and pavement-structure volumes. Four tiles on top are
 /// both the summary and the way between the views.
 /// </summary>
-internal sealed class InfrastructureBoqWindow : Window
+internal sealed partial class InfrastructureBoqWindow : Window
 {
-    private enum View { New, Demolish, Keep, Roads }
+    private enum View { New, Demolish, Keep, Roads, Concrete }
     internal sealed record SurfaceChoice(RoadSurfaceKind Kind, string Label);
     /// <summary>An editable pavement-structure row (the records are immutable).</summary>
     internal sealed class StructureRow
@@ -110,7 +110,7 @@ internal sealed class InfrastructureBoqWindow : Window
         RoadSurfaceKind.Shoulder, RoadSurfaceKind.BikePath, RoadSurfaceKind.Sidewalk, RoadSurfaceKind.Island, RoadSurfaceKind.Milling, RoadSurfaceKind.StructureArea }
         .Select(k => new SurfaceChoice(k, k == RoadSurfaceKind.None ? "— לא משטח כביש" : FirmLayerConventions.SurfaceName(k))).ToArray();
 
-    internal InfrastructureBoqWindow(InfrastructureDrawingService scan, CatalogSnapshot catalog)
+    internal InfrastructureBoqWindow(InfrastructureDrawingService scan, CatalogSnapshot catalog, IReadOnlyList<string>? pendingReports = null, string? defaultClass = null)
     {
         _scan = scan; _catalog = catalog; _groups = InfrastructureBoq.Group(scan.Measurements.Select(m => m.Line)).ToList();
         _books = new[] { new InfrastructurePriceBook("נתיבי ישראל", "אחוד יולי 2026 · מקור רשמי", catalog, new Dictionary<string,string>(), true) }
@@ -125,15 +125,24 @@ internal sealed class InfrastructureBoqWindow : Window
         // An area's own choices live beside the drawing's; the drawing's per-layer choices (item, state, topic) carry in.
         _reviewPath = scan.Area == null ? wholeReview : Path.ChangeExtension(wholeReview, ".area.json");
         _structures = RoadPavement.Load(_roadsPath);
+        InitPavement(pendingReports, defaultClass);
+        InitConcrete(wholeReview);
         string? restoreError = null;
         try
         {
             var catalogs = _books.Select(b => b.Catalog).ToArray();
             if (scan.Area != null) InfrastructureReviewStore.RestoreByLayer(wholeReview, scan.DrawingHash, catalogs, _groups, _excluded);
             InfrastructureReviewStore.Restore(_reviewPath, scan.DrawingHash, catalogs, _groups, _excluded);
+            if (_reports.HasReport && _pendingReports == null)
+            {
+                try { ComputeZones(popups: false); }
+                catch (System.Exception ex) when (UiGuard.IsRecoverable(ex)) { scan.Findings.Add("דו״ח מבנה: " + ex.Message); }
+            }
             RebuildRoads(persist: false);
             if (scan.Area != null) InfrastructureReviewStore.RestoreByLayer(wholeReview, scan.DrawingHash, catalogs, _derived, _excluded);
             InfrastructureReviewStore.Restore(_reviewPath, scan.DrawingHash, catalogs, _derived, _excluded);
+            if (scan.Area != null) InfrastructureReviewStore.RestoreByLayer(wholeReview, scan.DrawingHash, catalogs, _concreteDerived, _excluded);
+            InfrastructureReviewStore.Restore(_reviewPath, scan.DrawingHash, catalogs, _concreteDerived, _excluded);
             if (RefreshStaleAutomatic(_groups.Concat(_derived)) is > 0 and var refreshed)
             { Persist(); restoreError = $"{refreshed} שיוכים אוטומטיים מגרסה קודמת עודכנו להצעה הנוכחית (שיוכים ידניים לא שונו)"; }
         }
@@ -150,6 +159,7 @@ internal sealed class InfrastructureBoqWindow : Window
         root.Children.Add(Header());
         root.Children.Add(TilesRow());
         if (AreaWarning() is { } areaWarning) root.Children.Add(areaWarning);
+        root.Children.Add(_pavementBanner);
         var bottom = new DockPanel { Margin = new Thickness(2, 10, 2, 0) }; DockPanel.SetDock(bottom, Dock.Bottom); root.Children.Add(bottom);
         _undo.Click += (_, _) => UiGuard.Run("החזרת שורות", () => { _excluded.Clear(); Persist(); RebuildRoads(); Refresh(); });
         DockPanel.SetDock(_undo, Dock.Left); bottom.Children.Add(_undo);
@@ -157,7 +167,7 @@ internal sealed class InfrastructureBoqWindow : Window
         _undoAuto.Click += (_, _) => UiGuard.Run("ביטול שיוך אוטומטי", UndoAutomaticAssignment);
         DockPanel.SetDock(_undoAuto, Dock.Left); bottom.Children.Add(_undoAuto);
         _message.VerticalAlignment = VerticalAlignment.Center; bottom.Children.Add(_message);
-        _boqBody = BoqBody(); _roadsBody = RoadsBody();
+        _boqBody = BoqBody(); _roadsBody = RoadsBody(); _concreteBody = ConcreteBody();
         _body.Margin = new Thickness(0, 12, 0, 0); root.Children.Add(_body);
         Closed += (_, _) => { _closed = true; _queryTimer.Stop(); };
         SetView(View.New);
@@ -244,7 +254,9 @@ internal sealed class InfrastructureBoqWindow : Window
             stack.Children.Add(new TextBlock { TextWrapping = TextWrapping.Wrap, Foreground = Theme.Ink, Margin = new Thickness(0, missing.Count > 0 ? 4 : 0, 0, 0),
                 Text = $"{recovered.Count} שטחי Hatch ש־AutoCAD אינו מחשב להם שטח נמדדו מגבולותיהם ונכללו בכמות — " +
                        $"{recovered.Sum(r => r.AreaSquareMetres):N0} מ״ר, לבדיקה: {Layers(recovered)}" });
-        var banner = new Border { Child = stack, Background = missing.Count > 0 ? Theme.BlockedTint : Theme.ReviewTint,
+        // At most ~3 lines high: on a 22-XREF drawing the list ran to 6 lines and squeezed the roads screen (live 2026-11-09).
+        var banner = new Border { Child = new ScrollViewer { Content = stack, MaxHeight = 66, VerticalScrollBarVisibility = ScrollBarVisibility.Auto },
+            Background = missing.Count > 0 ? Theme.BlockedTint : Theme.ReviewTint,
             BorderBrush = missing.Count > 0 ? Theme.Blocked : Theme.Review, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(8),
             Padding = new Thickness(12, 8, 12, 8), Margin = new Thickness(0, 10, 0, 0),
             ToolTip = "הרשימה המלאה (שכבה, Handle, שטח) בגיליון \"בדיקות ומקור המחירון\" של קובץ ה־Excel." };
@@ -255,11 +267,12 @@ internal sealed class InfrastructureBoqWindow : Window
 
     private UIElement TilesRow()
     {
-        var row = new UniformGrid { Columns = 4, Margin = new Thickness(-5, 10, -5, 0) };
+        var row = new UniformGrid { Columns = 5, Margin = new Thickness(-5, 10, -5, 0) };
         row.Children.Add(Tile(View.New, "עבודות חדשות", Theme.Accent));
         row.Children.Add(Tile(View.Demolish, "פירוקים והריסות", Theme.Blocked));
         row.Children.Add(Tile(View.Keep, "קיים — נשאר", Theme.Muted));
         row.Children.Add(Tile(View.Roads, "כבישים — שטח ונפח", Theme.Ink));
+        row.Children.Add(Tile(View.Concrete, "בטון וקונסטרוקציה", Theme.Review));
         DockPanel.SetDock(row, Dock.Top);
         return row;
     }
@@ -300,7 +313,7 @@ internal sealed class InfrastructureBoqWindow : Window
         _filter.ToolTip = "תחום מהמחירון — מצמצם את הסעיפים המוצעים בלבד.";
         _filter.ItemsSource = BoqCatalogCategories.For(_books[0]); _filter.SelectedIndex = 0;
         _filter.SelectionChanged += (_, _) => { if (!_loading) Search(); }; DockPanel.SetDock(_filter, Dock.Right); filters.Children.Add(_filter);
-        _layerSearch.ToolTip = "סינון לפי שם שכבה"; _layerSearch.TextChanged += (_, _) => Refresh(); filters.Children.Add(_layerSearch);
+        _layerSearch.ToolTip = "סינון לפי שם שכבה"; _layerSearch.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "boq-layer-search"); _layerSearch.TextChanged += (_, _) => Refresh(); filters.Children.Add(_layerSearch);
         _showDrafting.Checked += (_, _) => Refresh(); _showDrafting.Unchecked += (_, _) => Refresh();
         layerHead.Children.Add(_showDrafting);
         DispositionChipColumn(_grid);
@@ -428,8 +441,9 @@ internal sealed class InfrastructureBoqWindow : Window
         // Structure, results, corridors
         var right = new StackPanel();
         var structure = new StackPanel(); right.Children.Add(structure);
-        structure.Children.Add(Heading("2  מבנה המיסעה ← נפחים"));
-        structure.Children.Add(Text("נפח = שטח × עובי. אספלט משולם במ״ר בעובי נתון, מצעים במ״ק. ערכי ברירת המחדל לעריכה — עד שנקבל את שיטת התמחור של המשרד. שכבות המבנה נוספות לכתב הכמויות ומשויכות שם לסעיף כמו כל שכבה."));
+        right.Children.Insert(0, ReportCard());
+        structure.Children.Add(Heading("3  מבנה ידני — למשטח שאין לו מבנה בדו״ח", 14));
+        structure.Children.Add(Text("נפח = שטח × עובי. אספלט משולם במ״ר בעובי נתון, מצעים במ״ק. משטח שהדו״ח נותן לו מבנה מתומחר לפי הדו״ח; מבנה שמוזן כאן חל על שטחי המשטח שאין להם מבנה בדו״ח, במקום ערכי ברירת המחדל (מבנה ידני הוא אחריות המהנדס)."));
         var surfaceRow = new DockPanel { Margin = new Thickness(0, 4, 0, 6) };
         var sLabel = Text("משטח:"); sLabel.Margin = new Thickness(0, 4, 8, 4); sLabel.VerticalAlignment = VerticalAlignment.Center;
         surfaceRow.Children.Add(sLabel);
@@ -440,7 +454,7 @@ internal sealed class InfrastructureBoqWindow : Window
         add.Click += (_, _) => UiGuard.Run("הוספת שכבה", () => { _structureRows.Add(new StructureRow { Name = "שכבה חדשה", ThicknessCm = 10, Unit = "מ״ק", SearchHint = "" }); SaveStructureRows(); });
         var remove = ActionButton("הסר שכבה", "QuietButton"); remove.Margin = new Thickness(6, 0, 0, 0);
         remove.Click += (_, _) => UiGuard.Run("הסרת שכבה", () => { if (_structureGrid.SelectedItem is StructureRow r) { _structureRows.Remove(r); SaveStructureRows(); } });
-        var reset = ActionButton("ברירת מחדל", "QuietButton"); reset.Margin = new Thickness(6, 0, 0, 0);
+        var reset = ActionButton("נקה", "QuietButton"); reset.Margin = new Thickness(6, 0, 0, 0);
         reset.Click += (_, _) => UiGuard.Run("ברירת מחדל", ResetStructure);
         foreach (var b in new[] { reset, remove, add }) { DockPanel.SetDock(b, Dock.Right); surfaceRow.Children.Insert(0, b); }
         structure.Children.Add(surfaceRow);
@@ -453,15 +467,16 @@ internal sealed class InfrastructureBoqWindow : Window
         _structureGrid.MaxHeight = 220;
         structure.Children.Add(_structureGrid);
         structure.Children.Add(Heading("כמויות מבנה — עבודה חדשה", 14));
-        Column(_resultGrid, "משטח", "SurfaceName", 95); Column(_resultGrid, "שכבה", "LayerDisplay", new DataGridLength(1, DataGridLengthUnitType.Star));
-        Column(_resultGrid, "שטח מ״ר", "AreaSquareMetres", 95, "N2"); Column(_resultGrid, "נפח מ״ק", "VolumeCubicMetres", 90, "N2");
-        Column(_resultGrid, "לתשלום", "Quantity", 90, "N2"); Column(_resultGrid, "יחידה", "Unit", 50);
-        _resultGrid.RowHeight = 34; _resultGrid.MaxHeight = 230;
+        Column(_resultGrid, "משטח", "SurfaceName", 85); Column(_resultGrid, "מבנה", "StructureName", 130); Column(_resultGrid, "שכבה", "LayerDisplay", new DataGridLength(1, DataGridLengthUnitType.Star));
+        Column(_resultGrid, "שטח מ״ר", "AreaSquareMetres", 90, "N1"); Column(_resultGrid, "נפח מ״ק", "VolumeCubicMetres", 85, "N1");
+        Column(_resultGrid, "לתשלום", "Quantity", 90, "N1"); Column(_resultGrid, "יחידה", "Unit", 50);
+        _resultGrid.RowHeight = 34; PassWheelToPage(_resultGrid);
+        _resultGrid.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "boq-pavement-layers");
         structure.Children.Add(_resultGrid);
         _roadsSummary.FontWeight = FontWeights.SemiBold; structure.Children.Add(_roadsSummary);
 
         var corridor = new StackPanel { Margin = new Thickness(0, 10, 0, 0) };
-        corridor.Children.Add(Heading("3  קורידורים ב־Civil 3D", 14));
+        corridor.Children.Add(Heading("4  קורידורים ב־Civil 3D", 14));
         var count = RoadCorridorVolumes.CorridorCount(AcadApp.DocumentManager.MdiActiveDocument);
         _corridorStatus.Text = count > 0
             ? $"בשרטוט {count} קורידורים. נפח לכל קוד מבנה (Pave, Base, SubBase…) לפי ממוצע שטחי קצה לאורך התחנות, וחפירה/מילוי מחתכי Sample Lines."
@@ -506,6 +521,11 @@ internal sealed class InfrastructureBoqWindow : Window
             _body.Content = _roadsBody;
             RefreshRoads();
         }
+        else if (view == View.Concrete)
+        {
+            _body.Content = _concreteBody;
+            RefreshConcrete();
+        }
         else
         {
             _body.Content = _boqBody;
@@ -526,6 +546,7 @@ internal sealed class InfrastructureBoqWindow : Window
     private void Refresh()
     {
         if (_view == View.Roads) { RefreshRoads(); return; }
+        if (_view == View.Concrete) { RefreshConcrete(); return; }
         var selected = _grid.SelectedItem as InfrastructureGroup;
         var want = _view switch { View.Demolish => InfrastructureDisposition.ExistingDemolish, View.Keep => InfrastructureDisposition.ExistingKeep, _ => InfrastructureDisposition.New };
         var text = _layerSearch.Text.Trim();
@@ -552,9 +573,16 @@ internal sealed class InfrastructureBoqWindow : Window
         var surfaces = RoadPavement.Surfaces(_groups, _excluded);
         var road = surfaces.Where(s => s.Disposition == InfrastructureDisposition.New).Sum(s => s.AreaSquareMetres);
         _tiles[View.Roads].Value.Text = $"{road:N0} מ״ר";
-        _tiles[View.Roads].Detail.Text = $"{surfaces.Count(s => s.Disposition == InfrastructureDisposition.New)} סוגי משטח חדשים · {_derived.Count} שכבות מבנה" + (_corridor.Count > 0 ? $" · {_corridor.Count} קודי קורידור" : "");
+        _tiles[View.Roads].Detail.Text = (_reports.HasReport ? $"{_derived.Count} שכבות מבנה לפי הדו״ח" + (_plan?.DefaultArea > 0 ? " · חלקן ברירת מחדל" : "")
+                : _plan?.DefaultArea > 0 ? $"{_derived.Count} שכבות · ערכי ברירת מחדל" : _derived.Count > 0 ? $"{_derived.Count} שכבות מבנה ידני" : "ללא דו״ח מבנה — לא תומחר") +
+            $" · {surfaces.Count(s => s.Disposition == InfrastructureDisposition.New)} סוגי משטח" + (_corridor.Count > 0 ? $" · {_corridor.Count} קודי קורידור" : "");
+        var concrete = _concretePlan;
+        var concreteTotal = _concreteDerived.Where(g => !_excluded.Contains(g)).Sum(g => g.Total ?? 0m);
+        _tiles[View.Concrete].Value.Text = concrete.Elements.Count == 0 ? "—" : concreteTotal > 0 ? $"₪ {concreteTotal:N0}" : $"{concrete.ConcreteM3:N0} מ״ק";
+        _tiles[View.Concrete].Detail.Text = concrete.Elements.Count == 0 ? "לא זוהו אלמנטי בטון"
+            : $"{concrete.Elements.Count} אלמנטים · {concrete.RebarTon:N1} טון זיון" + (concrete.Defaults > 0 ? " · ⚠ ברירת מחדל" : "") + (concrete.Unpriced > 0 ? " · חסרות מידות" : "");
         _message.Text = $"{active.Length} שכבות פעילות · {active.Count(g => g.Approved)} שויכו · {_excluded.Count} הוסרו · השיוכים נשמרים אוטומטית במחשב זה";
-        _autoAssign.IsEnabled = !_automaticBusy && _view != View.Roads && _grid.Items.OfType<InfrastructureGroup>().Any(g => !g.Approved && double.IsFinite(g.Quantity) && g.Quantity > 0 && PayItem(g) && g.Disposition != InfrastructureDisposition.ExistingKeep);
+        _autoAssign.IsEnabled = !_automaticBusy && _view != View.Roads && _view != View.Concrete && _grid.Items.OfType<InfrastructureGroup>().Any(g => !g.Approved && double.IsFinite(g.Quantity) && g.Quantity > 0 && PayItem(g) && g.Disposition != InfrastructureDisposition.ExistingKeep);
     }
 
     // ───────────────────────────── layer editing ─────────────────────────────
@@ -564,13 +592,13 @@ internal sealed class InfrastructureBoqWindow : Window
         if (_grid.SelectedItem is not InfrastructureGroup g || g.Disposition == d) return;
         var wasApproved = g.Approved;
         g.Disposition = d; Persist();
-        if (g.Surface != RoadSurfaceKind.None) RebuildRoads();
+        RebuildRoads();
         var to = d switch { InfrastructureDisposition.ExistingDemolish => "פירוקים והריסות", InfrastructureDisposition.ExistingKeep => "קיים — נשאר", _ => "עבודות חדשות" };
         Refresh();
         _message.Text = $"{g.ShortLayer} עבר ל\"{to}\"" + (wasApproved ? " — השיוך הקודם בוטל, יש לבחור סעיף מתאים" : "");
     }
 
-    private void Remove(InfrastructureGroup group) { _excluded.Add(group); Persist(); if (group.Surface != RoadSurfaceKind.None) RebuildRoads(); Refresh(); }
+    private void Remove(InfrastructureGroup group) { _excluded.Add(group); Persist(); RebuildRoads(); Refresh(); }
     private void Persist() => InfrastructureReviewStore.Save(_reviewPath, _scan.DrawingHash, _books.Select(b => b.Catalog).ToArray(), _groups, _excluded);
     private void UseBook(InfrastructurePriceBook book)
     {
@@ -602,7 +630,7 @@ internal sealed class InfrastructureBoqWindow : Window
                 _dispositionEvidence.Foreground = g.Disposition == InfrastructureDisposition.ExistingDemolish ? Theme.Blocked : Theme.Muted;
                 _catalogPanel.IsEnabled = g.Disposition != InfrastructureDisposition.ExistingKeep;
                 _items.IsEnabled = _catalogPanel.IsEnabled;
-                _dNew.IsEnabled = _dKeep.IsEnabled = _dDemolish.IsEnabled = g.Source != RoadPavement.DerivedSource && g.GroupPart != RoadCorridorVolumes.Part;
+                _dNew.IsEnabled = _dKeep.IsEnabled = _dDemolish.IsEnabled = g.Source != RoadPavement.DerivedSource && g.Source != StructureConcrete.DerivedSource && g.GroupPart != RoadCorridorVolumes.Part;
             }
             else
             {
@@ -688,13 +716,15 @@ internal sealed class InfrastructureBoqWindow : Window
     /// <summary>Re-derives the pavement-structure rows from the current areas and structure; keeps their price choices.</summary>
     private void RebuildRoads(bool persist = true)
     {
-        var old = _derived.ToDictionary(g => g.Layer);
+        var old = _derived.GroupBy(g => g.Layer).ToDictionary(g => g.Key, g => g.First());
         _groups.RemoveAll(g => g.Source == RoadPavement.DerivedSource);
-        // The structure rows price the area; the area row itself must not be priced a second time.
-        RoadPavement.MarkPricedByStructure(_groups, _structures);
-        var surfaces = RoadPavement.Surfaces(_groups, _excluded);
-        var layers = RoadPavement.Structure(surfaces, _structures);
-        _derived = RoadPavement.DerivedGroups(layers).ToList();
+        if (ZonesStale() && !_readingReport) ComputeZones(popups: false);
+        _plan = PlanFromReport();
+        var layers = _plan.Layers;
+        // The structure rows price the area; the area row itself must not be priced a second time. A surface without any
+        // structure (no report, no hand-typed one, defaults switched off) is not priced at all.
+        RoadPavement.MarkPricedByStructure(_groups, _plan.Priced);
+        _derived = RoadPavement.DerivedGroups(layers).GroupBy(g => g.Layer).Select(g => g.First()).ToList();
         foreach (var d in _derived)
         {
             if (!old.TryGetValue(d.Layer, out var o)) continue;
@@ -706,7 +736,9 @@ internal sealed class InfrastructureBoqWindow : Window
         }
         foreach (var gone in old.Values) _excluded.Remove(gone);
         _groups.AddRange(_derived);
+        RebuildConcrete();
         if (persist) Persist();
+        UpdatePavementUi();
         if (_view == View.Roads) RefreshRoads();
     }
 
@@ -718,14 +750,19 @@ internal sealed class InfrastructureBoqWindow : Window
         if (selected != null) _areaGrid.SelectedItem = selected;
         var surfaces = RoadPavement.Surfaces(_groups, _excluded);
         _surfaceGrid.ItemsSource = surfaces;
-        var layers = RoadPavement.Structure(surfaces, _structures);
+        var layers = _plan?.Layers ?? Array.Empty<RoadPavement.LayerQuantity>();
         _resultGrid.ItemsSource = layers;
         var asphalt = layers.Where(l => !l.Layer.ByVolume).Sum(l => l.AreaSquareMetres);
         var volume = layers.Where(l => l.Layer.ByVolume).Sum(l => l.VolumeCubicMetres);
         var newArea = surfaces.Where(s => s.Disposition == InfrastructureDisposition.New).Sum(s => s.AreaSquareMetres);
-        _roadsSummary.Text = newArea > 0
-            ? $"שטח חדש {newArea:N2} מ״ר · נפח שכבות המשולמות במ״ק {volume:N2} מ״ק · {_derived.Count} שורות בכתב הכמויות (תחת \"עבודות חדשות\")"
-            : "לא נמצאו שטחי משטח חדשים. סמן סוג משטח לשכבת Hatch משמאל, או קרא נפחים מקורידורים.";
+        var asphaltVolume = layers.Where(l => !l.Layer.ByVolume && l.Layer.ThicknessCm > 0).Sum(l => l.VolumeCubicMetres);
+        var unpriced = _plan?.UnpricedArea ?? 0;
+        var byDefault = _plan?.DefaultArea ?? 0;
+        _roadsSummary.Text = newArea <= 0 ? "לא נמצאו שטחי משטח חדשים. סמן סוג משטח לשכבת Hatch משמאל, או קרא נפחים מקורידורים."
+            : layers.Count == 0 ? $"שטח חדש {newArea:N2} מ״ר — לא צורף דו״ח מבנה מיסעה ולא נבחרו ערכי ברירת מחדל, ולכן שכבות האספלט והמצעים לא חושבו ולא תומחרו."
+            : $"שטח חדש {newArea:N2} מ״ר · נפח אספלט וריצוף {asphaltVolume:N1} מ״ק · נפח מצעים וחול {volume:N1} מ״ק · {_derived.Count} שורות בכתב הכמויות (תחת \"עבודות חדשות\")" +
+              (byDefault > 0 ? $" · ⚠ {byDefault:N0} מ״ר לפי ערכי ברירת מחדל" : "") +
+              (unpriced > 0 ? $" · {unpriced:N0} מ״ר ללא מבנה — לא תומחרו" : "");
         UpdateSummary();
     }
 
@@ -811,7 +848,8 @@ internal sealed class InfrastructureBoqWindow : Window
                 ? "Original installed MAHOD3D CalcPolylines invoked at export and independently matched. "
                 : "Original MAHOD3D comparison status: " + _igorAudit.Status + ". " + _igorAudit.Error + ". ") +
             "Igor scope: " + _igorAudit.Scope + "; Igor receipt lengths are in drawing units. See igor-audit.json. " +
-            "Road structure rows = plan area × layer thickness (editable structure); corridor rows = Civil 3D shape areas, average end area." +
+            "Concrete rows = plan length/area/count × the element's section (typed by the engineer, read from the drawing, or a TYPICAL default marked on every row); piles in metres by NTI diameter and depth band, rebar = concrete m³ × kg/m³. " +
+            "Road structure rows = plan area × layer thickness × identical layers; the structure comes from the attached pavement report (read by MahodAI, verified in code) per segment located on the centre lines, else typed in by the engineer, else the DEFAULT structure of the chosen road type (marked as a default on every row); corridor rows = Civil 3D shape areas, average end area." +
             (_scan.Area == null ? "" : " AREA ONLY: every quantity is cut by the marked polygon (host XY; lines by length inside, " +
                 "hatches/outlines by area inside, solids by the polygon prism, blocks by insertion point); the polygon is layer " +
                 InfrastructureDrawingService.AreaLayer + " in the audit DWG.");
@@ -820,14 +858,17 @@ internal sealed class InfrastructureBoqWindow : Window
         Directory.CreateDirectory(directory);
         var excel = Path.Combine(directory, Path.GetFileName(dialog.FileName));
         var surfaces = RoadPavement.Surfaces(_groups, _excluded);
-        var roads = new RoadPavement.Report(surfaces, RoadPavement.Structure(surfaces, _structures), _corridor.Where(g => !_excluded.Contains(g)).ToArray());
+        var roads = new RoadPavement.Report(surfaces, _plan?.Layers ?? Array.Empty<RoadPavement.LayerQuantity>(),
+            _corridor.Where(g => !_excluded.Contains(g)).ToArray())
+        { Zones = _plan?.Zones ?? Array.Empty<PavementReportPlan.ZoneRow>(), Notes = PavementNotes() };
         var catalogs = _books.Select(b => b.Catalog).ToArray();
-        InfrastructureBoq.Export(excel, selected, lines, catalogs, _scan.Findings, _scan.Drawing, _scan.DrawingHash, engine, roads);
+        InfrastructureBoq.Export(excel, selected, lines, catalogs, _scan.Findings.Concat(PavementProvenance()).Concat(_concretePlan.Notes).ToArray(), _scan.Drawing, _scan.DrawingHash, engine, roads,
+            _concretePlan);
         var demolition = selected.Count(g => g.Disposition == InfrastructureDisposition.ExistingDemolish);
         if (demolition > 0)
             InfrastructureBoq.ExportDemolition(Path.Combine(directory, Path.GetFileNameWithoutExtension(dialog.FileName) + " - פירוקים.xlsx"),
                 selected, catalogs, _scan.Findings, _scan.Drawing, _scan.DrawingHash, engine);
-        var notCopied = _scan.SaveDrawing(Path.Combine(directory, "Infrastructure-lines.dwg"), selected.Where(g => g.Source != RoadPavement.DerivedSource && g.GroupPart != RoadCorridorVolumes.Part));
+        var notCopied = _scan.SaveDrawing(Path.Combine(directory, "Infrastructure-lines.dwg"), selected.Where(g => g.Source != RoadPavement.DerivedSource && g.Source != StructureConcrete.DerivedSource && g.GroupPart != RoadCorridorVolumes.Part));
         File.WriteAllText(Path.Combine(directory, "review.json"), JsonSerializer.Serialize(selected, new JsonSerializerOptions { WriteIndented = true }));
         File.WriteAllText(Path.Combine(directory, "igor-audit.json"), JsonSerializer.Serialize(_igorAudit ??
             new IgorPolylineAudit.Result("not-run", "", "Model Space LWPOLYLINE only", Array.Empty<IgorPolylineAudit.Comparison>(), "Run the Igor comparison before relying on it"), new JsonSerializerOptions { WriteIndented = true }));
@@ -894,6 +935,18 @@ internal sealed class InfrastructureBoqWindow : Window
             Background = Brushes.White, RowBackground = Brushes.White, AlternatingRowBackground = new SolidColorBrush(Color.FromRgb(247, 249, 252)), RowHeight = 46, FontSize = 12 };
         ScrollViewer.SetHorizontalScrollBarVisibility(table, ScrollBarVisibility.Disabled);
         return table;
+    }
+    /// <summary>A table inside a scrolling card shows all its rows and lets the mouse wheel scroll the card: a DataGrid
+    /// swallows the wheel even when it has nothing to scroll (the roads screen could not be scrolled past its tables).</summary>
+    internal static void PassWheelToPage(DataGrid grid)
+    {
+        grid.PreviewMouseWheel += (sender, e) =>
+        {
+            if (e.Handled) return;
+            e.Handled = true;
+            var forward = new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta) { RoutedEvent = UIElement.MouseWheelEvent, Source = sender };
+            ((sender as FrameworkElement)?.Parent as UIElement)?.RaiseEvent(forward);
+        };
     }
     private static DataGrid EditableTable()
     {
@@ -1021,6 +1074,10 @@ internal sealed class InfrastructureBoqWindow : Window
                     (only == null ? ".\n" : $" ({read.SkippedOutsideArea:N0} objects wholly outside the area were not read).\n"));
                 return read;
             }
+            // "Build quantities" starts by asking for the drawing's pavement report (2026-11-09): asphalt and bases come from it.
+            IReadOnlyList<string>? reports = null;
+            string? defaultClass = null;
+            var asked = false;
             try
             {
                 while (true)
@@ -1037,7 +1094,16 @@ internal sealed class InfrastructureBoqWindow : Window
                     using var view = area == null ? null : source.ClipTo(area.Area, area.PickedPolyline);
                     if (view != null)
                         doc.Editor.WriteMessage($"\nArea: {view.Measurements.Count:N0} measurements inside, {view.CutAtEdge:N0} cut at its edge ({clock.Elapsed.TotalSeconds:N1} s).\n");
-                    var window = new InfrastructureBoqWindow(view ?? source, catalog);
+                    if (!asked)
+                    {
+                        asked = true;
+                        var prompt = new PavementReportPrompt(doc.Name, PavementReportSet.Load(PavementPathFor(doc.Name)), SavedDefaultChoice(doc.Name, area != null));
+                        CivilModalHost.ShowFromPalette(prompt);
+                        if (prompt.Result == PavementReportPrompt.Choice.Attach) reports = prompt.Files;
+                        defaultClass = prompt.DefaultClass;
+                    }
+                    var window = new InfrastructureBoqWindow(view ?? source, catalog, reports, defaultClass);
+                    reports = null; defaultClass = null;
                     CivilModalHost.ShowFromPalette(window);
                     if (window.NextStep == Step.WholeDrawing) { area = null; continue; }
                     if (window.NextStep != Step.MarkArea) return;

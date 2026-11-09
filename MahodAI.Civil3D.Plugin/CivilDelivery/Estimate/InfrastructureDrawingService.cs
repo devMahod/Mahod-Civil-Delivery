@@ -83,6 +83,9 @@ internal sealed partial class InfrastructureDrawingService : IDisposable
                 if (tr.GetObject(id, OpenMode.ForRead) is not Entity entity) continue;
                 if (_near != null && OutsideNear(entity, transform)) { SkippedOutsideArea++; continue; }
                 var layer = entity.Layer == "0" ? inheritedLayer : entity.Layer;
+                // The pavement structures this tool placed on the plan (PavementPlacement) are marks, not quantities: measuring
+                // them would add every road area a second time on the next bill of quantities.
+                if (layer.Split('|').Last().StartsWith(PavementPlacement.LayerPrefix, StringComparison.OrdinalIgnoreCase)) continue;
                 var handle = chain + entity.Handle;
                 if (entity is BlockReference reference)
                 {

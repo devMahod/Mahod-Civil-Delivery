@@ -31,6 +31,18 @@ public sealed class InfrastructureLayersAndExistingTests : IDisposable
         return InfrastructureBoq.Describe(new InfrastructureLine(source, "A1", layer, "Polyline", length, area > 0, c.Topic, c.Evidence, "BOQ_" + c.Code)
         { AreaSquareMetres = area, CountUnits = count, GroupPart = part });
     }
+    /// <summary>A structure typed in by the engineer (the 1.9 placeholder lists, now only ever entered by hand).</summary>
+    private static readonly PavementStructure[] Typed =
+    {
+        new(RoadSurfaceKind.Road, new[]
+        {
+            new PavementLayer("שכבה נושאת תא״צ 19", 5, "מ״ר", "תא\"צ 19 בעובי 5"), new PavementLayer("שכבה מקשרת תא״צ 25", 7, "מ״ר", "תא\"צ 25 בעובי 7"),
+            new PavementLayer("ריסוס מאחה", 0, "מ״ר", "ריסוס מאחה"), new PavementLayer("ריסוס יסוד", 0, "מ״ר", "ריסוס יסוד"), new PavementLayer("מצע סוג א׳", 30, "מ״ק", "מצע סוג א"),
+        }),
+        new(RoadSurfaceKind.BikePath, new[] { new PavementLayer("תא״צ 12.5", 4, "מ״ר", "תא\"צ 12.5 בעובי 4"), new PavementLayer("מצע סוג א׳", 20, "מ״ק", "מצע סוג א") }),
+        new(RoadSurfaceKind.Sidewalk, new[] { new PavementLayer("ריצוף אבנים משתלבות", 6, "מ״ר", "אבן משתלבת 6"), new PavementLayer("מצע סוג א׳", 20, "מ״ק", "מצע סוג א") }),
+    };
+
     private static InfrastructureGroup Group(string layer, string source = "MHD-HW-000-IC_00000-DD-030X.dwg", double length = 0, double area = 0, double count = 0, string part = "")
         => InfrastructureBoq.Group(new[] { Line(layer, source, length, area, count, part) }).Single();
 
@@ -112,6 +124,11 @@ public sealed class InfrastructureLayersAndExistingTests : IDisposable
     [InlineData("HW-ROAD-HA", "HW-IC_HA-EXST_TO4-GM-M44.dwg", "ExistingKeep")]
     [InlineData("M1502 asf", "SR-3933-VSC-GIS-MADE-GDR573-MHD.dwg", "ExistingKeep")]
     [InlineData("HW-ROAD-HA", "ASMADE-ROAD-40.dwg", "ExistingKeep")]
+    [InlineData("S_WALL_RETAIN", @".\PD\6422-SR-WEST-MHD.dwg", "ExistingKeep")]
+    [InlineData("6422-SR-SURVEY-MD17615-MHD|S_WALL_BT", "host.dwg", "ExistingKeep")]
+    [InlineData("6422-WALL-EX|S_WALL_BT", "host.dwg", "ExistingKeep")]
+    [InlineData("6422-EV-NATAZ|HW-WALL-NEW", @".\PD\6422-EV-NATAZ.dwg", "New")]
+    [InlineData("HW-ROAD-HA", "SRB-ROAD.dwg", "New")]
     [InlineData("UT-W-CNCL", "x.dwg", "ExistingDemolish")]
     [InlineData("UT-CANCEL-PIPE", "x.dwg", "ExistingDemolish")]
     [InlineData("DELEK BITUL", "x.dwg", "ExistingDemolish")]
@@ -239,7 +256,7 @@ public sealed class InfrastructureLayersAndExistingTests : IDisposable
         Assert.Equal(300, surfaces.Single(s => s.Surface == RoadSurfaceKind.Road && s.Disposition == InfrastructureDisposition.ExistingKeep).AreaSquareMetres, 6);
         Assert.Equal(200, surfaces.Single(s => s.Surface == RoadSurfaceKind.Sidewalk).AreaSquareMetres, 6);
 
-        var layers = RoadPavement.Structure(surfaces, RoadPavement.Defaults);
+        var layers = RoadPavement.Structure(surfaces, Typed);
         var subbase = layers.Single(l => l.Surface == RoadSurfaceKind.Road && l.Layer.Name.StartsWith("מצע"));
         Assert.Equal(1500 * 0.30, subbase.VolumeCubicMetres, 6);
         Assert.Equal(subbase.VolumeCubicMetres, subbase.Quantity, 6);
@@ -259,13 +276,34 @@ public sealed class InfrastructureLayersAndExistingTests : IDisposable
     public void The_engineer_structure_is_saved_per_drawing_and_merged_over_defaults()
     {
         var path = Path.Combine(_dir, "roads.json");
-        var road = RoadPavement.Defaults.Single(s => s.Surface == RoadSurfaceKind.Road);
+        var road = Typed.Single(s => s.Surface == RoadSurfaceKind.Road);
         var edited = road with { Layers = road.Layers.Select(l => l.Name.StartsWith("מצע") ? l with { ThicknessCm = 40 } : l).ToArray() };
         RoadPavement.Save(path, new[] { edited });
         var loaded = RoadPavement.Load(path);
         Assert.Equal(RoadPavement.Defaults.Count, loaded.Count);
         Assert.Equal(40, loaded.Single(s => s.Surface == RoadSurfaceKind.Road).Layers.Single(l => l.Name.StartsWith("מצע")).ThicknessCm);
         Assert.Same(RoadPavement.Defaults, RoadPavement.Load(Path.Combine(_dir, "missing.json")));
+        // No placeholder structure exists any more: without a report or a typed structure nothing is priced.
+        Assert.All(RoadPavement.Defaults, d => Assert.Empty(d.Layers));
+    }
+
+    [Fact]
+    public void A_saved_file_from_1_10_does_not_bring_back_the_old_placeholder_structures()
+    {
+        // 1.9-1.10 saved every structure (placeholders included) whenever the engineer edited one surface.
+        var path = Path.Combine(_dir, "roads-v1.json");
+        File.WriteAllText(path, System.Text.Json.JsonSerializer.Serialize(new
+        {
+            SchemaVersion = 1,
+            Structures = new[]
+            {
+                new { Surface = RoadSurfaceKind.Road, Layers = Typed[0].Layers.Select(l => new { l.Name, l.ThicknessCm, l.Unit, l.SearchHint }).ToArray() },
+                new { Surface = RoadSurfaceKind.Sidewalk, Layers = new[] { new { Name = "ריצוף", ThicknessCm = 8d, Unit = "מ״ר", SearchHint = "אבן משתלבת 8" } } },
+            },
+        }));
+        var loaded = RoadPavement.Load(path);
+        Assert.Empty(loaded.Single(s => s.Surface == RoadSurfaceKind.Road).Layers);          // the untouched placeholder
+        Assert.Equal(8, loaded.Single(s => s.Surface == RoadSurfaceKind.Sidewalk).Layers.Single().ThicknessCm);   // the engineer's edit
     }
 
     [Fact]
@@ -282,7 +320,7 @@ public sealed class InfrastructureLayersAndExistingTests : IDisposable
         var search = new InfrastructureCatalogSearch(catalog);
         search.PlanAutomaticAssignment(groups).Apply();
         var surfaces = RoadPavement.Surfaces(groups);
-        var structure = RoadPavement.Structure(surfaces, RoadPavement.Defaults);
+        var structure = RoadPavement.Structure(surfaces, Typed);
         var report = new RoadPavement.Report(surfaces, structure, Array.Empty<InfrastructureGroup>());
         var path = Path.Combine(_dir, "boq.xlsx");
         InfrastructureBoq.Export(path, groups, lines, new[] { catalog }, Array.Empty<string>(), "d.dwg", "H", "TEST", report);
@@ -318,14 +356,14 @@ public sealed class InfrastructureLayersAndExistingTests : IDisposable
             Line("HW-BIKE-HA", area: 100, part: "שטחים"), Line("ASMADE-ROAD-HA", area: 300, part: "שטחים"),
             Line("HW-CURB-GRDN", length: 90),
         }).ToList();
-        Assert.Equal(3, RoadPavement.MarkPricedByStructure(groups, RoadPavement.Defaults));
+        Assert.Equal(3, RoadPavement.MarkPricedByStructure(groups, Typed));
         var road = groups.Single(g => g.Layer == "HW-ROAD-HA");
         Assert.True(road.PricedByStructure);
         Assert.False(road.IsPayItem);
         Assert.Equal("לפי מבנה", road.MappingDisplay);
         Assert.False(groups.Single(g => g.Layer == "ASMADE-ROAD-HA").PricedByStructure); // existing keeps its own row
 
-        var derived = RoadPavement.DerivedGroups(RoadPavement.Structure(RoadPavement.Surfaces(groups), RoadPavement.Defaults));
+        var derived = RoadPavement.DerivedGroups(RoadPavement.Structure(RoadPavement.Surfaces(groups), Typed));
         var all = groups.Concat(derived).ToList();
         new InfrastructureCatalogSearch(catalog).PlanAutomaticAssignment(all).Apply();
 
@@ -347,14 +385,21 @@ public sealed class InfrastructureLayersAndExistingTests : IDisposable
         var early = InfrastructureBoq.Group(new[] { Line("HW-ROAD-HA", area: 50, part: "שטחים") }).Single();
         var anyItem = new InfrastructureCatalogSearch(catalog).Find(early).First(o => o.IsRecommended);
         early.Assign(catalog, anyItem.Code);
-        RoadPavement.MarkPricedByStructure(new[] { early }, RoadPavement.Defaults);
+        RoadPavement.MarkPricedByStructure(new[] { early }, Typed);
         Assert.False(early.Approved);
 
-        // No structure for the surface: the area is priced as itself again.
-        var bare = RoadPavement.Defaults.Select(s => s.Surface == RoadSurfaceKind.Road ? s with { Layers = Array.Empty<PavementLayer>() } : s).ToArray();
+        // No structure for the surface (no report, nothing typed): the area is NOT priced as a bare area — it waits
+        // for the pavement report (engineers' rule 2026-11-09: without the report the pavement cannot be calculated).
+        var bare = Typed.Select(s => s.Surface == RoadSurfaceKind.Road ? s with { Layers = Array.Empty<PavementLayer>() } : s).ToArray();
         RoadPavement.MarkPricedByStructure(groups, bare);
         Assert.False(road.PricedByStructure);
-        Assert.True(road.IsPayItem);
+        Assert.True(road.AwaitingPavementReport);
+        Assert.False(road.IsPayItem);
+        Assert.Equal("ממתין לדו״ח מבנה", road.MappingDisplay);
+        // A surface that is not a pavement (an island, a structure area) keeps its own row.
+        var island = InfrastructureBoq.Group(new[] { Line("HW-HATCH-ILND", area: 40, part: "שטחים") }).Single();
+        RoadPavement.MarkPricedByStructure(new[] { island }, bare);
+        Assert.True(island.IsPayItem);
     }
 
     [Fact]
@@ -363,9 +408,9 @@ public sealed class InfrastructureLayersAndExistingTests : IDisposable
         var catalog = Nti();
         var lines = new[] { Line("HW-ROAD-HA", area: 1000, part: "שטחים"), Line("HW-CURB-GRDN", length: 100) };
         var groups = InfrastructureBoq.Group(lines).ToList();
-        RoadPavement.MarkPricedByStructure(groups, RoadPavement.Defaults);
+        RoadPavement.MarkPricedByStructure(groups, Typed);
         var surfaces = RoadPavement.Surfaces(groups);
-        var structure = RoadPavement.Structure(surfaces, RoadPavement.Defaults);
+        var structure = RoadPavement.Structure(surfaces, Typed);
         var all = groups.Concat(RoadPavement.DerivedGroups(structure)).ToList();
         new InfrastructureCatalogSearch(catalog).PlanAutomaticAssignment(all).Apply();
         var path = Path.Combine(_dir, "roads-once.xlsx");

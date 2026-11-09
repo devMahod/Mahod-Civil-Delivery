@@ -130,7 +130,9 @@ public static class InfrastructureCondition
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
     private static readonly Regex DemolishToken = new(@"(?<![\p{L}\p{N}])(?:CNCL|CANCEL|CANCELED|CANCELLED|BITUL|ביטול|לביטול|מבוטל|PIRUK|PERUK|PIRUKIM|לפירוק|פירוק|DEMO|DEMOL|DEMOLITION|DEMOLISH|REMOVE|REMOVAL|HARISA|HERISA|הריסה|להריסה)(?![\p{L}\p{N}])",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-    private static readonly Regex SurveySource = new(@"^SR-|SURVEY|MEDIDA|SEKER|מדידה|GIS-MADE", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    // SR is the firm's survey discipline code, also after a project number: "6422-SR-WEST-MHD" (live 2026-11-09: its 62.9 km
+    // of surveyed S_WALL_BT lines were read as new walls).
+    private static readonly Regex SurveySource = new(@"(?:^|[-_ ])SR[-_]|SURVEY|MEDIDA|SEKER|מדידה|GIS-MADE", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     public static (InfrastructureDisposition Disposition, string Evidence) Detect(string layer, string source)
     {
@@ -144,6 +146,14 @@ public static class InfrastructureCondition
         if (AsMade.Match(file) is { Success: true } fileAsMade) return (InfrastructureDisposition.ExistingKeep, $"קובץ המקור: {fileAsMade.Value} ← תשתית קיימת (As-Made)");
         if (ExistingToken.Match(Regex.Replace(file, @"[-_.]+", " ")) is { Success: true } fileEx) return (InfrastructureDisposition.ExistingKeep, $"קובץ המקור: {fileEx.Value} ← מצב קיים");
         if (SurveySource.Match(file) is { Success: true } survey) return (InfrastructureDisposition.ExistingKeep, $"קובץ המקור הוא מדידה ({survey.Value}) ← מצב קיים");
+        // A nested XREF names its own file in the layer's namespace ("6422-SR-SURVEY-MD17615-MHD|S_WALL_BT"), read like a file.
+        var space = layer.Contains('|') ? layer[..layer.LastIndexOf('|')] : "";
+        if (space.Length > 0)
+        {
+            if (AsMade.Match(space) is { Success: true } spaceAsMade) return (InfrastructureDisposition.ExistingKeep, $"קובץ XREF: {spaceAsMade.Value} ← תשתית קיימת (As-Made)");
+            if (ExistingToken.Match(Regex.Replace(space, @"[-_.|]+", " ")) is { Success: true } spaceEx) return (InfrastructureDisposition.ExistingKeep, $"קובץ XREF: {spaceEx.Value} ← מצב קיים");
+            if (SurveySource.Match(space) is { Success: true } spaceSurvey) return (InfrastructureDisposition.ExistingKeep, $"קובץ XREF הוא מדידה ({spaceSurvey.Value}) ← מצב קיים");
+        }
         return (InfrastructureDisposition.New, "");
     }
 

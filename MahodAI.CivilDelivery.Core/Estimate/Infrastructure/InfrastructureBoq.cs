@@ -26,13 +26,17 @@ public sealed class InfrastructureGroup
     public double AreaSquareMetres { get; init; }
     public double VolumeCubicMetres { get; init; }
     public double CountUnits { get; init; }
+    /// <summary>The layer's lines read as face pairs (a wall drawn as its two faces), when the plan was read for it.</summary>
+    public FacePairs.Result? Faces { get; set; }
+    /// <summary>Rebar weight of a concrete row (<see cref="StructureConcrete"/>).</summary>
+    public double WeightTons { get; init; }
     public string GroupPart { get; init; } = "";
     private string _measurementUnit = "מטר";
     private double? _manualQuantity;
     public string MeasurementUnit { get => _measurementUnit; set { if (!Units.Parse(value).SameUnit(Units.Parse(_measurementUnit))) { Withdraw(); _manualQuantity = null; } _measurementUnit = value; } }
     public double? ManualQuantity { get => _manualQuantity; set { if (value is { } n && (!double.IsFinite(n) || n <= 0)) throw new ArgumentOutOfRangeException(nameof(value), "יש להזין כמות חיובית"); if (_manualQuantity != value) Withdraw(); _manualQuantity = value; } }
     public double MeasuredQuantity => Units.Parse(MeasurementUnit).Canonical switch
-    { "m" => LengthMetres, "m2" => AreaSquareMetres, "dunam" => AreaSquareMetres / 1000d, "m3" => VolumeCubicMetres, "unit" => CountUnits, _ => 0 };
+    { "m" => LengthMetres, "m2" => AreaSquareMetres, "dunam" => AreaSquareMetres / 1000d, "m3" => VolumeCubicMetres, "unit" => CountUnits, "ton" => WeightTons, _ => 0 };
     public double Quantity => ManualQuantity ?? MeasuredQuantity;
     public string QuantityOrigin => ManualQuantity != null ? "כמות שהוזנה ידנית" : MeasuredQuantity > 0 ? "מדידה מהשרטוט" : "לא נמדדה כמות ביחידה זו";
     public required string Evidence { get; init; }
@@ -74,13 +78,25 @@ public sealed class InfrastructureGroup
     /// road hatch got "הסרת צמחיה" and the sidewalk hatch a paving item on top of its structure rows).
     /// </summary>
     public bool PricedByStructure { get => _pricedByStructure; set { if (value && !_pricedByStructure) Withdraw(); _pricedByStructure = value; } }
+    private bool _awaitingPavementReport;
+    /// <summary>
+    /// A new road surface (road, bus lane, bike path, sidewalk…) whose price is its pavement structure, while the drawing
+    /// has neither a pavement report nor a hand-typed structure for it. It is not priced as a bare area: the engineers'
+    /// rule (2026-11-09) is that the pavement cannot be calculated without the report.
+    /// </summary>
+    public bool AwaitingPavementReport { get => _awaitingPavementReport; set { if (value && !_awaitingPavementReport) Withdraw(); _awaitingPavementReport = value; } }
+    private bool _pricedByConcrete;
+    /// <summary>A wall, footing or pile line whose concrete rows (m³, piles, rebar) carry its price (<see cref="StructureConcrete"/>):
+    /// pricing the line by its length too counted it twice, and by length alone the 2026-11-06 audit got wall drains.</summary>
+    public bool PricedByConcrete { get => _pricedByConcrete; set { if (value && !_pricedByConcrete) Withdraw(); _pricedByConcrete = value; } }
     /// <summary>A row that takes its own price: a measured quantity that no structure prices for it.</summary>
-    public bool IsPayItem => Role == LayerRole.Quantity && !PricedByStructure;
-    public string ElementDisplay => Element.Length > 0 ? Element : Topic;
+    public bool IsPayItem => Role == LayerRole.Quantity && !PricedByStructure && !AwaitingPavementReport && !PricedByConcrete;
+    /// <summary>The element as words: a concrete row's item phrases ("^קירות תומכים מבטון · …") without their markers.</summary>
+    public string ElementDisplay => Element.Length > 0 ? Element.TrimStart('^').Replace(" · ^", " ").Replace(" · ", " ") : Topic;
     /// <summary>The source layer itself, without the XREF namespace or the measurement part.</summary>
     public string LayerName => Layer.Split('|').Last();
     public string ShortLayer => Layer.Split('|').Last() + (GroupPart.Length > 0 ? " · " + GroupPart : "");
-    public string MappingDisplay => Code ?? (Disposition == InfrastructureDisposition.ExistingKeep ? "לא מתומחר" : PricedByStructure ? "לפי מבנה" : Role == LayerRole.Quantity ? "בחר סעיף" : "—");
+    public string MappingDisplay => Code ?? (Disposition == InfrastructureDisposition.ExistingKeep ? "לא מתומחר" : PricedByStructure ? "לפי מבנה" : PricedByConcrete ? "לפי חישוב בטון" : AwaitingPavementReport ? "ממתין לדו״ח מבנה" : Role == LayerRole.Quantity ? "בחר סעיף" : "—");
     public decimal? Total => Approved && Price is { } p ? (decimal)Quantity * p : null;
     public string Status => Approved ? (AutomaticallyAssigned ? "שויך אוטומטית" : "שויך") + (Price == null ? " — חסר מחיר" : "") : "טרם שויך";
     /// <summary>Selecting an item is the mapping decision. No name or unrelated form is required.</summary>
@@ -154,6 +170,7 @@ public static class InfrastructureBoq
     public const string DemolitionSheet = "פירוקים והריסות";
     public const string ExistingSheet = "קיים — נשאר";
     public const string RoadsSheet = "כבישים — שטח ונפח";
+    public const string ConcreteSheet = "בטון וקונסטרוקציה";
 
     public static void Export(string path, IReadOnlyList<InfrastructureGroup> groups, IReadOnlyList<InfrastructureLine> lines,
         CatalogSnapshot catalog, IReadOnlyList<string> findings, string drawing, string drawingHash, string measurementEngine)
@@ -165,11 +182,11 @@ public static class InfrastructureBoq
     /// </summary>
     public static void Export(string path, IReadOnlyList<InfrastructureGroup> groups, IReadOnlyList<InfrastructureLine> lines,
         IReadOnlyList<CatalogSnapshot> catalogs, IReadOnlyList<string> findings, string drawing, string drawingHash, string measurementEngine,
-        RoadPavement.Report? roads = null)
+        RoadPavement.Report? roads = null, StructureConcrete.Plan? concrete = null)
     {
         var (books, usedBooks) = Books(groups, catalogs);
         // A road area priced through its structure rows is listed on the roads sheet, not as a second pay row.
-        var fresh = groups.Where(g => g.Disposition == InfrastructureDisposition.New && !g.PricedByStructure).ToArray();
+        var fresh = groups.Where(g => g.Disposition == InfrastructureDisposition.New && !g.PricedByStructure && !g.PricedByConcrete).ToArray();
         var demolition = groups.Where(g => g.Disposition == InfrastructureDisposition.ExistingDemolish).ToArray();
         var keep = groups.Where(g => g.Disposition == InfrastructureDisposition.ExistingKeep).ToArray();
         var w = NewWorkbook(NewWorkSheet);
@@ -186,6 +203,7 @@ public static class InfrastructureBoq
         }
         if (keep.Length > 0) w.AdditionalSheets.Add(ExistingKeepSheet(keep));
         if (roads != null && (roads.Surfaces.Count > 0 || roads.Corridor.Count > 0)) w.AdditionalSheets.Add(RoadSheet(roads));
+        if (concrete is { Elements.Count: > 0 }) w.AdditionalSheets.Add(ConcreteSheetOf(concrete));
         w.AdditionalSheets.Add(TraceSheet(lines));
         w.AdditionalSheets.Add(ChecksSheet(lines.Count, groups.Count, findings, drawing, drawingHash, measurementEngine, usedBooks,
             $"{fresh.Length} שורות עבודה חדשה · {demolition.Length} לפירוק · {keep.Length} קיים שנשאר (ללא מחיר)"));
@@ -278,40 +296,106 @@ public static class InfrastructureBoq
         return s;
     }
 
+    /// <summary>Each concrete element: what the plan gave, the section it was computed with (and which part of it is a
+    /// default), and its concrete and rebar; the pay rows themselves are on the first sheet.</summary>
+    private static MiniXlsx.Worksheet ConcreteSheetOf(StructureConcrete.Plan plan)
+    {
+        var s = Sheet(ConcreteSheet); s.FreezeTopRows = 0; s.PrintTitleRows = 0;
+        foreach (var (c, width) in new[] { ("A", 18d), ("B", 26d), ("C", 18d), ("D", 60d), ("E", 14d), ("F", 12d), ("G", 12d) })
+            s.ColumnWidths.Add((c[0] - 'A' + 1, width));
+        var r = 1;
+        s.Rows.Add(new MiniXlsx.OutRow(r++) { HeightPoints = 28 }.Text("A", "בטון וקונסטרוקציה — כמויות מהתכנית", 1)); s.SingleRowMerges.Add("A1:G1");
+        var defaults = plan.Defaults > 0;
+        s.Rows.Add(new MiniXlsx.OutRow(r++) { HeightPoints = 48 }.Text("A",
+            "אורך / שטח / מספר מהתכנית; גובה, עובי, אורך כלונס ויחס זיון — כפי שהוזנו בכלי, מהשרטוט (קיר בקו סגור, בלוק כלונס עם קוטר) או ערך טיפוסי. " +
+            "בטון במ״ק, כלונסאות במטר לפי קוטר ועומק, זיון בטון לפי יחס ק״ג/מ״ק." +
+            (defaults ? " ⚠ שדות שמסומנים \"ברירת מחדל\" הם ערכים טיפוסיים — לא תכנון הקונסטרוקציה; יש לאמת מול הקונסטרוקטור לפני הגשה." : ""), 5));
+        s.SingleRowMerges.Add("A2:G2");
+        r++;
+        var h = new MiniXlsx.OutRow(r++);
+        foreach (var (c, t) in new[] { ("A", "אלמנט"), ("B", "שכבה"), ("C", "כמות בתכנית"), ("D", "חתך (מקור)"), ("E", "מקור"), ("F", "בטון מ״ק"), ("G", "זיון טון") }) h.Text(c, t, 2);
+        s.Rows.Add(h);
+        var first = r;
+        foreach (var e in plan.Elements)
+        {
+            s.Rows.Add(new MiniXlsx.OutRow(r).Text("A", e.KindName, 3).Text("B", e.LayerName, 3).Text("C", e.BasisDisplay, 3).Text("D", e.Section, 3)
+                .Text("E", e.Origin, 3).Number("F", e.ConcreteM3, 4).Number("G", e.RebarTon, 4));
+            r++;
+        }
+        s.Rows.Add(new MiniXlsx.OutRow(r).Text("E", "סה״כ", 2).Formula("F", $"SUM(F{first}:F{r - 1})", 4).Formula("G", $"SUM(G{first}:G{r - 1})", 4));
+        r += 2;
+        s.Rows.Add(new MiniXlsx.OutRow(r++).Text("A", "שורות לתשלום", 2));
+        var h2 = new MiniXlsx.OutRow(r++);
+        foreach (var (c, t) in new[] { ("A", "אלמנט"), ("B", "שכבה"), ("C", "שורה"), ("D", "חישוב"), ("E", "כמות"), ("F", "יחידה") }) h2.Text(c, t, 2);
+        s.Rows.Add(h2);
+        foreach (var e in plan.Elements)
+        foreach (var q in e.Quantities)
+        { s.Rows.Add(new MiniXlsx.OutRow(r++).Text("A", e.KindName, 3).Text("B", e.LayerName, 3).Text("C", q.Name, 3).Text("D", q.Formula, 3).Number("E", q.Amount, 4).Text("F", q.Unit, 3)); }
+        r++;
+        foreach (var note in plan.Notes)
+        { s.Rows.Add(new MiniXlsx.OutRow(r).Text("A", note, 5)); s.SingleRowMerges.Add($"A{r}:G{r}"); r++; }
+        return s;
+    }
+
     private static MiniXlsx.Worksheet RoadSheet(RoadPavement.Report roads)
     {
         var s = Sheet(RoadsSheet); s.FreezeTopRows = 0; s.PrintTitleRows = 0;
-        foreach (var (c, width) in new[] { ("A", 22d), ("B", 30d), ("C", 14d), ("D", 18d), ("E", 18d), ("F", 12d), ("G", 18d), ("H", 50d) })
+        foreach (var (c, width) in new[] { ("A", 22d), ("B", 30d), ("C", 34d), ("D", 11d), ("E", 16d), ("F", 9d), ("G", 16d), ("H", 12d), ("I", 18d) })
             s.ColumnWidths.Add((c[0] - 'A' + 1, width));
         var r = 1;
-        s.Rows.Add(new MiniXlsx.OutRow(r++) { HeightPoints = 28 }.Text("A", "כבישים — שטח ונפח", 1)); s.SingleRowMerges.Add("A1:H1");
-        s.Rows.Add(new MiniXlsx.OutRow(r++) { HeightPoints = 36 }.Text("A", "שטח = Hatch וגבולות סגורים בשכבות המשטח. נפח = שטח × עובי השכבה. מבנה המיסעה הוא ברירת מחדל לעריכה עד לקבלת שיטת התמחור של המשרד — אינו תכנון מאושר.", 5)); s.SingleRowMerges.Add("A2:H2");
+        s.Rows.Add(new MiniXlsx.OutRow(r++) { HeightPoints = 28 }.Text("A", "כבישים — שטח ונפח", 1)); s.SingleRowMerges.Add("A1:I1");
+        var fromReport = roads.Layers.Any(l => l.Origin == PavementReportPlan.Origin.Report);
+        var byDefault = roads.Layers.Any(l => l.IsDefault);
+        var source = (fromReport
+            ? "מבנה המיסעה לפי דו״ח המבנה שצורף (נקרא על ידי MahodAI ונבדק: סכום השכבות מול העובי הכולל, מבנה לכל מקטע). המקטעים אותרו לפי מספרי החתכים לאורך קווי הציר. יש לבדוק מול הדו״ח לפני הגשה."
+            : byDefault ? "לא צורף דו״ח מבנה מיסעה."
+            : roads.Layers.Count > 0 ? "מבנה המיסעה הוזן ידנית בכלי." : "לא צורף דו״ח מבנה מיסעה — שכבות האספלט והמצעים לא חושבו.") +
+            (byDefault ? " ⚠ שורות \"ברירת מחדל\" חושבו לפי מבנה טיפוסי של סוג הדרך שנבחר — לא תכנון הפרויקט; יש לאמת מול דו״ח יועץ המיסעות לפני הגשה." : "");
+        s.Rows.Add(new MiniXlsx.OutRow(r++) { HeightPoints = 36 }.Text("A", "שטח = Hatch וגבולות סגורים בשכבות המשטח. נפח = שטח × עובי השכבה × מספר השכבות הזהות. " + source, 5)); s.SingleRowMerges.Add("A2:I2");
         r++;
         s.Rows.Add(new MiniXlsx.OutRow(r++).Text("A", "1. שטחים לפי סוג משטח", 2));
         var h1 = new MiniXlsx.OutRow(r++);
         foreach (var (c, t) in new[] { ("A", "סוג משטח"), ("B", "מצב"), ("C", "שטח מ״ר"), ("D", "שכבות מקור") }) h1.Text(c, t, 2);
-        s.Rows.Add(h1); s.SingleRowMerges.Add($"D{r - 1}:H{r - 1}");
+        s.Rows.Add(h1); s.SingleRowMerges.Add($"D{r - 1}:I{r - 1}");
         foreach (var t in roads.Surfaces)
-        { s.Rows.Add(new MiniXlsx.OutRow(r).Text("A", t.SurfaceName, 3).Text("B", t.DispositionLabel, 3).Number("C", t.AreaSquareMetres, 4).Text("D", t.LayersDisplay, 3)); s.SingleRowMerges.Add($"D{r}:H{r}"); r++; }
+        { s.Rows.Add(new MiniXlsx.OutRow(r).Text("A", t.SurfaceName, 3).Text("B", t.DispositionLabel, 3).Number("C", t.AreaSquareMetres, 4).Text("D", t.LayersDisplay, 3)); s.SingleRowMerges.Add($"D{r}:I{r}"); r++; }
         r++;
         if (roads.Layers.Count > 0)
         {
             s.Rows.Add(new MiniXlsx.OutRow(r++).Text("A", "2. מבנה מיסעה — עבודה חדשה", 2));
             var h2 = new MiniXlsx.OutRow(r++);
-            foreach (var (c, t) in new[] { ("A", "סוג משטח"), ("B", "שכבה"), ("C", "עובי ס״מ"), ("D", "שטח מ״ר"), ("E", "נפח מ״ק"), ("F", "יחידת תשלום"), ("G", "כמות לתשלום") }) h2.Text(c, t, 2);
+            foreach (var (c, t) in new[] { ("A", "סוג משטח"), ("B", "מבנה"), ("C", "שכבה"), ("D", "עובי ס״מ"), ("E", "שטח מ״ר"), ("F", "פעמים"), ("G", "נפח מ״ק"), ("H", "יחידת תשלום"), ("I", "כמות לתשלום") }) h2.Text(c, t, 2);
             s.Rows.Add(h2);
             foreach (var q in roads.Layers)
             {
-                s.Rows.Add(new MiniXlsx.OutRow(r).Text("A", q.SurfaceName, 3).Text("B", q.Layer.Name, 3).Number("C", q.Layer.ThicknessCm, 4)
-                    .Number("D", q.AreaSquareMetres, 4).Formula("E", $"D{r}*C{r}/100", 4).Text("F", q.Unit, 3)
-                    .Formula("G", q.Layer.ByVolume ? $"E{r}" : $"D{r}", 4));
+                s.Rows.Add(new MiniXlsx.OutRow(r).Text("A", q.SurfaceName, 3).Text("B", q.StructureName, 3).Text("C", q.Layer.Name, 3).Number("D", q.Layer.ThicknessCm, 4)
+                    .Number("E", q.AreaSquareMetres, 4).Number("F", (double)q.Layer.Times, 4).Formula("G", $"E{r}*D{r}/100*F{r}", 4).Text("H", q.Unit, 3)
+                    .Formula("I", q.Layer.ByVolume ? $"G{r}" : $"E{r}*F{r}", 4));
                 r++;
             }
             r++;
         }
+        if (roads.Zones.Count > 0)
+        {
+            s.Rows.Add(new MiniXlsx.OutRow(r++).Text("A", roads.Zones.Any(z => z.Origin == PavementReportPlan.Origin.Report) ? "3. מבנה לפי מקטעים — מתוך דו״ח המבנה" : "3. מבנה לפי שטח", 2));
+            var h4 = new MiniXlsx.OutRow(r++);
+            foreach (var (c, t) in new[] { ("A", "מקטע"), ("B", "דרך"), ("C", "סוג משטח"), ("D", "שטח מ״ר"), ("E", "מבנה"), ("G", "שכבות") }) h4.Text(c, t, 2);
+            s.Rows.Add(h4); s.SingleRowMerges.Add($"E{r - 1}:F{r - 1}"); s.SingleRowMerges.Add($"G{r - 1}:I{r - 1}");
+            foreach (var z in roads.Zones)
+            {
+                s.Rows.Add(new MiniXlsx.OutRow(r).Text("A", z.Zone, 3).Text("B", z.Road, 3).Text("C", z.SurfaceName, 3).Number("D", z.AreaSquareMetres, 4)
+                    .Text("E", z.Structure, 3)
+                    .Text("G", z.Layers.Length > 0 ? z.Layers : "לא תומחר — אין מבנה", 3));
+                s.SingleRowMerges.Add($"E{r}:F{r}"); s.SingleRowMerges.Add($"G{r}:I{r}"); r++;
+            }
+            r++;
+        }
+        foreach (var note in roads.Notes)
+        { s.Rows.Add(new MiniXlsx.OutRow(r).Text("A", note, 5)); s.SingleRowMerges.Add($"A{r}:I{r}"); r++; }
+        if (roads.Notes.Count > 0) r++;
         if (roads.Corridor.Count > 0)
         {
-            s.Rows.Add(new MiniXlsx.OutRow(r++).Text("A", "3. נפחים מקורידורים (Civil 3D)", 2));
+            s.Rows.Add(new MiniXlsx.OutRow(r++).Text("A", "4. נפחים מקורידורים (Civil 3D)", 2));
             var h3 = new MiniXlsx.OutRow(r++);
             foreach (var (c, t) in new[] { ("A", "קוד / חומר"), ("B", "מקור"), ("C", "נפח מ״ק"), ("D", "שיטה") }) h3.Text(c, t, 2);
             s.Rows.Add(h3);
