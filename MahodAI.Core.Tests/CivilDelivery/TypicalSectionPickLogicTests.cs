@@ -129,4 +129,32 @@ public sealed class TypicalSectionPickLogicTests
         TypicalSectionPickLogic.SnapToCorridorStation(double.NaN, new[] { 1.0 }).Should().BeNull();
         TypicalSectionPickLogic.SnapToCorridorStation(10, new[] { double.NaN, 12.0 }).Should().Be(12.0);
     }
+
+    // ------------------------------------------------------------------ no-axis popup (2026-11-09, GM-halufa_A_new2)
+
+    [Fact]
+    public void NoAxis_OnADraftedPlan_ExplainsAndOffersToPickTheCentreLine()
+    {
+        var notice = TypicalSectionPickLogic.NoAxis(Array.Empty<string>(), new[] { "ROAD-*" });
+
+        notice.CanPickAxis.Should().BeTrue();
+        notice.Title.Should().Be("לא נמצא ציר לכביש");
+        notice.Body.Should().Contain("AX-*, CL או CENTERLINE", "it says which layers were searched")
+            .And.Contain("גם בתוך XREF")
+            .And.Contain("AX-43", "and how to make the next run find the axis by itself")
+            .And.NotContain("AX-<", "a Latin prefix glued to a Hebrew placeholder reads backwards right-to-left");
+        notice.Summary.Should().NotContain("\n", "the summary is one line for the command line and the footer");
+    }
+
+    [Fact]
+    public void NoAxis_WithAlignmentsTheProfileDoesNotAllow_SendsToTheProfile_AndOffersNoPick()
+    {
+        var names = new[] { "A1", "A2", "A3", "A4", "A5", "A6", "A7" };
+        var notice = TypicalSectionPickLogic.NoAxis(names, new[] { "ROAD-40*" });
+
+        notice.CanPickAxis.Should().BeFalse("with Civil alignments in the drawing the profile's list decides");
+        notice.Body.Should().Contain("7 תוואים").And.Contain("A1, A2, A3, A4, A5 ועוד 2")
+            .And.Contain("(ROAD-40*)").And.Contain("הגדרת פרויקט");
+        notice.Summary.Should().Contain("התוואים המותרים");
+    }
 }

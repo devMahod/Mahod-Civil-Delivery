@@ -271,7 +271,15 @@ public sealed class TypicalSectionsSourceContractTests
         var pick = Method(command, "internal static void Pick(");
         At(pick, "PromptAxisFromPlan(doc, ed)").Should().BeLessThan(At(pick, "ed.Drag(jig)"),
             "the engineer shows the axis before the first click on the road");
-        pick.Should().Contain("GetAlignmentIds().Count > 0", "a drawing with Civil alignments keeps the profile's list");
+        // Owner 2026-11-09: a popup says why nothing can be marked, before anything is asked in the command line.
+        At(pick, "TypicalNoticeDialog.Ask(notice)").Should().BeLessThan(At(pick, "PromptAxisFromPlan(doc, ed)"));
+        pick.Should().Contain("notice.CanPickAxis && pickAxis ? PromptAxisFromPlan(doc, ed) : null",
+            "the centre line is asked only when the popup offered it and the engineer chose it");
+        Method(command, "private static List<string> AlignmentNamesIn(").Should().Contain("civilDoc.GetAlignmentIds()");
+        var dialog = Read("CivilDelivery", "UI", "TypicalNoticeDialog.cs");
+        dialog.Should().Contain("CivilModalHost.ShowFromPalette(dialog)")
+            .And.Contain("FlowDirection.RightToLeft")
+            .And.Contain("if (notice.CanPickAxis)");
         var prompt = Method(command, "internal static string? PromptAxisFromPlan(");
         prompt.Should().Contain("ed.GetNestedEntity(", "the centre line may be inside an XREF")
             .And.Contain("GetTransformedCopy(picked.Transform)")

@@ -85,14 +85,16 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Commands
                 // A drafted plan with no axis at all (2026-11-09, GM-halufa_A_new2: road 43 drawn as markings, its centre
                 // line a TR-MARK-808 polyline): the engineer shows the axis instead of the tool guessing which marking
                 // is the centre. Not where Civil alignments exist - there the profile's list decides.
-                var hasAlignments = false;
-                try { hasAlignments = civilDoc.GetAlignmentIds().Count > 0; } catch { /* no Civil document */ }
-                var axisLayer = hasAlignments ? null : PromptAxisFromPlan(doc, ed);
+                // The engineer is told in a popup, not only in the command line (owner, 2026-11-09): why nothing can be
+                // marked, and what to do - pick the centre line now, or fix the profile's allowed alignments.
+                var notice = TypicalSectionPickLogic.NoAxis(AlignmentNamesIn(doc.Database, civilDoc), request.AllowedAlignmentNames);
+                var pickAxis = TypicalNoticeDialog.Ask(notice);
+                var axisLayer = notice.CanPickAxis && pickAxis ? PromptAxisFromPlan(doc, ed) : null;
                 if (axisLayer == null)
                 {
-                    result.Error = hasAlignments
-                        ? "לא נמצא תוואי מתאים בשרטוט (לפי התוואים המותרים בפרופיל הפרויקט)."
-                        : "לא נבחר קו ציר — לא סומן דבר. אפשר גם להעתיק את קו הציר של הכביש לשכבה AX-<שם> ולהריץ שוב.";
+                    result.Error = notice.CanPickAxis
+                        ? "לא נבחר קו ציר — לא סומן דבר. אפשר גם להעתיק את קו הציר לשכבה ששמה מתחיל ב-AX (למשל AX-43) ולהריץ שוב."
+                        : notice.Summary;
                     return;
                 }
                 opened = TypicalSectionPicker.Open(doc.Database, civilDoc, Array.Empty<string>());
@@ -183,6 +185,21 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Commands
             ed.WriteMessage(session.Count == 0
                 ? "\nלא סומן אף חתך.\n"
                 : $"\n{session.Count} חתכים סומנו — חזור לפאנל ליצירה.\n");
+        }
+
+        /// <summary>Every Civil alignment's name in the drawing (none when there is no Civil document).</summary>
+        private static List<string> AlignmentNamesIn(Database db, CivilDocument civilDoc)
+        {
+            var names = new List<string>();
+            try
+            {
+                using var tr = db.TransactionManager.StartOpenCloseTransaction();
+                foreach (ObjectId id in civilDoc.GetAlignmentIds())
+                    if (tr.GetObject(id, OpenMode.ForRead) is Autodesk.Civil.DatabaseServices.Alignment alignment)
+                        names.Add(alignment.Name);
+            }
+            catch { /* no Civil document: no alignments */ }
+            return names;
         }
 
         /// <summary>

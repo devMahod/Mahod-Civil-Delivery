@@ -108,6 +108,48 @@ namespace MahodAI.CivilDelivery.Shared
             return Math.Sqrt(dx * dx + dy * dy);
         }
 
+        /// <summary>
+        /// What the pick command says in a popup when the drawing gives it no road to mark on (2026-11-09, owner, after
+        /// GM-halufa_A_new2: "an appropriate message should pop up if the user tries to do this without a centreline
+        /// alignment"). <see cref="CanPickAxis"/>: the drawing has no Civil alignment at all, so the engineer may show
+        /// the centre line on the plan; with alignments that the profile does not allow, the profile is what to change.
+        /// <see cref="Summary"/> is the one line the command line and the palette keep.
+        /// </summary>
+        public sealed record NoAxisNotice(string Title, string Body, bool CanPickAxis, string Summary);
+
+        /// <summary>Lists at most this many alignment names in the notice, then "ועוד N".</summary>
+        public const int NoticeNamesShown = 5;
+
+        public static NoAxisNotice NoAxis(IReadOnlyList<string>? drawingAlignments, IReadOnlyList<string>? allowedNames)
+        {
+            var inDrawing = (drawingAlignments ?? Array.Empty<string>()).Where(n => !string.IsNullOrWhiteSpace(n)).ToList();
+            if (inDrawing.Count == 0)
+            {
+                return new NoAxisNotice(
+                    "לא נמצא ציר לכביש",
+                    "חתך טיפוסי נמדד מציר הכביש, ובשרטוט הזה אין ציר: אין תוואי Civil 3D, ואין קו ציר בשכבות AX-*, CL או CENTERLINE." +
+                    "\n\nאפשר לבחור עכשיו בשרטוט את קו הציר של הכביש - קו, פוליליין או קשת, גם בתוך XREF. " +
+                    "הכלי יעתיק אותו לשכבת ציר בשם שתקליד (למשל 43 תיתן AX-43), וימצא אותו לבד בפעם הבאה. " +
+                    "התחנות נמדדות מתחילת הקו שנבחר." +
+                    "\n\nאפשר גם להעתיק בעצמך את קו הציר לשכבה ששמה מתחיל ב-AX (למשל AX-43) ולהריץ שוב.",
+                    true,
+                    "לא נמצא ציר לכביש (תוואי Civil 3D או קו בשכבות AX-*, CL, CENTERLINE).");
+            }
+
+            var allowed = (allowedNames ?? Array.Empty<string>()).Where(n => !string.IsNullOrWhiteSpace(n)).ToList();
+            return new NoAxisNotice(
+                "אין תוואי מותר בשרטוט",
+                $"בשרטוט יש {inDrawing.Count} תוואים ({NamesOf(inDrawing)}), אבל אף אחד מהם אינו ברשימת התוואים המותרים בפרופיל הפרויקט" +
+                (allowed.Count > 0 ? $" ({NamesOf(allowed)})." : ".") +
+                "\n\nאפשר לשנות את התוואים המותרים בלשונית 'פרויקט' > 'הגדרת פרויקט', ולהריץ שוב.",
+                false,
+                "לא נמצא תוואי מתאים בשרטוט (לפי התוואים המותרים בפרופיל הפרויקט).");
+
+            static string NamesOf(IReadOnlyList<string> names) =>
+                string.Join(", ", names.Take(NoticeNamesShown)) +
+                (names.Count > NoticeNamesShown ? $" ועוד {names.Count - NoticeNamesShown}" : string.Empty);
+        }
+
         /// <summary>A readable rotation for the marker text: the chord direction folded into (−90°, 90°].</summary>
         public static double ReadableTextRotationDeg(double chordDirectionDeg)
         {
