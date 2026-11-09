@@ -305,7 +305,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
 
             var crossings = new List<Crossing>();
             var objects = new List<PlacedObject>();
-            var chordCache = new Dictionary<Matrix3d, Line>();
+            var chordCache = new Dictionary<Matrix3d, (Line Chord, Plane Plan)>();
             // ~40 patterns per entity over a large XREF set (6403: 15,944 host polylines + survey XREFs) timed out the
             // code runner; a layer is classified once.
             var layerKinds = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
@@ -337,13 +337,19 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                         layerKinds[layer] = kind = DraftedTypicalSectionLogic.ClassifyLayer(layer) ??
                             (corridorEdges && DraftedTypicalSectionLogic.IsCorridorEdgeLayer(layer) ? DraftedTypicalSectionLogic.Kind.Edge : null);
                     if (kind == null) return;
-                    if (!chordCache.TryGetValue(toWcs, out var chord))
+                    if (!chordCache.TryGetValue(toWcs, out var cached))
                     {
                         var toLocal = toWcs.Inverse();
-                        chordCache[toWcs] = chord = new Line(a.TransformBy(toLocal), b.TransformBy(toLocal));
+                        cached = (new Line(a.TransformBy(toLocal), b.TransformBy(toLocal)),
+                            new Plane(Point3d.Origin.TransformBy(toLocal), Vector3d.ZAxis.TransformBy(toLocal)));
+                        chordCache[toWcs] = cached;
                     }
+                    var chord = cached.Chord;
                     var hits = new Point3dCollection();
-                    try { chord.IntersectWith(curve, Intersect.OnBothOperands, hits, IntPtr.Zero, IntPtr.Zero); }
+                    // In plan view, not in 3D (2026-11-09, GM-halufa_A_new2): a drafted plan mixes elevations - road 43's
+                    // west edge line, shoulder and barrier sat at Z=99.411, the rest at 0.4 / 97.5 / 100.6 - and a 3D
+                    // intersection with the chord at Z=0 found none of them, so half the section vanished without a word.
+                    try { chord.IntersectWith(curve, Intersect.OnBothOperands, cached.Plan, hits, IntPtr.Zero, IntPtr.Zero); }
                     catch { return; }
                     var source = layer.Contains('|') ? layer[..layer.IndexOf('|')] : "host";
                     // A broken lane line drawn dash by dash (2026-11-04, TR-M34: 801 3-3 as separate strokes): a cut
@@ -360,7 +366,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             }
             finally
             {
-                foreach (var chord in chordCache.Values) chord.Dispose();
+                foreach (var cached in chordCache.Values) cached.Chord.Dispose();
             }
 
             // A survey draws a tree twice (symbol and its "-ut" copy): one object per kind and spot.

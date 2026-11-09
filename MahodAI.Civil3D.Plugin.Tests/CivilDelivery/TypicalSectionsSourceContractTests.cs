@@ -262,4 +262,31 @@ public sealed class TypicalSectionsSourceContractTests
             .And.Contain("smoke_typical_latest.json");
         At(smoke, "SmokeApplyGuard.Refusal(").Should().BeLessThan(At(smoke, "picker.Commit("));
     }
+
+    [Fact]
+    public void ADraftedPlanWithoutAnAxis_AsksForTheCentreLine_AndSaysWhyNothingHappened()
+    {
+        // Live 2026-11-09 (GM-halufa_A_new2): no axis layer, the button ended with a note only the panel's footer showed.
+        var command = Read("CivilDelivery", "Commands", "MhdTypicalSectionsCommand.cs");
+        var pick = Method(command, "internal static void Pick(");
+        At(pick, "PromptAxisFromPlan(doc, ed)").Should().BeLessThan(At(pick, "ed.Drag(jig)"),
+            "the engineer shows the axis before the first click on the road");
+        pick.Should().Contain("GetAlignmentIds().Count > 0", "a drawing with Civil alignments keeps the profile's list");
+        var prompt = Method(command, "internal static string? PromptAxisFromPlan(");
+        prompt.Should().Contain("ed.GetNestedEntity(", "the centre line may be inside an XREF")
+            .And.Contain("GetTransformedCopy(picked.Transform)")
+            .And.Contain("PlanAxis.AxisLayerFor(")
+            .And.Contain("DraftedTypicalSectionService.MinAxisLengthM");
+        Method(command, "public void Run(").Should().Contain("if (result.Error != null) ed.WriteMessage(");
+    }
+
+    [Fact]
+    public void ThePlanCut_IntersectsInPlanView_SoLinesAtAnyElevationAreRead()
+    {
+        // Live 2026-11-09: road 43's west edge line, shoulder and barrier at Z=99.411 were not read at all.
+        var service = Read("CivilDelivery", "Sections", "Services", "DraftedTypicalSectionService.cs");
+        var cut = Method(service, "public static (List<Crossing> Crossings, List<PlacedObject> Objects) Cut(");
+        cut.Should().Contain("chord.IntersectWith(curve, Intersect.OnBothOperands, cached.Plan, hits, IntPtr.Zero, IntPtr.Zero)")
+            .And.NotContain("chord.IntersectWith(curve, Intersect.OnBothOperands, hits,");
+    }
 }
