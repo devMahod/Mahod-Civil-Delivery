@@ -59,4 +59,50 @@ public static class InfrastructureReviewStore
         }
         return restored;
     }
+
+    /// <summary>
+    /// An area bill of quantities measures less than the whole drawing, so its groups never match the saved keys (they
+    /// carry the quantities). What the engineer decided per layer still holds inside the area: topic, state, surface,
+    /// unit, price item and removal — matched by source + layer + part. A manual quantity was typed for the whole
+    /// drawing and is never carried into an area.
+    /// </summary>
+    public static int RestoreByLayer(string path, string drawingHash, IReadOnlyList<CatalogSnapshot> catalogs,
+        IReadOnlyList<InfrastructureGroup> groups, ISet<InfrastructureGroup> excluded)
+    {
+        if (!File.Exists(path)) return 0;
+        var saved = JsonSerializer.Deserialize<Review>(File.ReadAllText(path));
+        if (saved == null || saved.DrawingHash != drawingHash) return 0;
+        var books = catalogs.GroupBy(c => c.FileHash).ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
+        var choices = new Dictionary<(string, string, string), Choice>();
+        foreach (var choice in saved.Choices)
+            if (LayerIdentity(choice.Key) is { } identity) choices.TryAdd(identity, choice);
+        var restored = 0;
+        foreach (var group in groups)
+        {
+            if (!choices.TryGetValue((group.Source, group.Layer, group.GroupPart), out var choice)) continue;
+            if (choice.Topic != null && InfrastructureBoq.Topics.Contains(choice.Topic)) group.Topic = choice.Topic;
+            if (choice.Disposition is { } disposition && Enum.IsDefined(disposition)) group.Disposition = disposition;
+            if (choice.Surface is { } surface && Enum.IsDefined(surface)) group.Surface = surface;
+            if (choice.MeasurementUnit != null) group.MeasurementUnit = choice.MeasurementUnit;
+            if (choice.Code != null && books.TryGetValue(choice.CatalogHash ?? saved.CatalogHash, out var catalog) &&
+                catalog.Items.TryGetValue(choice.Code, out var item) && item.Unit.SameUnit(Units.Parse(group.MeasurementUnit)) && group.Quantity > 0)
+            { group.Assign(catalog, choice.Code, choice.AutomaticallyAssigned); restored++; }
+            if (choice.Excluded) excluded.Add(group);
+        }
+        return restored;
+    }
+
+    /// <summary>Source, layer and part of a saved key (the current key and both legacy keys carry them; legacy has no part).</summary>
+    private static (string, string, string)? LayerIdentity(string key)
+    {
+        try
+        {
+            using var json = JsonDocument.Parse(key);
+            var root = json.RootElement;
+            if (!root.TryGetProperty("Source", out var source) || !root.TryGetProperty("Layer", out var layer)) return null;
+            var part = root.TryGetProperty("GroupPart", out var p) ? p.GetString() ?? "" : "";
+            return (source.GetString() ?? "", layer.GetString() ?? "", part);
+        }
+        catch (JsonException) { return null; }
+    }
 }

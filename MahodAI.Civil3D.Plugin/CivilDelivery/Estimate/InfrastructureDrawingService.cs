@@ -7,12 +7,13 @@ using System.Text.Json;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
 using Region = Autodesk.AutoCAD.DatabaseServices.Region;
+using MahodAI.CivilDelivery.Estimate;
 using MahodAI.CivilDelivery.Estimate.Infrastructure;
 
 namespace MahodAI.Civil3D.Plugin.CivilDelivery.Estimate;
 
 /// <summary>Read-only, occurrence-aware traversal. Only clones are transformed or written.</summary>
-internal sealed class InfrastructureDrawingService : IDisposable
+internal sealed partial class InfrastructureDrawingService : IDisposable
 {
     internal sealed record Measured(InfrastructureLine Line, Entity Geometry)
     {
@@ -28,6 +29,17 @@ internal sealed class InfrastructureDrawingService : IDisposable
         internal NetTopologySuite.Geometries.Geometry? RecoveredShape { get; init; }
         internal Vector3d RecoveredNormal { get; init; } = Vector3d.ZAxis;
         internal double RecoveredElevation { get; init; }
+        /// <summary>
+        /// A curve cut at the edge of a marked area: the parts inside as point runs (host coordinates), written to the
+        /// audit DWG as 3D polylines instead of <see cref="Geometry"/>. With <see cref="RecoveredShape"/> beside them
+        /// when the closed source also carried an area. Points, not entities: a 3D polyline cloned before it is in a
+        /// database loses its vertices (the audit check caught a zero length, live 2026-11-09).
+        /// </summary>
+        internal IReadOnlyList<IReadOnlyList<Point3d>>? Pieces { get; init; }
+        /// <summary>A solid crossing the marked area: measured inside it; the audit DWG repeats the cut on its native clone.</summary>
+        internal bool CutByArea { get; init; }
+        /// <summary>How many entities this measurement puts in the audit DWG.</summary>
+        internal int ExportCount => Pieces != null ? Pieces.Count + (RecoveredShape != null ? 1 : 0) : 1;
     }
     internal List<Measured> Measurements { get; } = new();
     internal List<string> Findings { get; } = new();
@@ -38,12 +50,18 @@ internal sealed class InfrastructureDrawingService : IDisposable
     private readonly Dictionary<string, int> _unsupported = new();
     private readonly Dictionary<(string Layer, string Source), (string Topic, string Evidence, string Code)> _classifications = new();
     private int _symbolBlocks;
-    internal InfrastructureDrawingService(Database db, string drawing, double metresPerHostUnit)
+    /// <param name="near">
+    /// For an area bill only: anything whose extents lie wholly outside this area is not read at all (a whole XREF at a
+    /// time when it can). The full read of a 40-XREF interchange took 272 s against 10 s for the cut itself (live
+    /// 2026-11-09). Nothing doubtful is skipped: no extents, or extents touching the area, are read and then cut exactly.
+    /// </param>
+    internal InfrastructureDrawingService(Database db, string drawing, double metresPerHostUnit, SpatialQuantityClip? near = null)
     {
         if (!double.IsFinite(metresPerHostUnit) || metresPerHostUnit <= 0) throw new ArgumentOutOfRangeException(nameof(metresPerHostUnit));
         Drawing = drawing;
         DrawingHash = MahodAI.CivilDelivery.Shared.ArtifactHash.Sha256OfFile(drawing);
         _metres = metresPerHostUnit;
+        _near = near;
         using var tr = db.TransactionManager.StartTransaction();
         var bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
         Walk(tr, bt[BlockTableRecord.ModelSpace], Matrix3d.Identity, drawing, "", "0", new HashSet<ObjectId>(), 0);
@@ -63,6 +81,7 @@ internal sealed class InfrastructureDrawingService : IDisposable
             foreach (ObjectId id in block)
             {
                 if (tr.GetObject(id, OpenMode.ForRead) is not Entity entity) continue;
+                if (_near != null && OutsideNear(entity, transform)) { SkippedOutsideArea++; continue; }
                 var layer = entity.Layer == "0" ? inheritedLayer : entity.Layer;
                 var handle = chain + entity.Handle;
                 if (entity is BlockReference reference)
@@ -104,8 +123,8 @@ internal sealed class InfrastructureDrawingService : IDisposable
                         copy.Dispose();
                         continue;
                     }
-                    catch (System.Exception ex) { copy.Dispose(); Unmeasured(layer, source, handle, ex.Message); continue; }
-                    if (!double.IsFinite(area) || area <= 0) { copy.Dispose(); Unmeasured(layer, source, handle, "שטח Hatch אינו חיובי"); continue; }
+                    catch (System.Exception ex) { Unmeasured(layer, source, handle, ex.Message, CentreOf(copy)); copy.Dispose(); continue; }
+                    if (!double.IsFinite(area) || area <= 0) { Unmeasured(layer, source, handle, "שטח Hatch אינו חיובי", CentreOf(copy)); copy.Dispose(); continue; }
                     Add(tr, entity, copy, layer, source, handle, 0, area, 0, 0, "שטחים", transform);
                     continue;
                 }
@@ -162,6 +181,8 @@ internal sealed class InfrastructureDrawingService : IDisposable
     /// <summary>A hatch area the scan had to work around: recovered from the boundary (AutoCAD gave no area), or not measured at all.</summary>
     internal sealed record AreaIssue(string Layer, string Source, string Handle, double AreaSquareMetres, string Reason)
     {
+        /// <summary>Plan centre in host coordinates, when the hatch still had extents; an area view keeps an issue without one.</summary>
+        internal (double X, double Y)? At { get; init; }
         internal string LayerName => Layer.Split('|').Last();
     }
     /// <summary>Hatches whose area AutoCAD could not compute and the scan measured from their boundary loops (counted; review).</summary>
@@ -169,9 +190,9 @@ internal sealed class InfrastructureDrawingService : IDisposable
     /// <summary>Hatches with no area at all: they are NOT in the bill of quantities, and the window says so.</summary>
     internal List<AreaIssue> UnmeasuredAreas { get; } = new();
 
-    private void Unmeasured(string layer, string source, string handle, string reason)
+    private void Unmeasured(string layer, string source, string handle, string reason, (double X, double Y)? at = null)
     {
-        UnmeasuredAreas.Add(new(layer, source, handle, 0, reason));
+        UnmeasuredAreas.Add(new(layer, source, handle, 0, reason) { At = at });
         Findings.Add($"לא נמדד שטח Hatch — לא נכלל בכתב הכמויות: {layer.Split('|').Last()} / {handle} ({Path.GetFileName(source)}): {reason}");
     }
 
@@ -207,13 +228,55 @@ internal sealed class InfrastructureDrawingService : IDisposable
                 }
                 Add(tr, original, (Entity)hatch.Clone(), layer, source, handle, 0, area, 0, 0, "שטחים", exportSkip: exportSkip,
                     recoveredFrom: hatch, recoveredShape: result.Shape);
-                RecoveredAreas.Add(new(layer, source, handle, area, error));
+                RecoveredAreas.Add(new(layer, source, handle, area, error) { At = CentreOf(hatch) });
                 Findings.Add($"שטח Hatch חושב מגבולותיו (AutoCAD אינו מחשב לו שטח: {error}) — {layer.Split('|').Last()} / {handle}: {area:N2} מ״ר. נכלל בכמות — לבדיקה.");
                 return;
             }
         }
         catch (System.Exception ex) { refusal = ex.Message; }
-        Unmeasured(layer, source, handle, $"{error}; {refusal}");
+        Unmeasured(layer, source, handle, $"{error}; {refusal}", CentreOf(hatch));
+    }
+
+    private readonly SpatialQuantityClip? _near;
+    /// <summary>Objects (an XREF counts once) not read because their extents lie wholly outside the area.</summary>
+    internal int SkippedOutsideArea { get; private set; }
+
+    /// <summary>True only when the entity's extents, in host coordinates, provably miss the area.</summary>
+    private bool OutsideNear(Entity entity, Matrix3d transform)
+    {
+        try
+        {
+            var e = entity.GeometricExtents;
+            double minX = double.MaxValue, minY = double.MaxValue, maxX = double.MinValue, maxY = double.MinValue;
+            foreach (var x in new[] { e.MinPoint.X, e.MaxPoint.X })
+            foreach (var y in new[] { e.MinPoint.Y, e.MaxPoint.Y })
+            foreach (var z in new[] { e.MinPoint.Z, e.MaxPoint.Z })
+            {
+                var p = new Point3d(x, y, z).TransformBy(transform);
+                minX = Math.Min(minX, p.X); minY = Math.Min(minY, p.Y); maxX = Math.Max(maxX, p.X); maxY = Math.Max(maxY, p.Y);
+            }
+            if (entity is BlockReference block)
+            {
+                // A symbol counts by its insertion point, which its drawn extents need not contain (4 blocks were lost
+                // to the area read on the interchange plan, live 2026-11-09).
+                var at = block.Position.TransformBy(transform);
+                minX = Math.Min(minX, at.X); minY = Math.Min(minY, at.Y); maxX = Math.Max(maxX, at.X); maxY = Math.Max(maxY, at.Y);
+            }
+            return double.IsFinite(minX) && double.IsFinite(maxY) && _near!.Classify(minX, minY, maxX, maxY) == SpatialQuantityClip.Relation.Outside;
+        }
+        catch (System.Exception) { return false; }   // no extents: read it, the exact cut decides
+    }
+
+    /// <summary>The plan centre of an entity's extents, or null when AutoCAD has none for it.</summary>
+    private static (double X, double Y)? CentreOf(Entity entity)
+    {
+        try
+        {
+            var e = entity.GeometricExtents;
+            var x = (e.MinPoint.X + e.MaxPoint.X) / 2; var y = (e.MinPoint.Y + e.MaxPoint.Y) / 2;
+            return double.IsFinite(x) && double.IsFinite(y) ? (x, y) : null;
+        }
+        catch (System.Exception) { return null; }
     }
 
     /// <summary>A hatch loop as a ring of points in the hatch plane; arcs and curves are densified to <paramref name="tolerance"/>.</summary>
@@ -418,14 +481,42 @@ internal sealed class InfrastructureDrawingService : IDisposable
                         Color = Autodesk.AutoCAD.Colors.Color.FromColorIndex(Autodesk.AutoCAD.Colors.ColorMethod.ByAci, colour) };
                     layers.Add(layer); tr.AddNewlyCreatedDBObject(layer, true);
                 }
-                Entity clone;
-                if (measured.RecoveredShape != null)
+                void Place(Entity entity)
+                {
+                    entity.SetDatabaseDefaults(output);
+                    if (_metres != 1) entity.TransformBy(Matrix3d.Scaling(_metres, Point3d.Origin));
+                    try { model.AppendEntity(entity); tr.AddNewlyCreatedDBObject(entity, true); }
+                    catch (System.Exception ex) { entity.Dispose(); throw new InvalidOperationException("לא ניתן לייצא " + measured.Line.EntityType + " / " + measured.Line.Handle, ex); }
+                    entity.LayerId = layers[name];
+                    var placed = entity.GeometricExtents;
+                    if (bounds is { } sum) { sum.AddExtents(placed); bounds = sum; } else bounds = placed;
+                }
+                Region? ShapeRegion()
                 {
                     // Built while the audit DWG is the working database, so the region belongs to it.
                     var working = HostApplicationServices.WorkingDatabase;
-                    Region? rebuilt;
-                    try { HostApplicationServices.WorkingDatabase = output; rebuilt = BuildRegion(measured.RecoveredShape, measured.RecoveredNormal, measured.RecoveredElevation); }
+                    try { HostApplicationServices.WorkingDatabase = output; return BuildRegion(measured.RecoveredShape!, measured.RecoveredNormal, measured.RecoveredElevation); }
                     finally { HostApplicationServices.WorkingDatabase = working; }
+                }
+                if (measured.Pieces != null)
+                {
+                    // A curve cut at the edge of the marked area: its inside parts, and its clipped area beside them.
+                    Region? clippedArea = null;
+                    if (measured.RecoveredShape != null && (clippedArea = ShapeRegion()) == null)
+                    { skipped.Add((measured, "לא ניתן לבנות את השטח החתוך בשרטוט הייצוא")); continue; }
+                    foreach (var piece in measured.Pieces)
+                    {
+                        var points = new Point3dCollection();
+                        foreach (var p in piece) points.Add(p);
+                        Place(new Polyline3d(Poly3dType.SimplePoly, points, false));
+                    }
+                    if (clippedArea != null) Place(clippedArea);
+                    continue;
+                }
+                Entity clone;
+                if (measured.RecoveredShape != null)
+                {
+                    var rebuilt = ShapeRegion();
                     if (rebuilt == null) { skipped.Add((measured, "לא ניתן לבנות אזור מהגבול בשרטוט הייצוא")); continue; }
                     clone = rebuilt;
                 }
@@ -440,6 +531,13 @@ internal sealed class InfrastructureDrawingService : IDisposable
                         clone = (Entity)tr.GetObject(mapping[measured.SourceId].Value, OpenMode.ForWrite);
                         if (clone is Hatch copiedHatch) copiedHatch.Associative = false;
                         clone.TransformBy(measured.SourceTransform);
+                        if (measured.CutByArea && Area != null && clone is Solid3d cutSolid)
+                        {
+                            // The prism is built while the audit DWG is the working database, so it belongs to it.
+                            var working = HostApplicationServices.WorkingDatabase;
+                            try { HostApplicationServices.WorkingDatabase = output; CutByPrism(cutSolid, Area); }
+                            finally { HostApplicationServices.WorkingDatabase = working; }
+                        }
                     }
                     catch (Autodesk.AutoCAD.Runtime.Exception ex)
                     {
@@ -459,6 +557,23 @@ internal sealed class InfrastructureDrawingService : IDisposable
                 var extents = clone.GeometricExtents;
                 if (bounds is { } accumulated) { accumulated.AddExtents(extents); bounds = accumulated; }
                 else bounds = extents;
+            }
+            if (Area != null)
+            {
+                // The marked area itself, so the audit drawing shows what was measured. Not a quantity: not verified below.
+                if (!layers.Has(AreaLayer))
+                {
+                    var layer = new LayerTableRecord { Name = AreaLayer, Color = Autodesk.AutoCAD.Colors.Color.FromColorIndex(Autodesk.AutoCAD.Colors.ColorMethod.ByAci, 30) };
+                    layers.Add(layer); tr.AddNewlyCreatedDBObject(layer, true);
+                }
+                var outline = new Polyline(Area.Vertices.Count);
+                for (var i = 0; i < Area.Vertices.Count; i++) outline.AddVertexAt(i, new Point2d(Area.Vertices[i].X, Area.Vertices[i].Y), 0, 0, 0);
+                outline.Closed = true;
+                outline.SetDatabaseDefaults(output);
+                if (_metres != 1) outline.TransformBy(Matrix3d.Scaling(_metres, Point3d.Origin));
+                model.AppendEntity(outline); tr.AddNewlyCreatedDBObject(outline, true);
+                outline.LayerId = layers[AreaLayer];
+                if (bounds is { } withArea) { withArea.AddExtents(outline.GeometricExtents); bounds = withArea; } else bounds = outline.GeometricExtents;
             }
             if (bounds is { } drawingBounds)
             {
@@ -487,6 +602,7 @@ internal sealed class InfrastructureDrawingService : IDisposable
             foreach (ObjectId id in model)
             {
                 var entity = (Entity)tr.GetObject(id, OpenMode.ForRead);
+                if (entity.Layer == AreaLayer) continue;
                 var value = actual.GetValueOrDefault(entity.Layer);
                 var length = entity is Curve curve ? curve.GetDistanceAtParameter(curve.EndParam) - curve.GetDistanceAtParameter(curve.StartParam) : 0;
                 var area = entity is Curve closed ? ClosedArea(closed) : entity is Hatch hatch ? hatch.Area : entity is Region region ? region.Area : 0;
@@ -496,11 +612,17 @@ internal sealed class InfrastructureDrawingService : IDisposable
             var omitted = skipped.Select(s => s.Item).ToHashSet();
             // Counted outlines (a closed manhole curve = 1 unit) stay curves in the DWG; only block markers are points.
             var expected = selected.Where(m => !omitted.Contains(m)).GroupBy(m => m.Line.OutputLayer)
-                .ToDictionary(g => g.Key, g => (Count: g.Count(), Length: g.Sum(m => m.Line.LengthMetres), Area: g.Sum(m => m.Line.AreaSquareMetres), Volume: g.Sum(m => m.Line.VolumeCubicMetres), Units: g.Sum(m => m.Geometry is DBPoint ? m.Line.CountUnits : 0)));
+                .ToDictionary(g => g.Key, g => (Count: g.Sum(m => m.ExportCount), Length: g.Sum(m => m.Line.LengthMetres), Area: g.Sum(m => m.Line.AreaSquareMetres), Volume: g.Sum(m => m.Line.VolumeCubicMetres), Units: g.Sum(m => m.Geometry is DBPoint ? m.Line.CountUnits : 0)));
             static bool Same(double a, double b) => Math.Abs(a - b) <= Math.Max(1e-7, Math.Abs(b) * 1e-8);
-            if (actual.Count != expected.Count || expected.Any(e => !actual.TryGetValue(e.Key, out var a) || a.Count != e.Value.Count ||
-                !Same(a.Length, e.Value.Length) || !Same(a.Area, e.Value.Area) || !Same(a.Volume, e.Value.Volume) || !Same(a.Units, e.Value.Units)))
-                throw new InvalidOperationException("Output DWG did not preserve the measured lengths, areas, volumes and counts");
+            var wrong = expected.Where(e => !actual.TryGetValue(e.Key, out var a) || a.Count != e.Value.Count ||
+                    !Same(a.Length, e.Value.Length) || !Same(a.Area, e.Value.Area) || !Same(a.Volume, e.Value.Volume) || !Same(a.Units, e.Value.Units))
+                .Select(e => { var a = actual.GetValueOrDefault(e.Key);
+                    return $"{e.Key}: expected n={e.Value.Count} L={e.Value.Length:R} A={e.Value.Area:R} V={e.Value.Volume:R} U={e.Value.Units:R}; " +
+                           $"DWG n={a.Count} L={a.Length:R} A={a.Area:R} V={a.Volume:R} U={a.Units:R}"; })
+                .Concat(actual.Keys.Where(k => !expected.ContainsKey(k)).Select(k => k + ": in the DWG only")).ToArray();
+            if (wrong.Length > 0)
+                throw new InvalidOperationException("Output DWG did not preserve the measured lengths, areas, volumes and counts" +
+                    Environment.NewLine + string.Join(Environment.NewLine, wrong.Take(8)));
         }
         File.WriteAllText(path + ".sources.json", JsonSerializer.Serialize(selected
             .Select(m => m.Line), new JsonSerializerOptions { WriteIndented = true }));
@@ -508,5 +630,9 @@ internal sealed class InfrastructureDrawingService : IDisposable
             File.WriteAllLines(path + ".not-copied.txt", skipped.Select(s => string.Join(" | ", s.Item.Line.Source, s.Item.Line.Handle, s.Item.Line.Layer, s.Item.Line.EntityType, s.Reason)));
         return skipped.Count;
     }
-    public void Dispose() { foreach (var m in Measurements) m.Geometry.Dispose(); }
+    public void Dispose()
+    {
+        // An area view shares the whole scan's geometry (its cuts are points and shapes, not entities): nothing of its own.
+        if (Area == null) foreach (var m in Measurements) m.Geometry.Dispose();
+    }
 }

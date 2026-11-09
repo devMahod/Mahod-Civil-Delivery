@@ -23,6 +23,8 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Commands
         public void Infrastructure() => InfrastructureBoqWindow.Run();
         [CommandMethod("MHD_BOQ", CommandFlags.Modal)]
         public void Boq() => InfrastructureBoqWindow.Run();
+        [CommandMethod("MHD_BOQ_AREA", CommandFlags.Modal)]
+        public void BoqArea() => InfrastructureBoqWindow.RunArea();
 #endif
         [CommandMethod(CivilDeliveryCommandNames.AfterSave, CommandFlags.Modal | CommandFlags.NoHistory)]
         public void ResumeAfterSave()

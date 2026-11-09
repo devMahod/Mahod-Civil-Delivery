@@ -120,15 +120,20 @@ internal sealed class InfrastructureBoqWindow : Window
         { _usage = new InfrastructureCatalogUsage(Array.Empty<InfrastructureCatalogUsage.Example>()); scan.Findings.Add("לא נטען ניסיון הפרויקטים: " + ex.Message); }
         _search = new InfrastructureCatalogSearch(_books[0], _usage);
         var reviews = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MahodCivilDelivery", "infrastructure-reviews");
-        _reviewPath = Path.Combine(reviews, InfrastructureReviewStore.FileName(scan.Drawing));
-        _roadsPath = Path.ChangeExtension(_reviewPath, ".roads.json");
+        var wholeReview = Path.Combine(reviews, InfrastructureReviewStore.FileName(scan.Drawing));
+        _roadsPath = Path.ChangeExtension(wholeReview, ".roads.json");
+        // An area's own choices live beside the drawing's; the drawing's per-layer choices (item, state, topic) carry in.
+        _reviewPath = scan.Area == null ? wholeReview : Path.ChangeExtension(wholeReview, ".area.json");
         _structures = RoadPavement.Load(_roadsPath);
         string? restoreError = null;
         try
         {
-            InfrastructureReviewStore.Restore(_reviewPath, scan.DrawingHash, _books.Select(b => b.Catalog).ToArray(), _groups, _excluded);
+            var catalogs = _books.Select(b => b.Catalog).ToArray();
+            if (scan.Area != null) InfrastructureReviewStore.RestoreByLayer(wholeReview, scan.DrawingHash, catalogs, _groups, _excluded);
+            InfrastructureReviewStore.Restore(_reviewPath, scan.DrawingHash, catalogs, _groups, _excluded);
             RebuildRoads(persist: false);
-            InfrastructureReviewStore.Restore(_reviewPath, scan.DrawingHash, _books.Select(b => b.Catalog).ToArray(), _derived, _excluded);
+            if (scan.Area != null) InfrastructureReviewStore.RestoreByLayer(wholeReview, scan.DrawingHash, catalogs, _derived, _excluded);
+            InfrastructureReviewStore.Restore(_reviewPath, scan.DrawingHash, catalogs, _derived, _excluded);
             if (RefreshStaleAutomatic(_groups.Concat(_derived)) is > 0 and var refreshed)
             { Persist(); restoreError = $"{refreshed} שיוכים אוטומטיים מגרסה קודמת עודכנו להצעה הנוכחית (שיוכים ידניים לא שונו)"; }
         }
@@ -189,10 +194,32 @@ internal sealed class InfrastructureBoqWindow : Window
         _autoAssign.ToolTip = "שייך את הסעיף המומלץ לכל שכבה שמוצגת וטרם שויכה. שיוכים קיימים נשמרים; קיים שנשאר, כיתובים וקווי שפה אינם משויכים.";
         _autoAssign.Click += async (_, _) => await AssignAutomatically();
         DockPanel.SetDock(_autoAssign, Dock.Left); header.Children.Add(_autoAssign);
+        // Like the "mark an area, get its estimate" flow engineers asked for (2026-11-09): the window steps aside, the
+        // engineer draws the area on the plan, and the bill comes back for what is inside it only.
+        var markArea = ActionButton(_scan.Area == null ? "כתב כמויות לאזור…" : "סמן אזור אחר…", "PillButton", "scan");
+        markArea.ToolTip = "סמן פוליגון על השרטוט (נקודה אחר נקודה, או בחירת פוליליין סגור) — כתב הכמויות יחושב רק למה שבתוכו. " +
+                           "קווים נחתכים בגבול, שטחים ונפחים לפי החלק שבתוכו, בלוקים לפי נקודת ההכנסה. השרטוט אינו משתנה.";
+        markArea.Margin = new Thickness(8, 0, 0, 0);
+        markArea.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "boq-mark-area");
+        markArea.Click += (_, _) => { NextStep = Step.MarkArea; Close(); };
+        DockPanel.SetDock(markArea, Dock.Left); header.Children.Add(markArea);
+        if (_scan.Area != null)
+        {
+            var whole = ActionButton("כל השרטוט", "QuietButton");
+            whole.ToolTip = "חזרה לכתב הכמויות לכל המודל והמקורות הטעונים.";
+            whole.Margin = new Thickness(8, 0, 0, 0);
+            whole.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "boq-whole-drawing");
+            whole.Click += (_, _) => { NextStep = Step.WholeDrawing; Close(); };
+            DockPanel.SetDock(whole, Dock.Left); header.Children.Add(whole);
+        }
         var titles = new StackPanel();
-        titles.Children.Add(new TextBlock { Text = "כתב כמויות", FontSize = 24, FontWeight = FontWeights.SemiBold, Foreground = Theme.Ink });
+        titles.Children.Add(new TextBlock { Text = _scan.Area == null ? "כתב כמויות" : "כתב כמויות — אזור מסומן", FontSize = 24, FontWeight = FontWeights.SemiBold, Foreground = Theme.Ink });
         var file = Path.GetFileName(_scan.Drawing);
-        titles.Children.Add(Text($"{file} · {_books.Count} מחירונים · {_scan.MetresPerHostUnit:G} מטר ליחידת שרטוט · כל המודל והמקורות הטעונים"));
+        var scope = _scan.Area == null ? "כל המודל והמקורות הטעונים"
+            : $"רק בתוך האזור: {_scan.Area.Boundary.Area * _scan.MetresPerHostUnit * _scan.MetresPerHostUnit:N0} מ״ר, {_scan.Measurements.Count:N0} מדידות, {_scan.CutAtEdge:N0} נחתכו בגבול";
+        var subtitle = Text($"{file} · {_books.Count} מחירונים · {_scan.MetresPerHostUnit:G} מטר ליחידת שרטוט · {scope}");
+        subtitle.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "boq-scope");
+        titles.Children.Add(subtitle);
         header.Children.Add(titles);
         DockPanel.SetDock(header, Dock.Top);
         return header;
@@ -440,6 +467,12 @@ internal sealed class InfrastructureBoqWindow : Window
             ? $"בשרטוט {count} קורידורים. נפח לכל קוד מבנה (Pave, Base, SubBase…) לפי ממוצע שטחי קצה לאורך התחנות, וחפירה/מילוי מחתכי Sample Lines."
             : "אין קורידורים בשרטוט — החישוב לעיל מבוסס על שטחי התכנית.";
         corridor.Children.Add(_corridorStatus);
+        if (_scan.Area != null)
+        {
+            // Corridor volumes come from Civil 3D's own stations, not from plan geometry: they are not cut by an area.
+            _corridorStatus.Text = "בכתב כמויות לאזור, נפחי קורידורים אינם נחתכים לפי האזור ולכן אינם נקראים — קרא אותם בכתב הכמויות לכל השרטוט.";
+            count = 0;
+        }
         _readCorridors.IsEnabled = count > 0; _readCorridors.HorizontalAlignment = HorizontalAlignment.Left; _readCorridors.Margin = new Thickness(0, 4, 0, 6);
         _readCorridors.Click += (_, _) => UiGuard.Run("נפחים מקורידורים", ReadCorridors);
         corridor.Children.Add(_readCorridors);
@@ -763,7 +796,7 @@ internal sealed class InfrastructureBoqWindow : Window
         var doc = AcadApp.DocumentManager.MdiActiveDocument;
         if (doc == null || !string.Equals(doc.Name, _scan.Drawing, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("שרטוט המקור אינו פעיל — פתח מחדש את מסך התשתיות בשרטוט הנכון");
-        var dialog = new Microsoft.Win32.SaveFileDialog { Filter = "Excel (*.xlsx)|*.xlsx", FileName = "כתב כמויות", AddExtension = true };
+        var dialog = new Microsoft.Win32.SaveFileDialog { Filter = "Excel (*.xlsx)|*.xlsx", FileName = _scan.Area == null ? "כתב כמויות" : "כתב כמויות - אזור", AddExtension = true };
         if (dialog.ShowDialog(this) != true) return;
         var selected = Active.ToArray();
         if (selected.Length == 0) throw new InvalidOperationException("אין קבוצות פעילות לייצוא");
@@ -778,7 +811,10 @@ internal sealed class InfrastructureBoqWindow : Window
                 ? "Original installed MAHOD3D CalcPolylines invoked at export and independently matched. "
                 : "Original MAHOD3D comparison status: " + _igorAudit.Status + ". " + _igorAudit.Error + ". ") +
             "Igor scope: " + _igorAudit.Scope + "; Igor receipt lengths are in drawing units. See igor-audit.json. " +
-            "Road structure rows = plan area × layer thickness (editable structure); corridor rows = Civil 3D shape areas, average end area.";
+            "Road structure rows = plan area × layer thickness (editable structure); corridor rows = Civil 3D shape areas, average end area." +
+            (_scan.Area == null ? "" : " AREA ONLY: every quantity is cut by the marked polygon (host XY; lines by length inside, " +
+                "hatches/outlines by area inside, solids by the polygon prism, blocks by insertion point); the polygon is layer " +
+                InfrastructureDrawingService.AreaLayer + " in the audit DWG.");
         // Each export gets a new directory: never overwrite an existing drawing or its trace.
         var directory = Path.Combine(Path.GetDirectoryName(dialog.FileName)!, Path.GetFileNameWithoutExtension(dialog.FileName) + "-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + "-" + Guid.NewGuid().ToString("N")[..6]);
         Directory.CreateDirectory(directory);
@@ -949,7 +985,15 @@ internal sealed class InfrastructureBoqWindow : Window
     private static void AddMenu(ContextMenu menu, string text, Action action)
     { var item = new MenuItem { Header = text }; item.Click += (_, _) => UiGuard.Run(text, action); menu.Items.Add(item); }
 
-    internal static void Run()
+    internal enum Step { Close, MarkArea, WholeDrawing }
+    /// <summary>What the engineer asked for when the window closed: the command loop marks an area or returns to the whole drawing.</summary>
+    internal Step NextStep { get; private set; } = Step.Close;
+
+    internal static void Run() => Run(markAreaFirst: false);
+    /// <summary>MHD_BOQ_AREA: mark the area first, then the bill for what is inside it.</summary>
+    internal static void RunArea() => Run(markAreaFirst: true);
+
+    private static void Run(bool markAreaFirst)
     {
         var doc = AcadApp.DocumentManager.MdiActiveDocument;
         if (doc == null) return;
@@ -959,11 +1003,49 @@ internal sealed class InfrastructureBoqWindow : Window
             var raw = (int)doc.Database.Insunits;
             var factor = MahodAI.CivilDelivery.Shared.PhysicalDrawingUnitPolicy.StandardMetresPerUnit(raw);
             if (factor == null) throw new InvalidOperationException("יחידות השרטוט אינן מוגדרות. יש לבדוק ולהגדיר INSUNITS לפני מדידה במטרים");
-            using var scan = new InfrastructureDrawingService(doc.Database, doc.Name, factor.Value);
+            BoqAreaPicker.Picked? area = null;
+            if (markAreaFirst && (area = BoqAreaPicker.Pick(doc, factor.Value)) == null) return;
             var path = BundledPriceBooks.Offers(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MahodAI_Civil3D", "civil-delivery", "price-books"),
                 new MahodAI.CivilDelivery.Shared.ProjectProfile()).Single().Entry.Path;
             var catalog = PriceBookXlsxLoader.Load(path, "נתיבי ישראל — אחוד יולי 2026");
-            CivilModalHost.ShowFromPalette(new InfrastructureBoqWindow(scan, catalog));
+            // The whole drawing is read once, and only when the whole drawing is asked for; an area alone reads only what
+            // can lie in it (minutes → seconds on a 40-XREF interchange). Once the whole read exists, every area is a cut of it.
+            InfrastructureDrawingService? whole = null, near = null;
+            SpatialQuantityClip? nearArea = null;
+            InfrastructureDrawingService Read(SpatialQuantityClip? only)
+            {
+                doc.Editor.WriteMessage(only == null ? "\nReading the drawing for the bill of quantities...\n" : "\nReading the drawing inside the marked area...\n");
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                var read = new InfrastructureDrawingService(doc.Database, doc.Name, factor.Value, only);
+                doc.Editor.WriteMessage($"\nRead {read.Measurements.Count:N0} measurements in {watch.Elapsed.TotalSeconds:N1} s" +
+                    (only == null ? ".\n" : $" ({read.SkippedOutsideArea:N0} objects wholly outside the area were not read).\n"));
+                return read;
+            }
+            try
+            {
+                while (true)
+                {
+                    InfrastructureDrawingService source;
+                    if (area == null) source = whole ??= Read(null);
+                    else if (whole != null) source = whole;
+                    else
+                    {
+                        if (!ReferenceEquals(nearArea, area.Area)) { near?.Dispose(); near = Read(area.Area); nearArea = area.Area; }
+                        source = near!;
+                    }
+                    var clock = System.Diagnostics.Stopwatch.StartNew();
+                    using var view = area == null ? null : source.ClipTo(area.Area, area.PickedPolyline);
+                    if (view != null)
+                        doc.Editor.WriteMessage($"\nArea: {view.Measurements.Count:N0} measurements inside, {view.CutAtEdge:N0} cut at its edge ({clock.Elapsed.TotalSeconds:N1} s).\n");
+                    var window = new InfrastructureBoqWindow(view ?? source, catalog);
+                    CivilModalHost.ShowFromPalette(window);
+                    if (window.NextStep == Step.WholeDrawing) { area = null; continue; }
+                    if (window.NextStep != Step.MarkArea) return;
+                    var picked = BoqAreaPicker.Pick(doc, factor.Value);
+                    if (picked != null) area = picked;   // Esc keeps the previous scope
+                }
+            }
+            finally { near?.Dispose(); whole?.Dispose(); }
         }
         catch (System.Exception ex) { doc.Editor.WriteMessage("\n" + ex.Message + "\n"); }
     }

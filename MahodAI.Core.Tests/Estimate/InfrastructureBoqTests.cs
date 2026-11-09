@@ -96,6 +96,28 @@ public sealed class InfrastructureBoqTests : IDisposable
     }
 
     [Fact]
+    public void Area_bill_inherits_the_drawings_layer_choices_but_never_its_manual_quantities()
+    {
+        var c = Catalog(); var whole = Group(); whole.Assign(c, "57.01.0001");
+        var other = InfrastructureBoq.Group(new[] { Line("other.dwg") }).Single();
+        var manual = InfrastructureBoq.Group(new[] { Line(layer: "WT-DN300") }).Single(); manual.ManualQuantity = 40;
+        var path = Path.Combine(_dir, "review.json");
+        InfrastructureReviewStore.Save(path, "DRAWING", c, new[] { whole, other, manual }, new System.Collections.Generic.HashSet<InfrastructureGroup> { other });
+
+        // Inside the marked area the same layers measure less: the exact restore matches nothing …
+        var area = new[] { InfrastructureBoq.Group(new[] { Line(length: 4) }).Single(), InfrastructureBoq.Group(new[] { Line("other.dwg", length: 2) }).Single(),
+            InfrastructureBoq.Group(new[] { Line(layer: "WT-DN300", length: 3) }).Single() };
+        var excluded = new System.Collections.Generic.HashSet<InfrastructureGroup>();
+        Assert.Equal(0, InfrastructureReviewStore.Restore(path, "DRAWING", c, area, excluded));
+        // … the per-layer restore carries the item and the removal, priced on the area's own quantity.
+        Assert.Equal(1, InfrastructureReviewStore.RestoreByLayer(path, "DRAWING", new[] { c }, area, excluded));
+        Assert.Equal("57.01.0001", area[0].Code); Assert.Equal(48m, area[0].Total);
+        Assert.Contains(area[1], excluded);
+        Assert.Null(area[2].ManualQuantity); Assert.Equal(3, area[2].Quantity);
+        Assert.Equal(0, InfrastructureReviewStore.RestoreByLayer(path, "CHANGED", new[] { c }, new[] { Group() }, excluded));
+    }
+
+    [Fact]
     public void Real_drawing_layers_get_ranked_official_items_and_hebrew_search_without_prior_approval()
     {
         var offer = Assert.Single(BundledPriceBooks.Offers(_dir, new MahodAI.CivilDelivery.Shared.ProjectProfile()));
