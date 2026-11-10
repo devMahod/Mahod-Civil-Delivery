@@ -252,8 +252,10 @@ internal sealed partial class InfrastructureBoqWindow : Window
                 Text = $"{missing.Count} שטחי Hatch לא נמדדו ואינם בכתב הכמויות — יש להשלים כמות ידנית: {Layers(missing)}" });
         if (recovered.Count > 0)
             stack.Children.Add(new TextBlock { TextWrapping = TextWrapping.Wrap, Foreground = Theme.Ink, Margin = new Thickness(0, missing.Count > 0 ? 4 : 0, 0, 0),
-                Text = $"{recovered.Count} שטחי Hatch ש־AutoCAD אינו מחשב להם שטח נמדדו מגבולותיהם ונכללו בכמות — " +
-                       $"{recovered.Sum(r => r.AreaSquareMetres):N0} מ״ר, לבדיקה: {Layers(recovered)}" });
+                // One line: the per-layer list ran to three lines of drafting layers (dim, XREF…) and read as an error wall
+                // (owner, live 2026-11-10). The list stays in the tooltip and in the Excel checks sheet.
+                Text = $"{recovered.Count:N0} שטחי Hatch ש־AutoCAD אינו מחשב להם שטח נמדדו מגבולותיהם ונכללו בכמות ({recovered.Sum(r => r.AreaSquareMetres):N0} מ״ר) — הפירוט בגיליון הבדיקות",
+                ToolTip = Layers(recovered) });
         // At most ~3 lines high: on a 22-XREF drawing the list ran to 6 lines and squeezed the roads screen (live 2026-11-09).
         var banner = new Border { Child = new ScrollViewer { Content = stack, MaxHeight = 66, VerticalScrollBarVisibility = ScrollBarVisibility.Auto },
             Background = missing.Count > 0 ? Theme.BlockedTint : Theme.ReviewTint,

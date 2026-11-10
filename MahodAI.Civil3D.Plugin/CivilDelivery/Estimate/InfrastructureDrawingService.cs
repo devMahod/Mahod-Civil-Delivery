@@ -50,6 +50,8 @@ internal sealed partial class InfrastructureDrawingService : IDisposable
     private readonly Dictionary<string, int> _unsupported = new();
     private readonly Dictionary<(string Layer, string Source), (string Topic, string Evidence, string Code)> _classifications = new();
     private int _symbolBlocks;
+    private readonly DrawingVisibility _visibility = new();
+    private int _frameObjects;
     /// <param name="near">
     /// For an area bill only: anything whose extents lie wholly outside this area is not read at all (a whole XREF at a
     /// time when it can). The full read of a 40-XREF interchange took 272 s against 10 s for the cut itself (live
@@ -62,9 +64,13 @@ internal sealed partial class InfrastructureDrawingService : IDisposable
         DrawingHash = MahodAI.CivilDelivery.Shared.ArtifactHash.Sha256OfFile(drawing);
         _metres = metresPerHostUnit;
         _near = near;
+        using var quiet = new QuietModeler();
         using var tr = db.TransactionManager.StartTransaction();
         var bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
         Walk(tr, bt[BlockTableRecord.ModelSpace], Matrix3d.Identity, drawing, "", "0", new HashSet<ObjectId>(), 0);
+        if (_visibility.Hidden > 0) Findings.Add($"{_visibility.Hidden:N0} עצמים מוסתרים (Visible = false) לא נמדדו.");
+        DropCrossSourceDuplicates();
+        if (_frameObjects > 0) Findings.Add($"{_frameObjects:N0} עצמי מסגרת גיליון / כותרת (FRM, FRAME, BORDER, TITLE) לא נמדדו — שרטוט, לא כמות.");
         foreach (var omitted in _unsupported.OrderBy(p => p.Key)) Findings.Add($"סוג גאומטרי שלא נמדד: {omitted.Key} ({omitted.Value:N0} מופעים)");
         if (_symbolBlocks > 0) Findings.Add($"{_symbolBlocks:N0} בלוקים נספרו לפי שם בלוק ושכבה. בשרטוט הייצוא מופיעים סימוני מיקום; הגדרות הבלוק המלאות נשארות במקור.");
         tr.Commit();
@@ -81,6 +87,9 @@ internal sealed partial class InfrastructureDrawingService : IDisposable
             foreach (ObjectId id in block)
             {
                 if (tr.GetObject(id, OpenMode.ForRead) is not Entity entity) continue;
+                // What is not part of the plan is not a quantity (see DrawingVisibility).
+                if (!_visibility.Visible(entity)) continue;
+                if (entity is not BlockReference && DrawingVisibility.IsSheetFrame(entity.Layer)) { _frameObjects++; continue; }
                 if (_near != null && OutsideNear(entity, transform)) { SkippedOutsideArea++; continue; }
                 var layer = entity.Layer == "0" ? inheritedLayer : entity.Layer;
                 // The pavement structures this tool placed on the plan (PavementPlacement) are marks, not quantities: measuring
@@ -106,6 +115,14 @@ internal sealed partial class InfrastructureDrawingService : IDisposable
                         continue;
                     }
                     var childSource = child.IsFromExternalReference ? child.PathName : source;
+                    if (DrawingVisibility.SwitchedOff(tr, reference))
+                    { Findings.Add($"XREF מצורף בשכבה מוקפאת ({reference.Layer}) — כבוי בשרטוט, לא נמדד: {childSource} / {handle}"); continue; }
+                    if (DrawingVisibility.IsSectionSheets(child.Name, childSource))
+                    { Findings.Add($"גיליונות חתכים הוחרגו (XREF {child.Name}): {childSource} — חתכים אינם כמויות בתוכנית"); continue; }
+                    if (DrawingVisibility.IsInset(reference.ScaleFactors))
+                    { Findings.Add($"מפת התמצאות / תרשים סביבה הוחרג (XREF בקנה מידה {reference.ScaleFactors.X:G4}): {childSource}"); continue; }
+                    if (!_visibility.FirstPlacement(reference.BlockTableRecord, transform * reference.BlockTransform))
+                    { Findings.Add($"XREF מצורף פעמיים באותו מקום — נמדד פעם אחת: {childSource} / {handle}"); continue; }
                     if (child.IsFromExternalReference && (child.Name.Contains("LEGEND", StringComparison.OrdinalIgnoreCase) ||
                         childSource.Contains("LEGEND", StringComparison.OrdinalIgnoreCase)))
                     { Findings.Add("מקרא הוחרג: " + childSource); continue; }
@@ -161,6 +178,87 @@ internal sealed partial class InfrastructureDrawingService : IDisposable
         }
         finally { ancestors.Remove(blockId); }
     }
+    /// <summary>
+    /// AutoCAD's modeler prints "Modeling Operation Error / Error Code Number is 18028" on the command line for hatch rings
+    /// it cannot turn into a region. The scan already handles them (the area comes from the boundary; the shape is listed
+    /// in not-copied.txt), so the message only alarmed the engineer (owner, live 2026-11-10). NOMUTT keeps it off the
+    /// screen while the drawing is read; the engineer's own setting comes back afterwards.
+    /// </summary>
+    private sealed class QuietModeler : IDisposable
+    {
+        private readonly object? _previous;
+        public QuietModeler()
+        {
+            try
+            {
+                _previous = Autodesk.AutoCAD.ApplicationServices.Core.Application.GetSystemVariable("NOMUTT");
+                Autodesk.AutoCAD.ApplicationServices.Core.Application.SetSystemVariable("NOMUTT", (short)1);
+            }
+            catch (System.Exception) { _previous = null; }   // no host (tests) or not settable: nothing to restore
+        }
+        public void Dispose()
+        {
+            try { if (_previous != null) Autodesk.AutoCAD.ApplicationServices.Core.Application.SetSystemVariable("NOMUTT", _previous); }
+            catch (System.Exception) { }
+        }
+    }
+
+    /// <summary>
+    /// The same layer drawn at the same place in two attached drawings counts once (see CrossSourceDuplicates): the 130X
+    /// landscape XREF carried 32 km of the traffic plan's island curbs line for line (live 2026-11-10).
+    /// </summary>
+    private void DropCrossSourceDuplicates()
+    {
+        // One item per plan path: a whole curve, each run of a curve cut by a marked area, or a block's insertion point.
+        var items = new List<CrossSourceDuplicates.Item>(Measurements.Count);
+        var owner = new List<int>(Measurements.Count);
+        for (var i = 0; i < Measurements.Count; i++)
+        {
+            var m = Measurements[i];
+            var leaf = m.Line.Layer.Split('|').Last();
+            void Item(IReadOnlyList<(double X, double Y)> path) { items.Add(new(m.Line.Source, leaf, m.Line.GroupPart, path)); owner.Add(i); }
+            try
+            {
+                if (m.Geometry is DBPoint p) Item(new[] { (p.Position.X, p.Position.Y) });
+                else if (m.Pieces != null) foreach (var run in m.Pieces) Item(run.Select(q => (q.X, q.Y)).ToArray());
+                else if (m.Geometry is Curve c && m.Line.LengthMetres > 0) Item(Tessellate(c, 0.01 / _metres).Select(v => (v.X, v.Y)).ToArray());
+            }
+            catch (System.Exception) { /* no plan path: never a duplicate */ }
+        }
+        var found = CrossSourceDuplicates.Measure(items, 0.05 / _metres, 1.0 / _metres);
+        var duplicate = new double[Measurements.Count];
+        for (var k = 0; k < items.Count; k++) duplicate[owner[k]] += found[k];
+        double metres = 0; var blocks = 0; var sources = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (var i = 0; i < Measurements.Count; i++)
+        {
+            if (duplicate[i] <= 0) continue;
+            var m = Measurements[i];
+            string reason;
+            if (m.Geometry is DBPoint)
+            {
+                if (m.Line.CountUnits <= 0) continue;
+                reason = "בלוק זהה (אותו שם ושכבה, אותה נקודה) בשרטוט מצורף אחר — נספר שם";
+                Measurements[i] = m with { Line = m.Line with { CountUnits = 0 }, ExportSkipReason = reason };
+                blocks++;
+            }
+            else
+            {
+                var drawn = m.Line.LengthMetres / _metres;
+                var share = drawn > 0 ? Math.Min(1, duplicate[i] / drawn) : 0;
+                if (share < 0.001) continue;
+                metres += m.Line.LengthMetres * share;
+                reason = $"{share:P0} מהקו מונח על קו באותה שכבה בשרטוט מצורף אחר — החלק הזה נספר שם";
+                // The audit DWG holds whole entities; a shortened quantity is listed in not-copied.txt instead.
+                Measurements[i] = m with { Line = m.Line with { LengthMetres = m.Line.LengthMetres * (1 - share),
+                    AreaSquareMetres = share > 0.99 ? 0 : m.Line.AreaSquareMetres }, ExportSkipReason = reason };
+            }
+            sources.Add(Path.GetFileName(m.Line.Source));
+        }
+        if (metres > 0 || blocks > 0)
+            Findings.Add($"קווים ובלוקים שמופיעים פעמיים — אותה שכבה באותו מקום בשני שרטוטים מצורפים — נספרו פעם אחת{(Area != null ? " (באזור)" : "")}: " +
+                         $"{metres:N0} מ׳ ו־{blocks:N0} בלוקים ({string.Join(", ", sources.Order())}).");
+    }
+
     private void Add(Transaction tr, Entity original, Entity copy, string layer, string source, string handle,
         double length, double area, double volume, double count, string part, Matrix3d? sourceTransform = null, string? exportSkip = null,
         Hatch? recoveredFrom = null, NetTopologySuite.Geometries.Geometry? recoveredShape = null)
@@ -233,6 +331,12 @@ internal sealed partial class InfrastructureDrawingService : IDisposable
                     recoveredFrom: hatch, recoveredShape: result.Shape);
                 RecoveredAreas.Add(new(layer, source, handle, area, error) { At = CentreOf(hatch) });
                 Findings.Add($"שטח Hatch חושב מגבולותיו (AutoCAD אינו מחשב לו שטח: {error}) — {layer.Split('|').Last()} / {handle}: {area:N2} מ״ר. נכלל בכמות — לבדיקה.");
+                return;
+            }
+            if (HatchBoundaryArea.IsCollapsed(loops))
+            {
+                // A boundary that runs out and back along one line: a drafting tick with no area, not a missing quantity.
+                Findings.Add($"Hatch ללא שטח (גבול של קו בודד הלוך וחזור, AutoCAD: {error}) — {layer.Split('|').Last()} / {handle}: לא נכלל");
                 return;
             }
         }
@@ -453,6 +557,7 @@ internal sealed partial class InfrastructureDrawingService : IDisposable
     /// (listed beside the DWG); the Excel quantities never depend on this drawing.</summary>
     internal int SaveDrawing(string path, IEnumerable<InfrastructureGroup> included)
     {
+        using var quiet = new QuietModeler();
         var skipped = new List<(Measured Item, string Reason)>();
         var groups = included.ToDictionary(g => (g.Source, g.Layer, g.GroupPart));
         var selected = Measurements.Where(m => groups.ContainsKey((m.Line.Source, m.Line.Layer, m.Line.GroupPart)))

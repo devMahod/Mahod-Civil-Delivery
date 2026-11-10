@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using MahodAI.CivilDelivery.Estimate.Infrastructure;
@@ -57,6 +58,18 @@ public sealed class HatchBoundaryAreaTests
     {
         Assert.False(HatchBoundaryArea.TryMeasure(new[] { (IReadOnlyList<(double, double)>)new[] { (0d, 0d), (1d, 1d) } }, "Normal", out _, out var refusal));
         Assert.NotEmpty(refusal);
+    }
+
+    [Fact]
+    public void Out_and_back_loops_are_collapsed_but_a_real_or_open_ring_is_not()
+    {
+        IReadOnlyList<(double, double)> tick = new[] { (203510.40, 647174.49), (203511.09, 647174.60), (203510.40, 647174.49) };
+        IReadOnlyList<(double, double)> twoPoints = new[] { (0d, 0d), (1d, 1d) };
+        Assert.True(HatchBoundaryArea.IsCollapsed(new[] { tick }));
+        Assert.True(HatchBoundaryArea.IsCollapsed(new[] { tick, twoPoints, tick }));
+        Assert.False(HatchBoundaryArea.IsCollapsed(new[] { tick, Rect(0, 0, 2, 2) }));
+        Assert.False(HatchBoundaryArea.IsCollapsed(Array.Empty<IReadOnlyList<(double, double)>>()));
+        Assert.False(HatchBoundaryArea.TryMeasure(new[] { tick }, "Normal", out _, out _));   // still never a silent zero
     }
 
     [Fact]

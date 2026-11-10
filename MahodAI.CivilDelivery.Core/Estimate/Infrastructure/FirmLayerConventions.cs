@@ -58,6 +58,10 @@ public static class FirmLayerConventions
 
         // ── Linear road elements ──
         E(@"^(?:(?:HW|TR)-)?(?:CURB|KERB|ISLAND-CURBSTONE|GRDN-STONE|EVEN_MUN)|^(?:HW|TR)-CURB\d", Curb, "אבני שפה", "מטר", RoadSurfaceKind.None, "אבני שפה|אבן שפה"),
+        // A barrier is drawn with reference lines beside it: the edge of pavement it is set from (EOP), its working width
+        // (WW-1.30, W3-1.00) and, for a concrete barrier, its two faces as a "-01-1" copy of the axis layer (130X, 2026-11-10:
+        // 12.6 km of such lines were priced as barrier). They are listed, never priced.
+        E(@"^(?:(?:HW|TR|ST)-)?BARI-(?:EOP|WW|W\d)(?:[-_]|$)|^(?:(?:HW|TR|ST)-)?BARI-.+-\d{2}-\d$", Fence, "קו עזר של מעקה (שפת מיסעה / רוחב פעיל / פני מעקה)", "מטר", RoadSurfaceKind.None, "", LayerRole.Boundary),
         E(@"^(?:(?:HW|TR|ST)-)?BARI|^H\d+W\d+(?:-|$)", Fence, "מעקה בטיחות", "מטר", RoadSurfaceKind.None, "מעקה"),
         E(@"^(?:(?:HW|TR)-)?FENC", Fence, "גדר", "מטר", RoadSurfaceKind.None, "גדר"),
         E(@"^HW-(?:DTCH|TAALA)", Drain, "תעלה", "מטר", RoadSurfaceKind.None, "תעל"),

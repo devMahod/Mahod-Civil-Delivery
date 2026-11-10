@@ -75,6 +75,31 @@ public static class HatchBoundaryArea
     private static IReadOnlyList<(double X, double Y)> Ring(LineString ring) =>
         ring.Coordinates.Take(ring.NumPoints - 1).Select(c => (c.X, c.Y)).ToArray();
 
+    /// <summary>
+    /// Every loop encloses nothing: fewer than three distinct points, or a path that runs out and back along itself
+    /// (A→B→A). Such a hatch has no area to recover or to complete by hand — 130X (2026-11-10) carried ten of them,
+    /// each a one-metre tick, and they filled the red "not measured" banner. <see cref="TryMeasure"/> still refuses
+    /// them; the caller reports them as zero-area drafting instead of a missing quantity.
+    /// </summary>
+    public static bool IsCollapsed(IReadOnlyList<IReadOnlyList<(double X, double Y)>> loops)
+    {
+        if (loops == null || loops.Count == 0) return false;
+        foreach (var loop in loops)
+        {
+            var points = Distinct(loop);
+            if (points.Count < 3) continue;
+            double twice = 0, span = 0;
+            for (var i = 0; i < points.Count; i++)
+            {
+                var (x1, y1) = points[i]; var (x2, y2) = points[(i + 1) % points.Count];
+                twice += x1 * y2 - x2 * y1;
+                span = Math.Max(span, Math.Max(Math.Abs(x2 - points[0].X), Math.Abs(y2 - points[0].Y)));
+            }
+            if (Math.Abs(twice) / 2 > Math.Max(1e-12, span * span * 1e-9)) return false;
+        }
+        return true;
+    }
+
     private static List<(double X, double Y)> Distinct(IReadOnlyList<(double X, double Y)> loop)
     {
         var points = new List<(double X, double Y)>(loop.Count);

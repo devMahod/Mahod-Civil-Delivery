@@ -57,6 +57,10 @@ public sealed class InfrastructureCatalogSearch
         // A concrete row names its NTI item by phrases ("^קירות תומכים מבטון", "בקוטר 60 · 10.01"): the wall item and the
         // wall-footing item share every word, so loose words could not tell them apart.
         (string? Lead, string[] Phrases)? phrases = group.GroupPart == StructureConcrete.DerivedPart ? Phrases(group.Element) : null;
+        // A firm layer whose name carries the specification (barrier N2/W4, concrete barrier, lighting pole): its own item, or
+        // none at all — a known element is never handed the nearest word match (see FirmItemHints).
+        var firm = phrases == null && hint.Length == 0 && !demolish ? FirmItemHints.For(group.Layer, group.MeasurementUnit) : null;
+        if (firm != null) phrases = FirstAvailable(firm, group.MeasurementUnit) ?? (NoItem, Array.Empty<string>());
         var diameter = LayerDiameter(group.ShortLayer);
         var material = MaterialOf(group.ShortLayer);
         var hasQuery = terms.Length > 0;
@@ -78,7 +82,7 @@ public sealed class InfrastructureCatalogSearch
             var reasons = new List<string>();
             if (topic > 0) reasons.Add(rankingTopic);
             var elementMatch = element != null && element.IsMatch(e.Text);
-            if (hintMatch) { rank += 120; reasons.Add(phrases != null ? "לפי חישוב הבטון" : "לפי שכבת המבנה: " + group.Element); }
+            if (hintMatch) { rank += 120; reasons.Add(firm != null ? "לפי שם השכבה: " + group.ShortLayer : phrases != null ? "לפי חישוב הבטון" : "לפי שכבת המבנה: " + group.Element); }
             if (demolish && rankingTopic == Demolition)
             {
                 if (_usesNtiChapters && e.Item.SubChapter == "51.01") rank += 60;
@@ -105,6 +109,9 @@ public sealed class InfrastructureCatalogSearch
                 if (material == e.Material) reasons.Add("חומר לפי שם השכבה: " + material);
             }
             if (Regex.IsMatch(e.Text, "תוספת|הגנה|קידוח|שרוול|בדיק") || (rankingTopic != "פירוקים והריסות" && !focused && e.Text.Contains("פירוק"))) rank -= 20;
+            // Speed humps are a special work: a road area of no named kind ("r-road in", 10,261 m² on 130X) took 51.04.1501.
+            if (!hasQuery && e.Text.StartsWith("פסי האטה", StringComparison.Ordinal) && !Regex.IsMatch(group.ShortLayer, "HUMP|HATA|BUMP|האטה", RegexOptions.IgnoreCase))
+                rank -= 200;
             if (Regex.IsMatch(e.Text, "הפחת|ניכוי|זיכוי"))
             { rank -= 90; reasons.Add("סעיף הפחתה/זיכוי — בדוק את אופן היישום"); }
             var projects = _usage?.Projects(e.Item) ?? 0;
@@ -287,6 +294,20 @@ public sealed class InfrastructureCatalogSearch
         if (Regex.IsMatch(t, @"(?:^| )(?:פוליאתילן|pe(?: 100| 80)?)(?: |$)")) return "פוליאתילן";
         if (Regex.IsMatch(t, @"(?:^| )(?:בטון|beton|concrete|conc)(?: |$)")) return "בטון";
         if (Regex.IsMatch(t, @"(?:^| )(?:פלדה|steel)(?: |$)")) return "פלדה";
+        return null;
+    }
+
+    private const string NoItem = " ";
+
+    /// <summary>The first hint the price book has an item for, in this unit; null when it has none.</summary>
+    private (string? Lead, string[] Phrases)? FirstAvailable(IReadOnlyList<string> hints, string unit)
+    {
+        var u = Units.Parse(unit);
+        foreach (var h in hints)
+        {
+            var p = Phrases(h);
+            if (_entries.Any(e => e.Item.Unit.SameUnit(u) && PhrasesMatch(e.Text, p))) return p;
+        }
         return null;
     }
 

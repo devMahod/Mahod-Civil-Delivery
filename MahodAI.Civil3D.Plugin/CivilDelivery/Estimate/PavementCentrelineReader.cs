@@ -47,7 +47,7 @@ internal static class PavementCentrelineReader
         using (var tr = db.TransactionManager.StartOpenCloseTransaction())
         {
             var bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
-            Walk(tr, bt[BlockTableRecord.ModelSpace], Matrix3d.Identity, "", new HashSet<ObjectId>(), 0, lines, labels);
+            Walk(tr, bt[BlockTableRecord.ModelSpace], Matrix3d.Identity, "", new HashSet<ObjectId>(), 0, lines, labels, new DrawingVisibility());
         }
         try { ReadAlignments(db, lines, labels, findings); }
         catch (System.Exception ex) when (ex is System.IO.FileNotFoundException or TypeLoadException or MissingMethodException)
@@ -59,7 +59,7 @@ internal static class PavementCentrelineReader
     internal static string Canonical(string layer) { var l = layer.Split('|').Last(); var i = l.LastIndexOf("$0$", StringComparison.Ordinal); return i >= 0 ? l[(i + 3)..] : l; }
 
     private static void Walk(Transaction tr, ObjectId blockId, Matrix3d transform, string prefix, HashSet<ObjectId> ancestors, int depth,
-        List<PavementSegmentBands.Centreline> lines, List<PavementSegmentBands.SectionLabel> labels)
+        List<PavementSegmentBands.Centreline> lines, List<PavementSegmentBands.SectionLabel> labels, DrawingVisibility visibility)
     {
         if (depth > 8 || !ancestors.Add(blockId)) return;
         try
@@ -77,7 +77,11 @@ internal static class PavementCentrelineReader
                         if (tr.GetObject(reference.BlockTableRecord, OpenMode.ForRead) is not BlockTableRecord child) continue;
                         // XREFs (the CL drawing) and plain blocks alike; a legend is never a road.
                         if (child.Name.Contains("LEGEND", StringComparison.OrdinalIgnoreCase)) continue;
-                        Walk(tr, reference.BlockTableRecord, transform * reference.BlockTransform, prefix + entity.Handle + "/", ancestors, depth + 1, lines, labels);
+                        // A key-map inset or a second copy of the same XREF is not a road. Hidden layers ARE read: centre lines are
+                        // references for locating segments, not quantities, and engineers often freeze the axis layer.
+                        if (child.IsFromExternalReference && (DrawingVisibility.IsInset(reference.ScaleFactors) ||
+                            !visibility.FirstPlacement(reference.BlockTableRecord, transform * reference.BlockTransform))) continue;
+                        Walk(tr, reference.BlockTableRecord, transform * reference.BlockTransform, prefix + entity.Handle + "/", ancestors, depth + 1, lines, labels, visibility);
                         break;
                     case Curve curve when curve is Polyline or Polyline2d or Line or Arc && IsCentreLineLayer(layer):
                         try

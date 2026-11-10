@@ -32,6 +32,7 @@ internal sealed partial class InfrastructureDrawingService
     private InfrastructureDrawingService(InfrastructureDrawingService whole, SpatialQuantityClip area, ObjectId boundary)
     {
         Drawing = whole.Drawing; DrawingHash = whole.DrawingHash; _metres = whole._metres; Area = area;
+        using var quiet = new QuietModeler();   // cutting hatch rings / solids at the edge: modeler noise off the command line
         var fallback = new List<string>();
         SpatialQuantityClip? flipped = null;
         foreach (var m in whole.Measurements.Where(m => boundary.IsNull || m.SourceId != boundary))   // the picked outline is the area, not a quantity
@@ -49,6 +50,8 @@ internal sealed partial class InfrastructureDrawingService
                 fallback.Add($"{m.Line.Layer.Split('|').Last()} / {m.Line.Handle}: {ex.Message} — {(keep ? "נכלל כולו (מרכזו בתוך האזור)" : "לא נכלל (מרכזו מחוץ לאזור)")}");
             }
         }
+        // The cut re-measures lines from their geometry: count a copy drawn in a second XREF once again, inside the area.
+        DropCrossSourceDuplicates();
         bool Inside(AreaIssue i) => i.At is not { } at || area.Contains(at.X, at.Y);
         var kept = Measurements.GroupBy(m => (m.Line.Source, m.Line.Handle)).ToDictionary(g => g.Key, g => g.Sum(m => m.Line.AreaSquareMetres));
         RecoveredAreas.AddRange(whole.RecoveredAreas.Where(r => kept.ContainsKey((r.Source, r.Handle)))
