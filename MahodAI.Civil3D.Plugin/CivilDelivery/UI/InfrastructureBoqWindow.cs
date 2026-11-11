@@ -855,13 +855,17 @@ internal sealed partial class InfrastructureBoqWindow : Window
 
     // ───────────────────────────── export ─────────────────────────────
 
-    private void Export()
+    private void Export() => ExportBoq(this);
+
+    /// <summary>The Excel, the demolition file and the audit drawing; the folder, or null when the engineer cancelled.
+    /// <paramref name="owner"/> is the window on screen (the area card shows this window's bill without showing the window).</summary>
+    internal string? ExportBoq(Window owner)
     {
         var doc = AcadApp.DocumentManager.MdiActiveDocument;
         if (doc == null || !string.Equals(doc.Name, _scan.Drawing, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("שרטוט המקור אינו פעיל — פתח מחדש את מסך התשתיות בשרטוט הנכון");
         var dialog = new Microsoft.Win32.SaveFileDialog { Filter = "Excel (*.xlsx)|*.xlsx", FileName = _scan.Area == null ? "כתב כמויות" : "כתב כמויות - אזור", AddExtension = true };
-        if (dialog.ShowDialog(this) != true) return;
+        if (dialog.ShowDialog(owner) != true) return null;
         var selected = Active.ToArray();
         if (selected.Length == 0) throw new InvalidOperationException("אין קבוצות פעילות לייצוא");
         var keys = selected.GroupBy(g => (g.Source, g.Layer, g.GroupPart)).ToDictionary(g => g.Key, g => g.First());
@@ -902,6 +906,7 @@ internal sealed partial class InfrastructureBoqWindow : Window
         _message.Text = "נשמרו בתיקייה: " + directory + (demolition > 0 ? " · כולל קובץ פירוקים נפרד" : "") +
             (notCopied > 0 ? $" · {notCopied} עצמים לא הועתקו לשרטוט הביקורת (רשימה ב־not-copied.txt; הכמויות ב־Excel שלמות)" : "");
         try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = directory, UseShellExecute = true }); } catch (System.Exception) { }
+        return directory;
     }
 
     // ───────────────────────────── building blocks ─────────────────────────────
@@ -1137,7 +1142,9 @@ internal sealed partial class InfrastructureBoqWindow : Window
                     using var view = area == null ? null : source.ClipTo(area.Area, area.PickedPolyline);
                     if (view != null)
                         doc.Editor.WriteMessage($"\nArea: {view.Measurements.Count:N0} measurements inside, {view.CutAtEdge:N0} cut at its edge ({clock.Elapsed.TotalSeconds:N1} s).\n");
-                    if (!asked)
+                    // A marked area goes straight to its number (owner 2026-11-11: simple): it uses the drawing's report or
+                    // its saved road type for defaults; attaching a report is in "full details". The whole drawing still asks.
+                    if (!asked && area == null)
                     {
                         asked = true;
                         var prompt = new PavementReportPrompt(doc.Name, PavementReportSet.Load(PavementPathFor(doc.Name)), SavedDefaultChoice(doc.Name, area != null));
@@ -1147,6 +1154,25 @@ internal sealed partial class InfrastructureBoqWindow : Window
                     }
                     var window = new InfrastructureBoqWindow(view ?? source, catalog, reports, defaultClass);
                     reports = null; defaultClass = null;
+                    if (area != null)
+                    {
+                        // The area's card, the marked area kept on the plan beside it.
+                        var card = new BoqAreaCard(window.EstimateAsync, window.ExportBoq);
+                        using (var outline = new BoqAreaPicker.Outline())
+                        {
+                            outline.Show(area.Area);
+                            doc.Editor.UpdateScreen();
+                            CivilModalHost.ShowFromPalette(card);
+                        }
+                        doc.Editor.UpdateScreen();
+                        if (card.Result == BoqAreaCard.Choice.MarkAnother)
+                        {
+                            var next = BoqAreaPicker.Pick(doc, factor.Value);
+                            if (next == null) return;
+                            area = next; continue;
+                        }
+                        if (card.Result != BoqAreaCard.Choice.Details) return;
+                    }
                     CivilModalHost.ShowFromPalette(window);
                     if (window.NextStep == Step.WholeDrawing) { area = null; continue; }
                     if (window.NextStep != Step.MarkArea) return;
