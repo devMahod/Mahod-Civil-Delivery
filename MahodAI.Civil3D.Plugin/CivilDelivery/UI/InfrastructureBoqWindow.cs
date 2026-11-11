@@ -859,13 +859,35 @@ internal sealed partial class InfrastructureBoqWindow : Window
 
     /// <summary>The Excel, the demolition file and the audit drawing; the folder, or null when the engineer cancelled.
     /// <paramref name="owner"/> is the window on screen (the area card shows this window's bill without showing the window).</summary>
+    /// <summary>
+    /// The Save dialog, owned by the window on screen — or, from the Civil Delivery panel (no WPF window of ours), by AutoCAD's
+    /// main window. Ownerless, it opened BEHIND AutoCAD and the export looked dead (live 2026-11-11).
+    /// </summary>
+    private static string? AskWhereToSave(Window? owner, string name)
+    {
+        if (owner != null)
+        {
+            var wpf = new Microsoft.Win32.SaveFileDialog { Filter = "Excel (*.xlsx)|*.xlsx", FileName = name, AddExtension = true };
+            return wpf.ShowDialog(owner) == true ? wpf.FileName : null;
+        }
+        using var dialog = new System.Windows.Forms.SaveFileDialog { Filter = "Excel (*.xlsx)|*.xlsx", FileName = name, AddExtension = true };
+        return dialog.ShowDialog(new HostWindow(AcadApp.MainWindow.Handle)) == System.Windows.Forms.DialogResult.OK ? dialog.FileName : null;
+    }
+
+    /// <summary>AutoCAD's main window as a dialog owner — a handle only, nothing subclassed.</summary>
+    private sealed class HostWindow : System.Windows.Forms.IWin32Window
+    {
+        internal HostWindow(IntPtr handle) => Handle = handle;
+        public IntPtr Handle { get; }
+    }
+
     internal string? ExportBoq(Window? owner)
     {
         var doc = AcadApp.DocumentManager.MdiActiveDocument;
         if (doc == null || !string.Equals(doc.Name, _scan.Drawing, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("שרטוט המקור אינו פעיל — פתח מחדש את מסך התשתיות בשרטוט הנכון");
-        var dialog = new Microsoft.Win32.SaveFileDialog { Filter = "Excel (*.xlsx)|*.xlsx", FileName = _scan.Area == null ? "כתב כמויות" : "כתב כמויות - אזור", AddExtension = true };
-        if ((owner != null ? dialog.ShowDialog(owner) : dialog.ShowDialog()) != true) return null;
+        var file = AskWhereToSave(owner, _scan.Area == null ? "כתב כמויות" : "כתב כמויות - אזור");
+        if (file == null) return null;
         var selected = Active.ToArray();
         if (selected.Length == 0) throw new InvalidOperationException("אין קבוצות פעילות לייצוא");
         var keys = selected.GroupBy(g => (g.Source, g.Layer, g.GroupPart)).ToDictionary(g => g.Key, g => g.First());
@@ -885,9 +907,9 @@ internal sealed partial class InfrastructureBoqWindow : Window
                 "hatches/outlines by area inside, solids by the polygon prism, blocks by insertion point); the polygon is layer " +
                 InfrastructureDrawingService.AreaLayer + " in the audit DWG.");
         // Each export gets a new directory: never overwrite an existing drawing or its trace.
-        var directory = Path.Combine(Path.GetDirectoryName(dialog.FileName)!, Path.GetFileNameWithoutExtension(dialog.FileName) + "-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + "-" + Guid.NewGuid().ToString("N")[..6]);
+        var directory = Path.Combine(Path.GetDirectoryName(file)!, Path.GetFileNameWithoutExtension(file) + "-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + "-" + Guid.NewGuid().ToString("N")[..6]);
         Directory.CreateDirectory(directory);
-        var excel = Path.Combine(directory, Path.GetFileName(dialog.FileName));
+        var excel = Path.Combine(directory, Path.GetFileName(file));
         var surfaces = RoadPavement.Surfaces(_groups, _excluded);
         var roads = new RoadPavement.Report(surfaces, _plan?.Layers ?? Array.Empty<RoadPavement.LayerQuantity>(),
             _corridor.Where(g => !_excluded.Contains(g)).ToArray())
@@ -897,7 +919,7 @@ internal sealed partial class InfrastructureBoqWindow : Window
             _concretePlan);
         var demolition = selected.Count(g => g.Disposition == InfrastructureDisposition.ExistingDemolish);
         if (demolition > 0)
-            InfrastructureBoq.ExportDemolition(Path.Combine(directory, Path.GetFileNameWithoutExtension(dialog.FileName) + " - פירוקים.xlsx"),
+            InfrastructureBoq.ExportDemolition(Path.Combine(directory, Path.GetFileNameWithoutExtension(file) + " - פירוקים.xlsx"),
                 selected, catalogs, _scan.Findings, _scan.Drawing, _scan.DrawingHash, engine);
         var notCopied = _scan.SaveDrawing(Path.Combine(directory, "Infrastructure-lines.dwg"), selected.Where(g => g.Source != RoadPavement.DerivedSource && g.Source != StructureConcrete.DerivedSource && g.GroupPart != RoadCorridorVolumes.Part));
         File.WriteAllText(Path.Combine(directory, "review.json"), JsonSerializer.Serialize(selected, new JsonSerializerOptions { WriteIndented = true }));
@@ -1087,6 +1109,9 @@ internal sealed partial class InfrastructureBoqWindow : Window
     { var item = new MenuItem { Header = text }; item.Click += (_, _) => UiGuard.Run(text, action); menu.Items.Add(item); }
 
     internal enum Step { Close, MarkArea, WholeDrawing }
+    /// <summary>The tables of this window, for the BOQ panel's "advanced" menu (same order as <see cref="View"/>).</summary>
+    internal enum Sheet { New, Demolish, Keep, Roads, Concrete }
+    internal void Open(Sheet sheet) => SetView((View)(int)sheet);
     /// <summary>What the engineer asked for when the window closed: the command loop marks an area or returns to the whole drawing.</summary>
     internal Step NextStep { get; private set; } = Step.Close;
 

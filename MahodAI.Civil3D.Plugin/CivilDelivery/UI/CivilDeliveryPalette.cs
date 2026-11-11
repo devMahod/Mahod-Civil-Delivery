@@ -250,6 +250,16 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
 
         /// <summary>The bill of quantities lives in this window's "כתב כמויות" tab (owner 2026-11-11: one window, always open).
         /// Shows the window on that tab and returns its panel.</summary>
+        /// <summary>
+        /// Focus back to this window after the BOQ tab's work (a pick on the plan leaves AutoCAD's focus in the drawing, and
+        /// the next press on the panel only activated it — "I click Export and nothing happens", live 2026-11-11).
+        /// </summary>
+        internal static void FocusPanel()
+        {
+            try { if (_paletteSet is { Visible: true }) _paletteSet.Activate(0); } catch (System.Exception) { }
+            try { _host?.Focus(); } catch (System.Exception) { }
+        }
+
         internal static BoqPanel? ShowBoq()
         {
             Show();

@@ -44,6 +44,7 @@ internal static class BoqPanelRunner
             await AcadApp.DocumentManager.ExecuteInCommandContextAsync(_ => { work(panel); return Task.CompletedTask; }, null);
         }
         catch (System.Exception ex) { panel.ShowMessage(ex.Message, error: true); }
+        CivilDeliveryPalette.FocusPanel();
     }
 
     /// <summary>MHD_BOQ / MHD_BOQ_AREA (already a command): the Civil Delivery window on its BOQ tab, and the same work.</summary>
@@ -116,10 +117,11 @@ internal static class BoqPanelRunner
     }
 
     /// <summary>The full window for the same read: every layer, its item, the report, concrete. What it changes shows here after.</summary>
-    internal static void Details(BoqPanel panel)
+    internal static void Details(BoqPanel panel, InfrastructureBoqWindow.Sheet table)
     {
         if (Current(panel) is not { } s) return;
         var window = new InfrastructureBoqWindow(s.View, s.Catalog);
+        window.Open(table);
         CivilModalHost.ShowFromPalette(window);
         if (window.NextStep == InfrastructureBoqWindow.Step.MarkArea) { Bill(panel, area: true); return; }
         if (window.NextStep == InfrastructureBoqWindow.Step.WholeDrawing) { Bill(panel, area: false); return; }

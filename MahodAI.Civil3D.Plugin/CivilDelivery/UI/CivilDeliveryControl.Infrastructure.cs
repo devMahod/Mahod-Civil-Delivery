@@ -23,7 +23,7 @@ public partial class CivilDeliveryControl
         panel.MarkArea += () => BoqPanelRunner.Start(panel, p => BoqPanelRunner.Bill(p, area: true));
         panel.WholeDrawing += () => BoqPanelRunner.Start(panel, p => BoqPanelRunner.Bill(p, area: false));
         panel.Export += () => BoqPanelRunner.Start(panel, BoqPanelRunner.Export);
-        panel.Details += () => BoqPanelRunner.Start(panel, BoqPanelRunner.Details);
+        panel.Details += table => BoqPanelRunner.Start(panel, p => BoqPanelRunner.Details(p, table));
     }
 
     /// <summary>Selects the BOQ tab and returns its panel (MHD_BOQ / MHD_BOQ_AREA show their result there).</summary>

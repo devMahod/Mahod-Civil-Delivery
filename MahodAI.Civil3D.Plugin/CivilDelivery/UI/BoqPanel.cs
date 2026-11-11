@@ -9,6 +9,8 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using Button = System.Windows.Controls.Button;
+using ContextMenu = System.Windows.Controls.ContextMenu;
+using MenuItem = System.Windows.Controls.MenuItem;
 using Brush = System.Windows.Media.Brush;
 using Color = System.Windows.Media.Color;
 using HorizontalAlignment = System.Windows.HorizontalAlignment;
@@ -23,12 +25,13 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI;
 /// one window: press and select a polygon, or press and do the whole drawing; while it generates show a loader and a
 /// cancel button, so users won't guess what is happening"). Two buttons on top; under them the state — what to do, the
 /// corners being marked, the loader with what it is reading and a Cancel, or the estimate (one total and what it is made
-/// of, like the "Inspector" reel). Every layer and item is one click away in "full details".
+/// of, like the "Inspector" reel). Every layer and item is one click away in the "advanced" menu.
 /// The work itself runs in AutoCAD's command context (<see cref="BoqPanelRunner"/>); this control only shows it.
 /// </summary>
 internal sealed class BoqPanel : UserControl
 {
-    internal event Action? MarkArea, WholeDrawing, Export, Details;
+    internal event Action? MarkArea, WholeDrawing, Export;
+    internal event Action<InfrastructureBoqWindow.Sheet>? Details;
     internal bool Busy { get; private set; }
 
     private const int Shown = 5;
@@ -57,18 +60,21 @@ internal sealed class BoqPanel : UserControl
         var choose = new UniformGrid { Columns = 2 };
         _area = Action("סמן אזור בתכנית", "GoButton", "boq-panel-area");
         _area.ToolTip = "לוחצים על פינות האזור בתכנית, Enter סוגר. האומדן רק למה שבתוכו.";
-        _area.Click += (_, _) => MarkArea?.Invoke();
+        _area.Click += (_, _) => Later(() => MarkArea?.Invoke());
         _whole = Action("כל השרטוט", "PillButton", "boq-panel-whole");
         _whole.ToolTip = "אומדן לכל המודל והמקורות הטעונים.";
-        _whole.Click += (_, _) => WholeDrawing?.Invoke();
+        _whole.Click += (_, _) => Later(() => WholeDrawing?.Invoke());
         _area.Margin = new Thickness(0, 0, 0, 0); _whole.Margin = new Thickness(8, 0, 0, 0);
         _area.MinHeight = _whole.MinHeight = 44;
         choose.Children.Add(_area); choose.Children.Add(_whole);
         body.Children.Add(choose);
         _state.Margin = new Thickness(0, 14, 0, 0);
         body.Children.Add(_state);
-        Content = new ScrollViewer { Content = body, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+        Content = body;   // the Civil Delivery window scrolls; a scroll area of our own kept the wheel from reaching it
         SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "boq-panel");
+        // The palette is inactive after any work on the plan, and AutoCAD spends the first press on an inactive palette
+        // activating it: "I click and nothing happens" (live 2026-11-11). The mouse reaching the panel activates it first.
+        MouseEnter += (_, _) => { if (!IsKeyboardFocusWithin) CivilDeliveryPalette.FocusPanel(); };
         ShowIdle();
     }
 
@@ -210,6 +216,11 @@ internal sealed class BoqPanel : UserControl
         _state.Children.Add(new Border { Background = Navy, CornerRadius = new CornerRadius(12), Padding = new Thickness(18, 12, 18, 12), Child = band });
         if (e.Demolition > 0)
             _state.Children.Add(new TextBlock { Text = $"ועוד פירוקים: {Shekels(e.Demolition)}", Foreground = Theme.Muted, FontSize = 12, Margin = new Thickness(2, 6, 0, 0) });
+        // What to do with it, right under the number (owner 2026-11-11: "how can I export this to Excel? where is the button" —
+        // it sat under the item list, below the fold). The old tables are one menu away.
+        _state.Children.Add(Actions());
+        _exportStatus = new TextBlock { FontSize = 12, Foreground = Theme.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 0), Visibility = Visibility.Collapsed };
+        _state.Children.Add(_exportStatus);
 
         if (e.Lines.Count > 0)
         {
@@ -232,28 +243,57 @@ internal sealed class BoqPanel : UserControl
 
         var notes = new StackPanel { Margin = new Thickness(0, 14, 0, 0) };
         notes.Children.Add(Note((e.PavementIsDefault ? "⚠ " : "") + e.Pavement, e.PavementIsDefault ? Theme.Review : Theme.Muted,
-            e.PavementIsDefault ? "מבנים טיפוסיים, לא תכנון הפרויקט — מסומנים \"ברירת מחדל\" בכל שורה ובייצוא. לצירוף דו״ח או לשינוי סוג הדרך: פרטים מלאים › כבישים." : null));
-        if (e.ConcreteNote != null) notes.Children.Add(Note("⚠ " + e.ConcreteNote, Theme.Review, "המידות בפרטים מלאים › בטון וקונסטרוקציה."));
-        if (e.Unpriced > 0) notes.Children.Add(Note($"{e.Unpriced} שכבות ללא מחיר — בפרטים המלאים", Theme.Muted, null));
+            e.PavementIsDefault ? "מבנים טיפוסיים, לא תכנון הפרויקט — מסומנים \"ברירת מחדל\" בכל שורה ובייצוא. לצירוף דו״ח או לשינוי סוג הדרך: מתקדם › כבישים." : null));
+        if (e.ConcreteNote != null) notes.Children.Add(Note("⚠ " + e.ConcreteNote, Theme.Review, "המידות: מתקדם › בטון וקונסטרוקציה."));
+        if (e.Unpriced > 0) notes.Children.Add(Note($"{e.Unpriced} שכבות ללא מחיר — מתקדם › כל השכבות והסעיפים", Theme.Muted, null));
         _state.Children.Add(notes);
 
-        var buttons = new WrapPanel { Margin = new Thickness(0, 12, 0, 0) };
-        var export = Action("ייצא Excel…", "GoButton", "boq-card-export");
-        export.Click += (_, _) => Export?.Invoke();
-        buttons.Children.Add(export);
-        var details = Action("פרטים מלאים", "PillButton", "boq-card-details");
-        details.ToolTip = "כל שכבה, הסעיף שלה, דו״ח המבנה והבטון — בחלון כתב הכמויות.";
-        details.Click += (_, _) => Details?.Invoke();
-        buttons.Children.Add(details);
-        _state.Children.Add(buttons);
-        _exportStatus = new TextBlock { FontSize = 12, Foreground = Theme.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0) };
-        _state.Children.Add(_exportStatus);
+    }
+
+    /// <summary>Export, and "advanced": the bill's own tables (every layer and its item, demolition, existing, roads with the
+    /// pavement report, concrete), each opening the full bill-of-quantities window on that table.</summary>
+    private UIElement Actions()
+    {
+        var row = new WrapPanel { Margin = new Thickness(0, 10, 0, 0) };
+        var export = Action("ייצא ל־Excel…", "GoButton", "boq-card-export");
+        export.ToolTip = "כתב כמויות ב־Excel: עבודות חדשות, פירוקים, קיים, כבישים ובטון, ובדיקות המקור; בנוסף שרטוט ביקורת של הקווים שנמדדו.";
+        export.MinWidth = 150;
+        export.Click += (_, _) => Later(() => Export?.Invoke());
+        row.Children.Add(export);
+        var advanced = Action("מתקדם ▾", "PillButton", "boq-card-advanced");
+        advanced.ToolTip = "הטבלאות המלאות של כתב הכמויות.";
+        var menu = new ContextMenu { FlowDirection = System.Windows.FlowDirection.RightToLeft, PlacementTarget = advanced, Placement = PlacementMode.Bottom };
+        foreach (var (text, table, id) in new (string, InfrastructureBoqWindow.Sheet, string)[]
+        {
+            ("כל השכבות והסעיפים — עבודות חדשות", InfrastructureBoqWindow.Sheet.New, "new"),
+            ("פירוקים והריסות", InfrastructureBoqWindow.Sheet.Demolish, "demolish"),
+            ("קיים — נשאר", InfrastructureBoqWindow.Sheet.Keep, "keep"),
+            ("כבישים — שטח, נפח ודו״ח מבנה", InfrastructureBoqWindow.Sheet.Roads, "roads"),
+            ("בטון וקונסטרוקציה", InfrastructureBoqWindow.Sheet.Concrete, "concrete"),
+        })
+        {
+            var item = new MenuItem { Header = text };
+            item.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "boq-advanced-" + id);
+            var chosen = table;
+            item.Click += (_, _) => Later(() => Details?.Invoke(chosen));
+            menu.Items.Add(item);
+        }
+        advanced.ContextMenu = menu;
+        // Opened after the release: opened on the press, the release outside the new menu closed it at once.
+        advanced.Click += (_, _) => Later(() => menu.IsOpen = true);
+        row.Children.Add(advanced);
+        return row;
     }
 
     /// <summary>The last estimate's read is gone (a new one started): no "back to it".</summary>
     internal void Forget() => _last = null;
 
-    internal void ShowExported(string folder) { if (_exportStatus != null) _exportStatus.Text = "נשמר: " + folder; }
+    internal void ShowExported(string folder)
+    {
+        if (_exportStatus == null) return;
+        _exportStatus.Text = "נשמר ונפתחה התיקייה: " + folder;
+        _exportStatus.Visibility = Visibility.Visible;
+    }
 
     // ───────────────────────────── building blocks ─────────────────────────────
 
@@ -299,11 +339,17 @@ internal sealed class BoqPanel : UserControl
 
     private static Button Action(string text, string style, string id)
     {
-        var button = new Button { Content = text, Padding = new Thickness(14, 8, 14, 8), Margin = new Thickness(0, 4, 8, 0), MinHeight = 36 };
+        // Press, not release: inside AutoCAD's palette the first click on an inactive palette moves focus during the press,
+        // the button loses its mouse capture and a release-click never fired — "nothing happens" (live 2026-11-11).
+        var button = new Button { Content = text, Padding = new Thickness(14, 8, 14, 8), Margin = new Thickness(0, 4, 8, 0), MinHeight = 36, ClickMode = ClickMode.Press };
         if (Theme.Dictionary[style] is Style s) button.Style = s;
         button.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, id);
         return button;
     }
+
+    /// <summary>The buttons react on the press (see <see cref="Action"/>); what they start — a Save dialog, a modal window,
+    /// picking on the plan — begins once the mouse is released, never under a held button.</summary>
+    private void Later(Action work) => Dispatcher.BeginInvoke(work, System.Windows.Threading.DispatcherPriority.Background);
 
     private static Brush Frozen(Brush brush) { brush.Freeze(); return brush; }
 }
