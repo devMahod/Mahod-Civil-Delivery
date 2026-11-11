@@ -524,6 +524,11 @@
           <Button Content="פתח כתב כמויות תשתיות…" Click="OnInfrastructureBoq" HorizontalAlignment="Right"/>
         </StackPanel>
       </TabItem>
+      <!-- A marked area's estimate: clicking the header starts the polygon on the plan, like the BOQ tab starts the bill. -->
+      <TabItem x:Name="BoqAreaLauncherTab" Header="כתב כמויות לאזור" AutomationProperties.AutomationId="cd-boq-area"
+               ToolTip="סמנו אזור על התכנית (פינה אחר פינה, Enter לסגירה) וקבלו אומדן רק למה שבתוכו.">
+        <Grid Visibility="Collapsed"/>
+      </TabItem>
       <TabItem x:Name="ProjectTab" Header="פרויקט">
         <ScrollViewer VerticalScrollBarVisibility="Auto">
           <StackPanel>

@@ -29,7 +29,8 @@ internal sealed class BoqAreaCard : Window
     private static readonly Brush Navy = Frozen(new SolidColorBrush(Color.FromRgb(0x0F, 0x23, 0x3D)));
     private static readonly Brush Green = Frozen(new SolidColorBrush(Color.FromRgb(0x86, 0xE0, 0x5A)));
     private static readonly Brush Money = Frozen(new SolidColorBrush(Color.FromRgb(0x1E, 0x8E, 0x3E)));
-    private static readonly Brush Bar = Frozen(new LinearGradientBrush(Color.FromRgb(0x2B, 0xB3, 0xE8), Color.FromRgb(0x86, 0xE0, 0x5A), 0));
+    // Solid green, no fade (owner 2026-11-11).
+    private static readonly Brush Bar = Frozen(new SolidColorBrush(Color.FromRgb(0x3C, 0xB3, 0x4A)));
 
     private readonly StackPanel _body = new(), _actions = new();
     private readonly TextBlock _status = new() { FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) };

@@ -1104,6 +1104,8 @@ internal sealed partial class InfrastructureBoqWindow : Window
             var raw = (int)doc.Database.Insunits;
             var factor = MahodAI.CivilDelivery.Shared.PhysicalDrawingUnitPolicy.StandardMetresPerUnit(raw);
             if (factor == null) throw new InvalidOperationException("יחידות השרטוט אינן מוגדרות. יש לבדוק ולהגדיר INSUNITS לפני מדידה במטרים");
+            // Started from the Civil Delivery panel: a floating panel must not cover the plan the area is drawn on.
+            using var aside = CivilDeliveryPalette.StepAside();
             BoqAreaPicker.Picked? area = null;
             if (markAreaFirst && (area = BoqAreaPicker.Pick(doc, factor.Value)) == null) return;
             var path = BundledPriceBooks.Offers(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MahodAI_Civil3D", "civil-delivery", "price-books"),
