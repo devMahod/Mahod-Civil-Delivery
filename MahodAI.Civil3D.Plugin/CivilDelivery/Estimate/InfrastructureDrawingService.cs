@@ -52,13 +52,18 @@ internal sealed partial class InfrastructureDrawingService : IDisposable
     private int _symbolBlocks;
     private readonly DrawingVisibility _visibility = new();
     private int _frameObjects;
+    private readonly Action<int>? _tick;
+    private int _visited;
     /// <param name="near">
     /// For an area bill only: anything whose extents lie wholly outside this area is not read at all (a whole XREF at a
     /// time when it can). The full read of a 40-XREF interchange took 272 s against 10 s for the cut itself (live
     /// 2026-11-09). Nothing doubtful is skipped: no extents, or extents touching the area, are read and then cut exactly.
     /// </param>
-    internal InfrastructureDrawingService(Database db, string drawing, double metresPerHostUnit, SpatialQuantityClip? near = null)
+    /// <param name="tick">Called for every object read (the count so far): the BOQ panel shows progress from it and cancels
+    /// by throwing <see cref="OperationCanceledException"/> (the transaction is then rolled back; nothing is written).</param>
+    internal InfrastructureDrawingService(Database db, string drawing, double metresPerHostUnit, SpatialQuantityClip? near = null, Action<int>? tick = null)
     {
+        _tick = tick;
         if (!double.IsFinite(metresPerHostUnit) || metresPerHostUnit <= 0) throw new ArgumentOutOfRangeException(nameof(metresPerHostUnit));
         Drawing = drawing;
         DrawingHash = MahodAI.CivilDelivery.Shared.ArtifactHash.Sha256OfFile(drawing);
@@ -67,7 +72,14 @@ internal sealed partial class InfrastructureDrawingService : IDisposable
         using var quiet = new QuietModeler();
         using var tr = db.TransactionManager.StartTransaction();
         var bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
-        Walk(tr, bt[BlockTableRecord.ModelSpace], Matrix3d.Identity, drawing, "", "0", new HashSet<ObjectId>(), 0);
+        try { Walk(tr, bt[BlockTableRecord.ModelSpace], Matrix3d.Identity, drawing, "", "0", new HashSet<ObjectId>(), 0); }
+        catch (OperationCanceledException)
+        {
+            // Cancelled from the BOQ panel: the copies read so far are freed here, on AutoCAD's thread (never by the GC).
+            foreach (var m in Measurements) m.Geometry.Dispose();
+            Measurements.Clear();
+            throw;
+        }
         if (_visibility.Hidden > 0) Findings.Add($"{_visibility.Hidden:N0} עצמים מוסתרים (Visible = false) לא נמדדו.");
         DropCrossSourceDuplicates();
         if (_frameObjects > 0) Findings.Add($"{_frameObjects:N0} עצמי מסגרת גיליון / כותרת (FRM, FRAME, BORDER, TITLE) לא נמדדו — שרטוט, לא כמות.");
@@ -86,6 +98,7 @@ internal sealed partial class InfrastructureDrawingService : IDisposable
             { Findings.Add("מקור לא טעון: " + block.PathName); return; }
             foreach (ObjectId id in block)
             {
+                _tick?.Invoke(++_visited);
                 if (tr.GetObject(id, OpenMode.ForRead) is not Entity entity) continue;
                 // What is not part of the plan is not a quantity (see DrawingVisibility).
                 if (!_visibility.Visible(entity)) continue;

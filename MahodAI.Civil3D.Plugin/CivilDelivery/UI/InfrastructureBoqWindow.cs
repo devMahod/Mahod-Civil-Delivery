@@ -859,13 +859,13 @@ internal sealed partial class InfrastructureBoqWindow : Window
 
     /// <summary>The Excel, the demolition file and the audit drawing; the folder, or null when the engineer cancelled.
     /// <paramref name="owner"/> is the window on screen (the area card shows this window's bill without showing the window).</summary>
-    internal string? ExportBoq(Window owner)
+    internal string? ExportBoq(Window? owner)
     {
         var doc = AcadApp.DocumentManager.MdiActiveDocument;
         if (doc == null || !string.Equals(doc.Name, _scan.Drawing, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("שרטוט המקור אינו פעיל — פתח מחדש את מסך התשתיות בשרטוט הנכון");
         var dialog = new Microsoft.Win32.SaveFileDialog { Filter = "Excel (*.xlsx)|*.xlsx", FileName = _scan.Area == null ? "כתב כמויות" : "כתב כמויות - אזור", AddExtension = true };
-        if (dialog.ShowDialog(owner) != true) return null;
+        if ((owner != null ? dialog.ShowDialog(owner) : dialog.ShowDialog()) != true) return null;
         var selected = Active.ToArray();
         if (selected.Length == 0) throw new InvalidOperationException("אין קבוצות פעילות לייצוא");
         var keys = selected.GroupBy(g => (g.Source, g.Layer, g.GroupPart)).ToDictionary(g => g.Key, g => g.First());
@@ -1090,101 +1090,18 @@ internal sealed partial class InfrastructureBoqWindow : Window
     /// <summary>What the engineer asked for when the window closed: the command loop marks an area or returns to the whole drawing.</summary>
     internal Step NextStep { get; private set; } = Step.Close;
 
-    internal static void Run() => Run(markAreaFirst: false);
-    /// <summary>MHD_BOQ_AREA: mark the area first, then the bill for what is inside it.</summary>
-    internal static void RunArea() => Run(markAreaFirst: true);
+    /// <summary>MHD_BOQ: the whole drawing's estimate in the Civil Delivery window's BOQ tab (owner 2026-11-11: one window,
+    /// always open — mark a polygon or take the whole drawing there; this window is "full details").</summary>
+    internal static void Run() => BoqPanelRunner.FromCommand(area: false);
+    /// <summary>MHD_BOQ_AREA: mark the area on the plan, then its estimate, in the same tab.</summary>
+    internal static void RunArea() => BoqPanelRunner.FromCommand(area: true);
 
-    private static void Run(bool markAreaFirst)
+    /// <summary>The price book every bill uses.</summary>
+    internal static CatalogSnapshot LoadCatalog()
     {
-        var doc = AcadApp.DocumentManager.MdiActiveDocument;
-        if (doc == null) return;
-        try
-        {
-            if (string.IsNullOrWhiteSpace(doc.Name) || !File.Exists(doc.Name)) throw new InvalidOperationException("שמור את השרטוט לפני הסריקה");
-            var raw = (int)doc.Database.Insunits;
-            var factor = MahodAI.CivilDelivery.Shared.PhysicalDrawingUnitPolicy.StandardMetresPerUnit(raw);
-            if (factor == null) throw new InvalidOperationException("יחידות השרטוט אינן מוגדרות. יש לבדוק ולהגדיר INSUNITS לפני מדידה במטרים");
-            // Started from the Civil Delivery panel: a floating panel must not cover the plan the area is drawn on.
-            using var aside = CivilDeliveryPalette.StepAside();
-            BoqAreaPicker.Picked? area = null;
-            if (markAreaFirst && (area = BoqAreaPicker.Pick(doc, factor.Value)) == null) return;
-            var path = BundledPriceBooks.Offers(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MahodAI_Civil3D", "civil-delivery", "price-books"),
-                new MahodAI.CivilDelivery.Shared.ProjectProfile()).Single().Entry.Path;
-            var catalog = PriceBookXlsxLoader.Load(path, "נתיבי ישראל — אחוד יולי 2026");
-            // The whole drawing is read once, and only when the whole drawing is asked for; an area alone reads only what
-            // can lie in it (minutes → seconds on a 40-XREF interchange). Once the whole read exists, every area is a cut of it.
-            InfrastructureDrawingService? whole = null, near = null;
-            SpatialQuantityClip? nearArea = null;
-            InfrastructureDrawingService Read(SpatialQuantityClip? only)
-            {
-                doc.Editor.WriteMessage(only == null ? "\nReading the drawing for the bill of quantities...\n" : "\nReading the drawing inside the marked area...\n");
-                var watch = System.Diagnostics.Stopwatch.StartNew();
-                var read = new InfrastructureDrawingService(doc.Database, doc.Name, factor.Value, only);
-                doc.Editor.WriteMessage($"\nRead {read.Measurements.Count:N0} measurements in {watch.Elapsed.TotalSeconds:N1} s" +
-                    (only == null ? ".\n" : $" ({read.SkippedOutsideArea:N0} objects wholly outside the area were not read).\n"));
-                return read;
-            }
-            // "Build quantities" starts by asking for the drawing's pavement report (2026-11-09): asphalt and bases come from it.
-            IReadOnlyList<string>? reports = null;
-            string? defaultClass = null;
-            var asked = false;
-            try
-            {
-                while (true)
-                {
-                    InfrastructureDrawingService source;
-                    if (area == null) source = whole ??= Read(null);
-                    else if (whole != null) source = whole;
-                    else
-                    {
-                        if (!ReferenceEquals(nearArea, area.Area)) { near?.Dispose(); near = Read(area.Area); nearArea = area.Area; }
-                        source = near!;
-                    }
-                    var clock = System.Diagnostics.Stopwatch.StartNew();
-                    using var view = area == null ? null : source.ClipTo(area.Area, area.PickedPolyline);
-                    if (view != null)
-                        doc.Editor.WriteMessage($"\nArea: {view.Measurements.Count:N0} measurements inside, {view.CutAtEdge:N0} cut at its edge ({clock.Elapsed.TotalSeconds:N1} s).\n");
-                    // A marked area goes straight to its number (owner 2026-11-11: simple): it uses the drawing's report or
-                    // its saved road type for defaults; attaching a report is in "full details". The whole drawing still asks.
-                    if (!asked && area == null)
-                    {
-                        asked = true;
-                        var prompt = new PavementReportPrompt(doc.Name, PavementReportSet.Load(PavementPathFor(doc.Name)), SavedDefaultChoice(doc.Name, area != null));
-                        CivilModalHost.ShowFromPalette(prompt);
-                        if (prompt.Result == PavementReportPrompt.Choice.Attach) reports = prompt.Files;
-                        defaultClass = prompt.DefaultClass;
-                    }
-                    var window = new InfrastructureBoqWindow(view ?? source, catalog, reports, defaultClass);
-                    reports = null; defaultClass = null;
-                    if (area != null)
-                    {
-                        // The area's card, the marked area kept on the plan beside it.
-                        var card = new BoqAreaCard(window.EstimateAsync, window.ExportBoq);
-                        using (var outline = new BoqAreaPicker.Outline())
-                        {
-                            outline.Show(area.Area);
-                            doc.Editor.UpdateScreen();
-                            CivilModalHost.ShowFromPalette(card);
-                        }
-                        doc.Editor.UpdateScreen();
-                        if (card.Result == BoqAreaCard.Choice.MarkAnother)
-                        {
-                            var next = BoqAreaPicker.Pick(doc, factor.Value);
-                            if (next == null) return;
-                            area = next; continue;
-                        }
-                        if (card.Result != BoqAreaCard.Choice.Details) return;
-                    }
-                    CivilModalHost.ShowFromPalette(window);
-                    if (window.NextStep == Step.WholeDrawing) { area = null; continue; }
-                    if (window.NextStep != Step.MarkArea) return;
-                    var picked = BoqAreaPicker.Pick(doc, factor.Value);
-                    if (picked != null) area = picked;   // Esc keeps the previous scope
-                }
-            }
-            finally { near?.Dispose(); whole?.Dispose(); }
-        }
-        catch (System.Exception ex) { doc.Editor.WriteMessage("\n" + ex.Message + "\n"); }
+        var path = BundledPriceBooks.Offers(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MahodAI_Civil3D", "civil-delivery", "price-books"),
+            new MahodAI.CivilDelivery.Shared.ProjectProfile()).Single().Entry.Path;
+        return PriceBookXlsxLoader.Load(path, "נתיבי ישראל — אחוד יולי 2026");
     }
 
     internal static void ExportAudit()

@@ -248,31 +248,12 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
             if (_paletteSet != null) _paletteSet.Visible = false;
         }
 
-        /// <summary>
-        /// A floating panel over the plan steps aside while the engineer marks an area and reads its card, and comes back
-        /// when the bill of quantities ends (owner 2026-11-11: the area is started from the panel, and the panel covered
-        /// the plan). A docked panel leaves the plan free and stays. Null when nothing was hidden.
-        /// </summary>
-        internal static IDisposable? StepAside()
+        /// <summary>The bill of quantities lives in this window's "כתב כמויות" tab (owner 2026-11-11: one window, always open).
+        /// Shows the window on that tab and returns its panel.</summary>
+        internal static BoqPanel? ShowBoq()
         {
-            try
-            {
-                if (_paletteSet == null || !_paletteSet.Visible || _paletteSet.Dock != DockSides.None) return null;
-                _paletteSet.Visible = false;
-                return new Restore();
-            }
-            catch (System.Exception) { return null; }
-        }
-
-        private sealed class Restore : IDisposable
-        {
-            private bool _done;
-            public void Dispose()
-            {
-                if (_done) return;
-                _done = true;
-                try { Show(); } catch (System.Exception) { }
-            }
+            Show();
+            return _control?.ShowBoqPanel();
         }
 
         /// <summary>

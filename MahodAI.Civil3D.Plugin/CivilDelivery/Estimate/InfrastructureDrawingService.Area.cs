@@ -23,20 +23,22 @@ internal sealed partial class InfrastructureDrawingService
     /// <summary>Measurements cut at the edge of the area (the rest were wholly inside).</summary>
     internal int CutAtEdge { get; private set; }
 
-    internal InfrastructureDrawingService ClipTo(SpatialQuantityClip area, ObjectId boundary = default)
+    internal InfrastructureDrawingService ClipTo(SpatialQuantityClip area, ObjectId boundary = default, Action<int>? tick = null)
     {
         if (Area != null) throw new InvalidOperationException("Clip the whole-drawing scan, not an area view");
-        return new InfrastructureDrawingService(this, area, boundary);
+        return new InfrastructureDrawingService(this, area, boundary, tick);
     }
 
-    private InfrastructureDrawingService(InfrastructureDrawingService whole, SpatialQuantityClip area, ObjectId boundary)
+    private InfrastructureDrawingService(InfrastructureDrawingService whole, SpatialQuantityClip area, ObjectId boundary, Action<int>? tick)
     {
         Drawing = whole.Drawing; DrawingHash = whole.DrawingHash; _metres = whole._metres; Area = area;
         using var quiet = new QuietModeler();   // cutting hatch rings / solids at the edge: modeler noise off the command line
         var fallback = new List<string>();
         SpatialQuantityClip? flipped = null;
+        var done = 0;
         foreach (var m in whole.Measurements.Where(m => boundary.IsNull || m.SourceId != boundary))   // the picked outline is the area, not a quantity
         {
+            tick?.Invoke(++done);
             try
             {
                 var clipped = Clip(m, area, ref flipped, fallback);

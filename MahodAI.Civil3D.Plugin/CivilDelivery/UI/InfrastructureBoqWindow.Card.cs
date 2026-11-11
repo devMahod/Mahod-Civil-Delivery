@@ -8,7 +8,7 @@ using MahodAI.CivilDelivery.Estimate.Infrastructure;
 namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI;
 
 /// <summary>
-/// The marked area's estimate in one card (owner 2026-11-11, after an "Inspector" reel: mark an area → one number and
+/// The estimate the BOQ panel shows (a marked area or the whole drawing) (owner 2026-11-11, after an "Inspector" reel: mark an area → one number and
 /// what it is made of). The bill behind it is this window's — same items, prices, report or defaults — so "full details"
 /// opens exactly what the card summed.
 /// </summary>
@@ -23,14 +23,15 @@ internal sealed partial class InfrastructureBoqWindow
     /// Prices the area the way "auto-assign" would (every pay layer still without an item gets the recommended one, saved as
     /// an automatic choice), then sums it by price-list item. The engineer's own choices are never changed.
     /// </summary>
-    internal async Task<AreaEstimate> EstimateAsync()
+    /// <param name="wait">Waits for the background ranking while the BOQ panel stays alive (its Cancel throws).</param>
+    internal AreaEstimate Estimate(Func<Task<InfrastructureAutoAssignmentBatch>, InfrastructureAutoAssignmentBatch> wait)
     {
         var pending = Active.Where(g => !g.Approved && double.IsFinite(g.Quantity) && g.Quantity > 0 && PayItem(g) &&
                                         g.Disposition != InfrastructureDisposition.ExistingKeep).ToArray();
         if (pending.Length > 0)
         {
             var search = _search;
-            var batch = await Task.Run(() => search.PlanAutomaticAssignment(pending));
+            var batch = wait(Task.Run(() => search.PlanAutomaticAssignment(pending)));
             if (batch.Apply() > 0) { _lastAutomaticBatch = batch; Persist(); }
         }
         var pay = Active.Where(g => PayItem(g) && g.Disposition == InfrastructureDisposition.New).ToArray();
