@@ -80,7 +80,7 @@ internal sealed partial class InfrastructureBoqWindow : Window
     private readonly TextBox _manualQuantity = Input();
     private readonly StackPanel _manualPanel = new();
     private readonly TextBlock _message = Text(""), _subject = Text("בחר שכבה"), _note = Text(""), _results = Text(""), _detail = Text("");
-    private readonly TextBlock _source = Text(""), _viewTitle = Heading(""), _viewHint = Text("");
+    private readonly TextBlock _source = Text(""), _viewTitle = Heading(""), _recoveredNote = Text("");
     private readonly Button _assign = ActionButton("שייך לשכבה", "GoButton", "check"), _undo = ActionButton("החזר שורות שהוסרו", "QuietButton");
     private readonly Button _autoAssign = ActionButton("שייך אוטומטית", "PillPrimaryButton", "play"), _undoAuto = ActionButton("בטל שיוך אוטומטי אחרון", "QuietButton");
     private readonly CheckBox _showDrafting = new() { Content = "הצג גם כיתובים, חתכים וקווי שפה", Margin = new Thickness(0, 6, 0, 0), VerticalContentAlignment = VerticalAlignment.Center };
@@ -166,6 +166,9 @@ internal sealed partial class InfrastructureBoqWindow : Window
         _undoAuto.Visibility = Visibility.Collapsed; _undoAuto.Margin = new Thickness(8, 0, 0, 0);
         _undoAuto.Click += (_, _) => UiGuard.Run("ביטול שיוך אוטומטי", UndoAutomaticAssignment);
         DockPanel.SetDock(_undoAuto, Dock.Left); bottom.Children.Add(_undoAuto);
+        _recoveredNote.FontSize = 12; _recoveredNote.Foreground = Theme.Muted; _recoveredNote.VerticalAlignment = VerticalAlignment.Center; _recoveredNote.Cursor = Cursors.Help;
+        _recoveredNote.TextWrapping = TextWrapping.NoWrap; _recoveredNote.Margin = new Thickness(12, 0, 0, 0);
+        DockPanel.SetDock(_recoveredNote, Dock.Right); bottom.Children.Add(_recoveredNote);
         _message.VerticalAlignment = VerticalAlignment.Center; bottom.Children.Add(_message);
         _boqBody = BoqBody(); _roadsBody = RoadsBody(); _concreteBody = ConcreteBody();
         _body.Margin = new Thickness(0, 12, 0, 0); root.Children.Add(_body);
@@ -225,9 +228,11 @@ internal sealed partial class InfrastructureBoqWindow : Window
         var titles = new StackPanel();
         titles.Children.Add(new TextBlock { Text = _scan.Area == null ? "כתב כמויות" : "כתב כמויות — אזור מסומן", FontSize = 24, FontWeight = FontWeights.SemiBold, Foreground = Theme.Ink });
         var file = Path.GetFileName(_scan.Drawing);
-        var scope = _scan.Area == null ? "כל המודל והמקורות הטעונים"
-            : $"רק בתוך האזור: {_scan.Area.Boundary.Area * _scan.MetresPerHostUnit * _scan.MetresPerHostUnit:N0} מ״ר, {_scan.Measurements.Count:N0} מדידות, {_scan.CutAtEdge:N0} נחתכו בגבול";
-        var subtitle = Text($"{file} · {_books.Count} מחירונים · {_scan.MetresPerHostUnit:G} מטר ליחידת שרטוט · {scope}");
+        // One short line; the rest is a tooltip (owner 2026-11-11: the windows carried too much text).
+        var scope = _scan.Area == null ? "כל השרטוט" : $"אזור מסומן · {_scan.Area.Boundary.Area * _scan.MetresPerHostUnit * _scan.MetresPerHostUnit:N0} מ״ר";
+        var subtitle = Text($"{file} · {scope}");
+        subtitle.ToolTip = $"{_books.Count} מחירונים · {_scan.MetresPerHostUnit:G} מטר ליחידת שרטוט · " + (_scan.Area == null ? "כל המודל והמקורות הטעונים"
+            : $"רק בתוך האזור: {_scan.Measurements.Count:N0} מדידות, {_scan.CutAtEdge:N0} נחתכו בגבול");
         subtitle.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "boq-scope");
         titles.Children.Add(subtitle);
         header.Children.Add(titles);
@@ -246,21 +251,21 @@ internal sealed partial class InfrastructureBoqWindow : Window
         static string Layers(IEnumerable<InfrastructureDrawingService.AreaIssue> items) => string.Join(" · ", items
             .GroupBy(i => i.LayerName).OrderByDescending(g => g.Sum(i => i.AreaSquareMetres)).ThenByDescending(g => g.Count())
             .Select(g => g.Sum(i => i.AreaSquareMetres) > 0 ? $"{g.Key} ({g.Count()}, {g.Sum(i => i.AreaSquareMetres):N0} מ״ר)" : $"{g.Key} ({g.Count()})"));
-        var stack = new StackPanel();
-        if (missing.Count > 0)
-            stack.Children.Add(new TextBlock { TextWrapping = TextWrapping.Wrap, FontWeight = FontWeights.SemiBold, Foreground = Theme.Blocked,
-                Text = $"{missing.Count} שטחי Hatch לא נמדדו ואינם בכתב הכמויות — יש להשלים כמות ידנית: {Layers(missing)}" });
+        // Owner 2026-11-11: keep the details hidden by default. Hatches measured from their boundary ARE in the bill — that is
+        // information, so it is one small line in the status bar (layers in its tooltip). Only hatches that could not be
+        // measured at all (a real gap) get a banner, one line, its layer list closed under it.
         if (recovered.Count > 0)
-            stack.Children.Add(new TextBlock { TextWrapping = TextWrapping.Wrap, Foreground = Theme.Ink, Margin = new Thickness(0, missing.Count > 0 ? 4 : 0, 0, 0),
-                // One line: the per-layer list ran to three lines of drafting layers (dim, XREF…) and read as an error wall
-                // (owner, live 2026-11-10). The list stays in the tooltip and in the Excel checks sheet.
-                Text = $"{recovered.Count:N0} שטחי Hatch ש־AutoCAD אינו מחשב להם שטח נמדדו מגבולותיהם ונכללו בכמות ({recovered.Sum(r => r.AreaSquareMetres):N0} מ״ר) — הפירוט בגיליון הבדיקות",
-                ToolTip = Layers(recovered) });
-        // At most ~3 lines high: on a 22-XREF drawing the list ran to 6 lines and squeezed the roads screen (live 2026-11-09).
-        var banner = new Border { Child = new ScrollViewer { Content = stack, MaxHeight = 66, VerticalScrollBarVisibility = ScrollBarVisibility.Auto },
-            Background = missing.Count > 0 ? Theme.BlockedTint : Theme.ReviewTint,
-            BorderBrush = missing.Count > 0 ? Theme.Blocked : Theme.Review, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(8),
-            Padding = new Thickness(12, 8, 12, 8), Margin = new Thickness(0, 10, 0, 0),
+        {
+            _recoveredNote.Text = $"ⓘ {recovered.Count:N0} שטחי Hatch נמדדו מגבולותיהם ({recovered.Sum(r => r.AreaSquareMetres):N0} מ״ר)";
+            _recoveredNote.ToolTip = "AutoCAD אינו מחשב להם שטח; השטח חושב מהגבול ונכלל בכמות. הרשימה המלאה בגיליון \"בדיקות ומקור המחירון\" של ה־Excel.\n" + Layers(recovered);
+            _recoveredNote.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "boq-hatch-recovered");
+        }
+        if (missing.Count == 0) return null;
+        var stack = new StackPanel();
+        stack.Children.Add(Details("hatch-missing", $"⚠ {missing.Count} שטחי Hatch לא נמדדו — יש להשלים כמות ידנית", Text(Layers(missing)), Theme.Blocked));
+        var banner = new Border { Child = new ScrollViewer { Content = stack, MaxHeight = 140, VerticalScrollBarVisibility = ScrollBarVisibility.Auto },
+            Background = Theme.BlockedTint, BorderBrush = Theme.Blocked, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(12, 2, 12, 2), Margin = new Thickness(0, 10, 0, 0),
             ToolTip = "הרשימה המלאה (שכבה, Handle, שטח) בגיליון \"בדיקות ומקור המחירון\" של קובץ ה־Excel." };
         banner.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "boq-area-warning");
         DockPanel.SetDock(banner, Dock.Top);
@@ -308,8 +313,8 @@ internal sealed partial class InfrastructureBoqWindow : Window
         // 1 — layers
         var layers = new DockPanel();
         var layerHead = new StackPanel(); DockPanel.SetDock(layerHead, Dock.Top); layers.Children.Add(layerHead);
-        layerHead.Children.Add(_viewTitle);
-        _viewHint.Margin = new Thickness(0, 0, 0, 6); layerHead.Children.Add(_viewHint);
+        // The view's explanation and the right-click hint live in the title's tooltip, not as two lines of text.
+        _viewTitle.Cursor = Cursors.Help; layerHead.Children.Add(_viewTitle);
         var filters = new DockPanel { Margin = new Thickness(0, 2, 0, 4) }; layerHead.Children.Add(filters);
         _filter.DisplayMemberPath = "Label"; _filter.MaxDropDownHeight = 440; _filter.MaxWidth = 260;
         _filter.ToolTip = "תחום מהמחירון — מצמצם את הסעיפים המוצעים בלבד.";
@@ -332,8 +337,7 @@ internal sealed partial class InfrastructureBoqWindow : Window
         AddMenu(menu, "הסר מהתוצר (אפשר להחזיר)", () => { if (_grid.SelectedItem is InfrastructureGroup g) Remove(g); });
         AddMenu(menu, "בטל שיוך", () => { if (_grid.SelectedItem is InfrastructureGroup g) { g.Withdraw(); Persist(); _grid.Items.Refresh(); SelectLayer(); UpdateSummary(); } });
         _grid.ContextMenu = menu;
-        var layerFooter = Text("קליק ימני על שורה: מצב (חדש / נשאר / לפירוק) או הסרה. Delete מסיר את השורה.");
-        DockPanel.SetDock(layerFooter, Dock.Bottom); layers.Children.Add(layerFooter); layers.Children.Add(_grid);
+        layers.Children.Add(_grid);
         var layersCard = Theme.Card(layers, 14); layersCard.Margin = new Thickness(0, 0, 0, 0);
         body.Children.Add(layersCard);
 
@@ -360,9 +364,11 @@ internal sealed partial class InfrastructureBoqWindow : Window
         _dDemolish.ToolTip = "תשתית קיימת לפירוק / הריסה — מתומחרת מפרק הפירוקים, בגיליון ובקובץ נפרדים.";
         editHead.Children.Add(dispositions);
         _dispositionEvidence.FontSize = 12; editHead.Children.Add(_dispositionEvidence);
-        var sourceBody = new StackPanel(); sourceBody.Children.Add(_source); sourceBody.Children.Add(_topic);
+        // How the layer was read (evidence, the layer note) sits with its source, closed: it was two orange lines on every layer.
+        _note.Foreground = Theme.Review; _note.FontSize = 12;
+        var sourceBody = new StackPanel(); sourceBody.Children.Add(_note); sourceBody.Children.Add(_source); sourceBody.Children.Add(_topic);
         _topic.SelectionChanged += (_, _) => { if (!_loading && _grid.SelectedItem is InfrastructureGroup g) { g.Topic = _topic.SelectedItem as string ?? InfrastructureBoq.Unknown; Persist(); _grid.Items.Refresh(); Search(); } };
-        editHead.Children.Add(new Expander { Header = "פרטי המקור ושינוי נושא", Content = new ScrollViewer { Content = sourceBody, MaxHeight = 140, VerticalScrollBarVisibility = ScrollBarVisibility.Auto }, Margin = new Thickness(0, 2, 0, 0) });
+        editHead.Children.Add(new Expander { Header = "פרטי השכבה ושינוי נושא", Content = new ScrollViewer { Content = sourceBody, MaxHeight = 160, VerticalScrollBarVisibility = ScrollBarVisibility.Auto }, Margin = new Thickness(0, 2, 0, 0) });
 
         _catalogPanel.Margin = new Thickness(0, 8, 0, 0);
         _catalogPanel.Children.Add(Heading("סעיף מהמחירון", 14));
@@ -382,7 +388,6 @@ internal sealed partial class InfrastructureBoqWindow : Window
         _manualQuantity.TextChanged += (_, _) => { if (_loading || _grid.SelectedItem is not InfrastructureGroup g) return;
             g.ManualQuantity = double.TryParse(_manualQuantity.Text, NumberStyles.Number, CultureInfo.CurrentCulture, out var n) && double.IsFinite(n) && n > 0 ? n : null;
             UpdateMeasurementInput(g); Persist(); _grid.Items.Refresh(); SelectItem(); UpdateSummary(); };
-        _note.Foreground = Theme.Review; _note.FontSize = 12; _catalogPanel.Children.Add(_note);
         _catalogSearch.ToolTip = "חיפוש בעברית או מספר סעיף, לדוגמה: פירוק אבני שפה · צינור ביוב 315";
         _queryTimer.Tick += (_, _) => { _queryTimer.Stop(); UiGuard.Run("חיפוש סעיפים", Search); };
         _catalogSearch.TextChanged += (_, _) => { _queryTimer.Stop(); if (!_loading) _queryTimer.Start(); };
@@ -396,8 +401,9 @@ internal sealed partial class InfrastructureBoqWindow : Window
         _assign.IsEnabled = false; _assign.VerticalAlignment = VerticalAlignment.Center; _assign.Margin = new Thickness(10, 0, 0, 0);
         _assign.Click += (_, _) => UiGuard.Run("שיוך שכבה", Assign);
         DockPanel.SetDock(_assign, Dock.Left); choice.Children.Add(_assign);
-        _detail.FontSize = 12;
-        choice.Children.Add(new ScrollViewer { Content = _detail, MaxHeight = 64, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
+        // Code, price and the description's first lines; why it is recommended and the price book are in the tooltip.
+        _detail.FontSize = 12; _detail.TextTrimming = TextTrimming.CharacterEllipsis; _detail.MaxHeight = 52; _detail.VerticalAlignment = VerticalAlignment.Center;
+        choice.Children.Add(_detail);
         RecommendedCodeColumn(_items); Column(_items, "תיאור", "Description", new DataGridLength(1, DataGridLengthUnitType.Star)); Column(_items, "₪ ליחידה", "PriceDisplay", 80);
         _items.SelectionChanged += (_, _) => SelectItem();
         _items.MouseDoubleClick += (_, e) => { if (e.OriginalSource is DependencyObject d && FindRow(d) != null && _assign.IsEnabled) UiGuard.Run("שיוך שכבה", Assign); };
@@ -417,8 +423,9 @@ internal sealed partial class InfrastructureBoqWindow : Window
         // Areas
         var areas = new DockPanel();
         var areaHead = new StackPanel(); DockPanel.SetDock(areaHead, Dock.Top); areas.Children.Add(areaHead);
-        areaHead.Children.Add(Heading("1  שטחים בשרטוט"));
-        areaHead.Children.Add(Text("שכבות עם Hatch או גבול סגור. סוג המשטח מזוהה משם השכבה; לשינוי — בחר שכבה ובחר סוג."));
+        var areasTitle = Heading("1  שטחים בשרטוט"); areasTitle.Cursor = Cursors.Help;
+        areasTitle.ToolTip = "שכבות עם Hatch או גבול סגור. סוג המשטח מזוהה משם השכבה; לשינוי — בחר שכבה ובחר סוג.";
+        areaHead.Children.Add(areasTitle);
         var kindRow = new DockPanel { Margin = new Thickness(0, 4, 0, 6) };
         var kindLabel = Text("סוג המשטח של השכבה:"); kindLabel.Margin = new Thickness(0, 4, 8, 4); kindLabel.VerticalAlignment = VerticalAlignment.Center;
         kindRow.Children.Add(kindLabel); _surfaceKind.ItemsSource = SurfaceChoices; kindRow.Children.Add(_surfaceKind);
@@ -430,22 +437,24 @@ internal sealed partial class InfrastructureBoqWindow : Window
         Column(_areaGrid, "סוג משטח", "SurfaceName", 110); Column(_areaGrid, "שטח מ״ר", "AreaSquareMetres", 95, "N2");
         _areaGrid.RowHeight = 36; _areaGrid.MinHeight = 160;
         _areaGrid.SelectionChanged += (_, _) => { _loading = true; try { _surfaceKind.SelectedItem = _areaGrid.SelectedItem is InfrastructureGroup g ? SurfaceChoices.First(c => c.Kind == g.Surface) : null; } finally { _loading = false; } };
-        var totalsHead = new StackPanel { Margin = new Thickness(0, 10, 0, 0) }; DockPanel.SetDock(totalsHead, Dock.Bottom);
-        totalsHead.Children.Add(Heading("סיכום לפי סוג משטח", 14));
+        // The per-surface totals repeat the areas table on the right: closed, so the layers table keeps its height.
         Column(_surfaceGrid, "משטח", "SurfaceName", 120); Column(_surfaceGrid, "מצב", "DispositionLabel", 110);
         Column(_surfaceGrid, "שטח מ״ר", "AreaSquareMetres", 100, "N2"); Column(_surfaceGrid, "שכבות", "LayersDisplay", new DataGridLength(1, DataGridLengthUnitType.Star), ltr: true);
         _surfaceGrid.MaxHeight = 190; _surfaceGrid.RowHeight = 32;
-        totalsHead.Children.Add(_surfaceGrid);
-        areas.Children.Add(totalsHead);
+        var totals = Details("roads-surfaces", "סיכום לפי סוג משטח", _surfaceGrid, Theme.Ink);
+        totals.Margin = new Thickness(0, 8, 0, 0); DockPanel.SetDock(totals, Dock.Bottom);
+        areas.Children.Add(totals);
         areas.Children.Add(_areaGrid);
         body.Children.Add(Theme.Card(areas, 14));
 
         // Structure, results, corridors
+        // Report → results → (closed) hand-typed structure and corridors: the screen opens on what was calculated, and the
+        // rarely used tools stay one click away (owner 2026-11-11: too much text, details hidden by default).
         var right = new StackPanel();
-        var structure = new StackPanel(); right.Children.Add(structure);
-        right.Children.Insert(0, ReportCard());
-        structure.Children.Add(Heading("3  מבנה ידני — למשטח שאין לו מבנה בדו״ח", 14));
-        structure.Children.Add(Text("נפח = שטח × עובי. אספלט משולם במ״ר בעובי נתון, מצעים במ״ק. משטח שהדו״ח נותן לו מבנה מתומחר לפי הדו״ח; מבנה שמוזן כאן חל על שטחי המשטח שאין להם מבנה בדו״ח, במקום ערכי ברירת המחדל (מבנה ידני הוא אחריות המהנדס)."));
+        right.Children.Add(ReportCard());
+        var structure = new StackPanel();
+        var manualHint = Text("נפח = שטח × עובי. אספלט משולם במ״ר, מצעים במ״ק. מבנה שמוזן כאן חל על שטחי המשטח שאין להם מבנה בדו״ח, במקום ערכי ברירת המחדל (אחריות המהנדס).");
+        manualHint.FontSize = 11.5; structure.Children.Add(manualHint);
         var surfaceRow = new DockPanel { Margin = new Thickness(0, 4, 0, 6) };
         var sLabel = Text("משטח:"); sLabel.Margin = new Thickness(0, 4, 8, 4); sLabel.VerticalAlignment = VerticalAlignment.Center;
         surfaceRow.Children.Add(sLabel);
@@ -468,17 +477,19 @@ internal sealed partial class InfrastructureBoqWindow : Window
         _structureGrid.RowEditEnding += (_, _) => Dispatcher.BeginInvoke(new Action(() => UiGuard.Run("מבנה מיסעה", SaveStructureRows)), System.Windows.Threading.DispatcherPriority.Background);
         _structureGrid.MaxHeight = 220;
         structure.Children.Add(_structureGrid);
-        structure.Children.Add(Heading("כמויות מבנה — עבודה חדשה", 14));
+        var results = new StackPanel(); right.Children.Add(results);
+        results.Children.Add(Heading("כמויות מבנה — עבודה חדשה", 14));
         Column(_resultGrid, "משטח", "SurfaceName", 85); Column(_resultGrid, "מבנה", "StructureName", 130); Column(_resultGrid, "שכבה", "LayerDisplay", new DataGridLength(1, DataGridLengthUnitType.Star));
         Column(_resultGrid, "שטח מ״ר", "AreaSquareMetres", 90, "N1"); Column(_resultGrid, "נפח מ״ק", "VolumeCubicMetres", 85, "N1");
         Column(_resultGrid, "לתשלום", "Quantity", 90, "N1"); Column(_resultGrid, "יחידה", "Unit", 50);
         _resultGrid.RowHeight = 34; PassWheelToPage(_resultGrid);
         _resultGrid.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "boq-pavement-layers");
-        structure.Children.Add(_resultGrid);
-        _roadsSummary.FontWeight = FontWeights.SemiBold; structure.Children.Add(_roadsSummary);
+        results.Children.Add(_resultGrid);
+        _roadsSummary.FontWeight = FontWeights.SemiBold; results.Children.Add(_roadsSummary);
+        var manual = Details("roads-manual", "מבנה ידני — למשטח שאין לו מבנה בדו״ח", structure, Theme.Ink, open: _structures.Any(s => s.Layers.Count > 0));
+        manual.Margin = new Thickness(0, 10, 0, 0); right.Children.Add(manual);
 
-        var corridor = new StackPanel { Margin = new Thickness(0, 10, 0, 0) };
-        corridor.Children.Add(Heading("4  קורידורים ב־Civil 3D", 14));
+        var corridor = new StackPanel();
         var count = RoadCorridorVolumes.CorridorCount(AcadApp.DocumentManager.MdiActiveDocument);
         _corridorStatus.Text = count > 0
             ? $"בשרטוט {count} קורידורים. נפח לכל קוד מבנה (Pave, Base, SubBase…) לפי ממוצע שטחי קצה לאורך התחנות, וחפירה/מילוי מחתכי Sample Lines."
@@ -497,10 +508,10 @@ internal sealed partial class InfrastructureBoqWindow : Window
         Column(_corridorGrid, "שיטה", "Evidence", new DataGridLength(1, DataGridLengthUnitType.Star));
         _corridorGrid.RowHeight = 34; _corridorGrid.MaxHeight = 170; _corridorGrid.Visibility = Visibility.Collapsed;
         corridor.Children.Add(_corridorGrid);
-        var mahod3d = Text("כלי Mahod 3D לאותה מטרה: Corridor ‹ Calculate Asfalts by Sections (Cr_CalcAsfaltsBySection) — שכבות אספלט וקרצוף לפי חתכים; " +
-            "Calculate Structure Areas (Cr_CalcStructureAreas) — שטחי מבנה בשכבות CS_<קוד>, שנקראות כאן אוטומטית כ\"שטח מבנה\".");
-        mahod3d.FontSize = 11.5; corridor.Children.Add(mahod3d);
-        right.Children.Add(corridor);
+        _readCorridors.ToolTip = "כלי Mahod 3D לאותה מטרה: Corridor ‹ Calculate Asfalts by Sections (Cr_CalcAsfaltsBySection) — שכבות אספלט וקרצוף לפי חתכים; " +
+            "Calculate Structure Areas (Cr_CalcStructureAreas) — שטחי מבנה בשכבות CS_<קוד>, שנקראות כאן אוטומטית כ\"שטח מבנה\".";
+        var corridors = Details("roads-corridors", count > 0 ? $"קורידורים ב־Civil 3D ({count})" : "קורידורים ב־Civil 3D", corridor, Theme.Ink);
+        corridors.Margin = new Thickness(0, 6, 0, 0); right.Children.Add(corridors);
         var rightCard = Theme.Card(new ScrollViewer { Content = right, VerticalScrollBarVisibility = ScrollBarVisibility.Auto }, 14);
         rightCard.Margin = new Thickness(12, 0, 0, 0); Grid.SetColumn(rightCard, 1); body.Children.Add(rightCard);
         _structureSurface.SelectedIndex = 0;
@@ -531,12 +542,14 @@ internal sealed partial class InfrastructureBoqWindow : Window
         else
         {
             _body.Content = _boqBody;
-            (_viewTitle.Text, _viewHint.Text) = view switch
+            string hint;
+            (_viewTitle.Text, hint) = view switch
             {
                 View.Demolish => ("פירוקים והריסות", "תשתיות קיימות שסומנו לפירוק. הסעיפים מוצעים מפרק הפירוקים (51.01) לפי סוג האלמנט. בייצוא: גיליון נפרד וקובץ פירוקים נפרד."),
                 View.Keep => ("קיים — נשאר", "ASMADE, ‎-EX, KAYAM וקבצי מדידה. לא מתומחרים. אם אלמנט נהרס — סמן \"קיים — לפירוק\"."),
                 _ => ("עבודות חדשות", "שכבות התכנון ושכבות מבנה המיסעה. שייך אוטומטית, או בחר שכבה וסעיף."),
             };
+            _viewTitle.ToolTip = hint + "\nקליק ימני על שורה: מצב (חדש / נשאר / לפירוק) או הסרה. Delete מסיר את השורה.";
             Refresh();
         }
         UpdateSummary();
@@ -575,15 +588,20 @@ internal sealed partial class InfrastructureBoqWindow : Window
         var surfaces = RoadPavement.Surfaces(_groups, _excluded);
         var road = surfaces.Where(s => s.Disposition == InfrastructureDisposition.New).Sum(s => s.AreaSquareMetres);
         _tiles[View.Roads].Value.Text = $"{road:N0} מ״ר";
-        _tiles[View.Roads].Detail.Text = (_reports.HasReport ? $"{_derived.Count} שכבות מבנה לפי הדו״ח" + (_plan?.DefaultArea > 0 ? " · חלקן ברירת מחדל" : "")
-                : _plan?.DefaultArea > 0 ? $"{_derived.Count} שכבות · ערכי ברירת מחדל" : _derived.Count > 0 ? $"{_derived.Count} שכבות מבנה ידני" : "ללא דו״ח מבנה — לא תומחר") +
-            $" · {surfaces.Count(s => s.Disposition == InfrastructureDisposition.New)} סוגי משטח" + (_corridor.Count > 0 ? $" · {_corridor.Count} קודי קורידור" : "");
+        // Where the structure comes from, in a few words; the counts are in the tooltip.
+        _tiles[View.Roads].Detail.Text = _reports.HasReport ? "לפי דו״ח מבנה" + (_plan?.DefaultArea > 0 ? " + ברירת מחדל" : "")
+            : _plan?.DefaultArea > 0 && _defaultClass != null ? "⚠ ברירת מחדל · " + _defaultClass.Name
+            : _derived.Count > 0 ? "מבנה ידני" : "ללא מבנה — לא תומחר";
+        _tiles[View.Roads].Tile.ToolTip = $"{_derived.Count} שכבות מבנה · {surfaces.Count(s => s.Disposition == InfrastructureDisposition.New)} סוגי משטח" +
+            (_corridor.Count > 0 ? $" · {_corridor.Count} קודי קורידור" : "");
         var concrete = _concretePlan;
         var concreteTotal = _concreteDerived.Where(g => !_excluded.Contains(g)).Sum(g => g.Total ?? 0m);
         _tiles[View.Concrete].Value.Text = concrete.Elements.Count == 0 ? "—" : concreteTotal > 0 ? $"₪ {concreteTotal:N0}" : $"{concrete.ConcreteM3:N0} מ״ק";
         _tiles[View.Concrete].Detail.Text = concrete.Elements.Count == 0 ? "לא זוהו אלמנטי בטון"
-            : $"{concrete.Elements.Count} אלמנטים · {concrete.RebarTon:N1} טון זיון" + (concrete.Defaults > 0 ? " · ⚠ ברירת מחדל" : "") + (concrete.Unpriced > 0 ? " · חסרות מידות" : "");
-        _message.Text = $"{active.Length} שכבות פעילות · {active.Count(g => g.Approved)} שויכו · {_excluded.Count} הוסרו · השיוכים נשמרים אוטומטית במחשב זה";
+            : $"{concrete.Elements.Count} אלמנטים" + (concrete.Defaults > 0 ? " · ⚠ ברירת מחדל" : "") + (concrete.Unpriced > 0 ? " · חסרות מידות" : "");
+        _tiles[View.Concrete].Tile.ToolTip = concrete.Elements.Count == 0 ? null : $"בטון {concrete.ConcreteM3:N1} מ״ק · זיון {concrete.RebarTon:N1} טון";
+        _message.Text = $"{active.Length} שכבות · {active.Count(g => g.Approved)} שויכו" + (_excluded.Count > 0 ? $" · {_excluded.Count} הוסרו" : "");
+        _message.ToolTip = "השיוכים נשמרים אוטומטית במחשב זה";
         _autoAssign.IsEnabled = !_automaticBusy && _view != View.Roads && _view != View.Concrete && _grid.Items.OfType<InfrastructureGroup>().Any(g => !g.Approved && double.IsFinite(g.Quantity) && g.Quantity > 0 && PayItem(g) && g.Disposition != InfrastructureDisposition.ExistingKeep);
     }
 
@@ -626,9 +644,11 @@ internal sealed partial class InfrastructureBoqWindow : Window
                 _note.Text = g.Evidence + "\n" + InfrastructureCatalogSearch.LayerNote(g);
                 _source.Text = $"מקור: {g.Source}\nשכבה: {g.Layer}\n{g.Count} עצמים · {g.ClosedCount} סגורים\n{g.Evidence}\n{_scan.Findings.Count} ממצאי סריקה — הפירוט נכלל ב־Excel";
                 PaintSegments(g.Disposition);
+                // Only when something was detected or changed: "no sign of existing — new work" on every layer was noise.
                 _dispositionEvidence.Text = g.ConditionEvidence.Length > 0
                     ? "זוהה אוטומטית: " + g.ConditionEvidence + (g.DispositionChangedByEngineer ? " · שונה על ידך" : "")
-                    : g.DispositionChangedByEngineer ? "שונה על ידך" : "לא זוהה סימן למצב קיים — עבודה חדשה";
+                    : g.DispositionChangedByEngineer ? "שונה על ידך" : "";
+                _dispositionEvidence.Visibility = _dispositionEvidence.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
                 _dispositionEvidence.Foreground = g.Disposition == InfrastructureDisposition.ExistingDemolish ? Theme.Blocked : Theme.Muted;
                 _catalogPanel.IsEnabled = g.Disposition != InfrastructureDisposition.ExistingKeep;
                 _items.IsEnabled = _catalogPanel.IsEnabled;
@@ -656,17 +676,21 @@ internal sealed partial class InfrastructureBoqWindow : Window
         _items.SelectedItem = options.FirstOrDefault(o => o.Code == g.Code && g.CatalogHash == _catalog.FileHash)
             ?? options.FirstOrDefault(o => o.IsRecommended);
         if (_items.SelectedItem != null) _items.ScrollIntoView(_items.SelectedItem);
-        _results.Text = options.Count == 0 ? "לא נמצאו סעיפים. נסה מילים אחרות או מספר סעיף." :
-            $"{options.Count}{(options.Count == 100 ? "+" : "")} {(_catalogSearch.Text.Trim().Length > 0 ? "תוצאות" : "הצעות לפי השכבה")} · {g.MeasurementUnit}" +
-            (options.Any(o => o.IsRecommended) ? " · הסעיף המומלץ מסומן בירוק" : " · אפשר לבחור סעיף ידנית");
+        // A line only when it says something: no results, or how many a typed search found. The green row is self-explaining.
+        _results.Text = options.Count == 0 ? "לא נמצאו סעיפים. נסה מילים אחרות או מספר סעיף."
+            : _catalogSearch.Text.Trim().Length > 0 ? $"{options.Count}{(options.Count == 100 ? "+" : "")} תוצאות" : "";
+        _results.Visibility = _results.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        _items.ToolTip = options.Any(o => o.IsRecommended) ? "הסעיף המומלץ לשכבה מסומן בירוק" : null;
         SelectItem();
     }
     private void SelectItem()
     {
         _assign.IsEnabled = _grid.SelectedItem is InfrastructureGroup { Quantity: > 0 } && _items.SelectedItem is InfrastructureCatalogOption;
         _detail.Text = _items.SelectedItem is InfrastructureCatalogOption item
-            ? $"{(item.IsRecommended ? "מומלץ לשכבה · " : "")}{item.Code} · {item.PriceDisplay} ₪ ל{item.Unit}\n{item.Description}\n{item.Reason}\n{_catalog.SnapshotId}"
-            : _grid.SelectedItem is InfrastructureGroup { Code: not null } g ? $"שויך לסעיף {g.Code}: {g.Description}" : "בחר סעיף כדי לראות את התיאור המלא ולשייך אותו לשכבה.";
+            ? $"{(item.IsRecommended ? "מומלץ · " : "")}{item.Code} · {item.PriceDisplay} ₪ ל{item.Unit}\n{item.Description}"
+            : _grid.SelectedItem is InfrastructureGroup { Code: not null } g ? $"שויך לסעיף {g.Code}: {g.Description}" : "בחר סעיף ושייך אותו לשכבה.";
+        _detail.ToolTip = _items.SelectedItem is InfrastructureCatalogOption chosen
+            ? $"{chosen.Code} · {chosen.PriceDisplay} ₪ ל{chosen.Unit}\n{chosen.Description}\n{chosen.Reason}\n{_catalog.SnapshotId}" : null;
     }
     private void Assign()
     {
@@ -760,11 +784,12 @@ internal sealed partial class InfrastructureBoqWindow : Window
         var asphaltVolume = layers.Where(l => !l.Layer.ByVolume && l.Layer.ThicknessCm > 0).Sum(l => l.VolumeCubicMetres);
         var unpriced = _plan?.UnpricedArea ?? 0;
         var byDefault = _plan?.DefaultArea ?? 0;
-        _roadsSummary.Text = newArea <= 0 ? "לא נמצאו שטחי משטח חדשים. סמן סוג משטח לשכבת Hatch משמאל, או קרא נפחים מקורידורים."
-            : layers.Count == 0 ? $"שטח חדש {newArea:N2} מ״ר — לא צורף דו״ח מבנה מיסעה ולא נבחרו ערכי ברירת מחדל, ולכן שכבות האספלט והמצעים לא חושבו ולא תומחרו."
-            : $"שטח חדש {newArea:N2} מ״ר · נפח אספלט וריצוף {asphaltVolume:N1} מ״ק · נפח מצעים וחול {volume:N1} מ״ק · {_derived.Count} שורות בכתב הכמויות (תחת \"עבודות חדשות\")" +
-              (byDefault > 0 ? $" · ⚠ {byDefault:N0} מ״ר לפי ערכי ברירת מחדל" : "") +
-              (unpriced > 0 ? $" · {unpriced:N0} מ״ר ללא מבנה — לא תומחרו" : "");
+        _roadsSummary.Text = newArea <= 0 ? "לא נמצאו שטחי משטח חדשים — סמן סוג משטח לשכבת Hatch משמאל."
+            : layers.Count == 0 ? $"שטח חדש {newArea:N0} מ״ר — ללא מבנה, לא תומחר. צרף דו״ח או בחר סוג דרך לברירת מחדל."
+            : $"שטח חדש {newArea:N0} מ״ר · אספלט וריצוף {asphaltVolume:N0} מ״ק · מצעים {volume:N0} מ״ק" +
+              (byDefault > 0 ? $" · ⚠ {byDefault:N0} מ״ר ברירת מחדל" : "") +
+              (unpriced > 0 ? $" · {unpriced:N0} מ״ר לא תומחרו" : "");
+        _roadsSummary.ToolTip = layers.Count > 0 ? $"{_derived.Count} שורות בכתב הכמויות, תחת \"עבודות חדשות\". שטח {newArea:N2} מ״ר · אספלט {asphaltVolume:N1} מ״ק · מצעים וחול {volume:N1} מ״ק" : null;
         UpdateSummary();
     }
 
@@ -920,6 +945,22 @@ internal sealed partial class InfrastructureBoqWindow : Window
     private static string Ltr(string text) => "\u202A" + text + "\u202C";
 
     private static TextBlock Text(string value) => new() { Text = value, TextWrapping = TextWrapping.Wrap, Foreground = Theme.TextSoft, Margin = new Thickness(0, 3, 0, 3) };
+    /// <summary>Which closed sections the engineer opened: the report card is rebuilt on every change and must not slam them shut.</summary>
+    private readonly Dictionary<string, bool> _openSections = new();
+    /// <summary>A one-line header with its details closed under it (owner 2026-11-11: details hidden by default).</summary>
+    private Expander Details(string key, string header, UIElement content, Brush? headerColour = null, bool open = false)
+    {
+        var expander = new Expander
+        {
+            Header = new TextBlock { Text = header, TextWrapping = TextWrapping.NoWrap, TextTrimming = TextTrimming.CharacterEllipsis,
+                FontWeight = FontWeights.SemiBold, Foreground = headerColour ?? Theme.Ink, ToolTip = header },
+            Content = content, IsExpanded = _openSections.TryGetValue(key, out var was) ? was : open, Margin = new Thickness(0, 2, 0, 2),
+        };
+        expander.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "boq-details-" + key);
+        expander.Expanded += (_, _) => _openSections[key] = true;
+        expander.Collapsed += (_, _) => _openSections[key] = false;
+        return expander;
+    }
     private static TextBlock Heading(string value, double size = 17) => new() { Text = value, FontSize = size, FontWeight = FontWeights.SemiBold, Foreground = Theme.Ink, Margin = new Thickness(0, 6, 0, 4) };
     private static TextBox Input() => new() { Padding = new Thickness(7), VerticalContentAlignment = VerticalAlignment.Center };
     private static Button ActionButton(string text, string style, string? icon = null)

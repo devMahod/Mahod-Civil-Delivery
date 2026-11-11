@@ -15,6 +15,7 @@ using ScrollViewer = System.Windows.Controls.ScrollViewer;
 using HorizontalAlignment = System.Windows.HorizontalAlignment;
 using Binding = System.Windows.Data.Binding;
 using Key = System.Windows.Input.Key;
+using Cursors = System.Windows.Input.Cursors;
 using ComboBox = System.Windows.Controls.ComboBox;
 using Orientation = System.Windows.Controls.Orientation;
 using TextBox = System.Windows.Controls.TextBox;
@@ -106,7 +107,7 @@ internal sealed partial class InfrastructureBoqWindow
     private readonly ComboBox _concreteKind = new() { DisplayMemberPath = "Label", MinWidth = 170, Padding = new Thickness(6) };
     private readonly Grid _sizeEditor = new() { Margin = new Thickness(0, 6, 0, 0) };
     private readonly TextBlock _concreteSubject = Text(""), _concreteSummary = Text(""), _concreteBannerText = Text("");
-    private readonly CheckBox _concreteDefaults = new() { Content = "חשב לפי מידות טיפוסיות כשלא הוזנו מידות (מסומן \"ברירת מחדל\")", Margin = new Thickness(0, 6, 0, 4), VerticalContentAlignment = VerticalAlignment.Center };
+    private readonly CheckBox _concreteDefaults = new() { Content = "מידות טיפוסיות כשלא הוזנו (ברירת מחדל)",Margin = new Thickness(0, 6, 0, 4), VerticalContentAlignment = VerticalAlignment.Center };
     private readonly Border _concreteBanner = new() { CornerRadius = new CornerRadius(8), BorderThickness = new Thickness(1), Padding = new Thickness(12, 8, 12, 8), Margin = new Thickness(0, 0, 0, 8) };
 
     /// <summary>One settings file per drawing; a marked area uses the same sections (a wall is as high in part of the plan as in all of it).</summary>
@@ -157,9 +158,10 @@ internal sealed partial class InfrastructureBoqWindow
         // dock layout the editor squeezed the table out of sight).
         var left = new StackPanel();
         var head = new StackPanel(); left.Children.Add(head);
-        head.Children.Add(Heading("1  אלמנטי בטון בשרטוט"));
-        head.Children.Add(Text("קירות, יסודות, כלונסאות, קורות ראש, מרצפים ועמודים — מזוהים משם השכבה (S-/ST-/HW-WALL, FOUND, PILE…) או מבלוק כלונס. " +
-                               "שכבת קונסטרוקציה אחרת — בחר אותה ובחר סוג. הקו עצמו אינו מתומחר לפי אורכו: הבטון, הכלונסאות והזיון שלו הם השורות."));
+        var title = Heading("1  אלמנטי בטון בשרטוט"); title.Cursor = Cursors.Help;
+        title.ToolTip = "קירות, יסודות, כלונסאות, קורות ראש, מרצפים ועמודים — מזוהים משם השכבה (S-/ST-/HW-WALL, FOUND, PILE…) או מבלוק כלונס. " +
+                        "שכבת קונסטרוקציה אחרת — בחר אותה ובחר סוג. הקו עצמו אינו מתומחר לפי אורכו: הבטון, הכלונסאות והזיון שלו הם השורות.";
+        head.Children.Add(title);
         var editor = new StackPanel { Margin = new Thickness(0, 8, 0, 0) };
         editor.Children.Add(Heading("2  מידות האלמנט", 14));
         _concreteSubject.FontWeight = FontWeights.SemiBold; editor.Children.Add(_concreteSubject);
@@ -173,7 +175,7 @@ internal sealed partial class InfrastructureBoqWindow
             UiGuard.Run("סוג אלמנט בטון", () => { _concreteSettings.SetKind(r.Group, c.Kind); SaveConcrete($"{r.LayerName} סומן כ{c.Label}"); });
         };
         editor.Children.Add(kindRow);
-        editor.Children.Add(Text("שדה ריק = המידה מהשרטוט או ערך טיפוסי (מוצג משמאל). Enter או יציאה מהשדה — שומר לשרטוט זה."));
+        _sizeEditor.ToolTip = "שדה ריק = המידה מהשרטוט או ערך טיפוסי (מוצג משמאל). Enter או יציאה מהשדה — שומר לשרטוט זה.";
         editor.Children.Add(_sizeEditor);
         var clear = ActionButton("נקה מידות שהוזנו", "QuietButton"); clear.HorizontalAlignment = HorizontalAlignment.Left; clear.Margin = new Thickness(0, 6, 0, 0);
         clear.Click += (_, _) => UiGuard.Run("ניקוי מידות", () =>
@@ -218,8 +220,7 @@ internal sealed partial class InfrastructureBoqWindow
         _concreteSummary.FontWeight = FontWeights.SemiBold;
         _concreteSummary.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "boq-concrete-summary");
         right.Children.Add(_concreteSummary);
-        var source = Text("ערכים טיפוסיים: " + StructureConcrete.DefaultsSource); source.FontSize = 11.5; source.Margin = new Thickness(0, 8, 0, 0);
-        right.Children.Add(source);
+        _concreteDefaults.ToolTip = "ערכים טיפוסיים: " + StructureConcrete.DefaultsSource;
         var rightCard = Theme.Card(new ScrollViewer { Content = right, VerticalScrollBarVisibility = ScrollBarVisibility.Auto }, 14);
         rightCard.Margin = new Thickness(12, 0, 0, 0); Grid.SetColumn(rightCard, 1); body.Children.Add(rightCard);
         return body;
@@ -244,17 +245,20 @@ internal sealed partial class InfrastructureBoqWindow
         _concreteRowsGrid.ItemsSource = _concreteDerived.Where(g => !_excluded.Contains(g)).ToArray();
         var plan = _concretePlan;
         _concreteSummary.Text = plan.Elements.Count == 0
-            ? "לא נמצאו אלמנטי בטון בשרטוט. שכבת קונסטרוקציה ברשימה — בחר אותה וסמן סוג."
-            : $"{plan.Elements.Count} אלמנטים · בטון {plan.ConcreteM3:N1} מ״ק · זיון {plan.RebarTon:N2} טון · {_concreteDerived.Count} שורות בכתב הכמויות (תחת \"עבודות חדשות\")" +
-              (plan.Defaults > 0 ? $" · ⚠ {plan.Defaults} לפי ברירת מחדל" : "") + (plan.Unpriced > 0 ? $" · {plan.Unpriced} לא תומחרו" : "");
+            ? "לא נמצאו אלמנטי בטון בשרטוט."
+            : $"{plan.Elements.Count} אלמנטים · בטון {plan.ConcreteM3:N1} מ״ק · זיון {plan.RebarTon:N2} טון" +
+              (plan.Defaults > 0 ? $" · ⚠ {plan.Defaults} ברירת מחדל" : "") + (plan.Unpriced > 0 ? $" · {plan.Unpriced} לא תומחרו" : "");
+        _concreteSummary.ToolTip = $"{_concreteDerived.Count} שורות בכתב הכמויות, תחת \"עבודות חדשות\". שכבת קונסטרוקציה שלא זוהתה — בחר אותה ברשימה וסמן סוג.";
         var warn = plan.Defaults > 0 || plan.Unpriced > 0;
+        // One line; which elements and which sizes are defaults is the tooltip (owner 2026-11-11: too much text).
         _concreteBannerText.Text = plan.Elements.Count == 0 ? "אין אלמנטי בטון מזוהים — כתב הכמויות אינו כולל בטון."
-            : plan.Defaults > 0
-                ? $"⚠ ערכי ברירת מחדל: {plan.Defaults} מתוך {plan.Elements.Count} אלמנטי הבטון חושבו בחלקם לפי מידות טיפוסיות ולא לפי תוכניות הקונסטרוקציה " +
-                  $"({string.Join(" · ", plan.Elements.Where(e => !e.Unpriced && e.UsesDefaults).Select(e => $"{e.KindName} {e.LayerName}: {e.DefaultFields}"))}). " +
-                  "הזן את המידות מהתכנון, או אמת מול הקונסטרוקטור לפני הגשה."
-            : plan.Unpriced > 0 ? $"{plan.Unpriced} אלמנטי בטון לא תומחרו — חסרות מידות. הזן מידות, או הפעל חישוב לפי מידות טיפוסיות."
-            : "כל אלמנטי הבטון חושבו לפי מידות שהוזנו או מהשרטוט.";
+            : plan.Defaults > 0 ? $"⚠ {plan.Defaults} מתוך {plan.Elements.Count} אלמנטים חושבו בחלקם לפי מידות טיפוסיות — אמת מול הקונסטרוקציה"
+            : plan.Unpriced > 0 ? $"{plan.Unpriced} אלמנטים לא תומחרו — חסרות מידות"
+            : "כל האלמנטים חושבו לפי מידות שהוזנו או מהשרטוט.";
+        _concreteBannerText.ToolTip = plan.Defaults > 0
+            ? string.Join("\n", plan.Elements.Where(e => !e.Unpriced && e.UsesDefaults).Select(e => $"{e.KindName} {e.LayerName}: {e.DefaultFields}")) +
+              "\nהזן את המידות מהתכנון, או אמת מול הקונסטרוקטור לפני הגשה."
+            : plan.Unpriced > 0 ? "הזן מידות, או הפעל חישוב לפי מידות טיפוסיות." : null;
         _concreteBanner.Background = warn ? Theme.ReviewTint : Theme.AccentTint;
         _concreteBanner.BorderBrush = warn ? Theme.Review : Theme.Accent;
         UpdateSummary();

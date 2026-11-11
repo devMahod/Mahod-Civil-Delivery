@@ -45,7 +45,7 @@ internal sealed partial class InfrastructureBoqWindow
     private PavementReportPlan.Result? _plan;
     private HashSet<(string, string, string)>? _zoneKeys;
     private readonly StackPanel _reportCard = new();
-    private readonly Border _pavementBanner = new() { CornerRadius = new CornerRadius(8), BorderThickness = new Thickness(1), Padding = new Thickness(12, 8, 12, 8), Margin = new Thickness(0, 10, 0, 0) };
+    private readonly Border _pavementBanner = new() { CornerRadius = new CornerRadius(8), BorderThickness = new Thickness(1), Padding = new Thickness(12, 5, 12, 5), Margin = new Thickness(0, 10, 0, 0) };
     private readonly System.Windows.Controls.DataGrid _zoneGrid = Table();
     /// <summary>The road type whose default structures price what neither the report nor the engineer covers; null = off.</summary>
     private PavementDefaultClass? _defaultClass;
@@ -113,7 +113,7 @@ internal sealed partial class InfrastructureBoqWindow
         DockPanel.SetDock(_pavementBanner, Dock.Top);
         _pavementBanner.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "boq-pavement-banner");
         Column(_zoneGrid, "מקטע", "Zone", 135); Column(_zoneGrid, "דרך", "Road", 95); Column(_zoneGrid, "משטח", "SurfaceName", 85);
-        Column(_zoneGrid, "שטח מ״ר", "AreaSquareMetres", 80, "N0"); Column(_zoneGrid, "מבנה", "Structure", 120); Column(_zoneGrid, "מקור", "OriginLabel", 90);
+        Column(_zoneGrid, "שטח מ״ר", "AreaSquareMetres", 80, "N0"); Column(_zoneGrid, "מבנה", "Structure", 165); Column(_zoneGrid, "מקור", "OriginLabel", 90);
         Column(_zoneGrid, "שכבות", "Layers", new DataGridLength(1, DataGridLengthUnitType.Star));
         _zoneGrid.RowHeight = 30; PassWheelToPage(_zoneGrid);
         _zoneGrid.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "boq-pavement-zones");
@@ -315,7 +315,7 @@ internal sealed partial class InfrastructureBoqWindow
         System.Windows.Media.Brush tint, frame;
         if (_readingReport)
         {
-            banner.Children.Add(Text("קורא את דו״ח מבנה המיסעה ב־MahodAI — מבנים, שכבות ומקטעים… (עד כדקה)"));
+            banner.Children.Add(Text("קורא את דו״ח מבנה המיסעה ב־MahodAI… (עד כדקה)"));
             (tint, frame) = (Theme.ReviewTint, Theme.Review);
         }
         else if (!_reports.HasReport)
@@ -326,11 +326,15 @@ internal sealed partial class InfrastructureBoqWindow
             attach.Click += async (_, _) => await AttachReports(replace: true);
             DockPanel.SetDock(attach, Dock.Left); row.Children.Add(attach);
             var byDefault = _plan?.DefaultArea ?? 0;
+            // One short line; the full sentence is the tooltip (owner 2026-11-11).
             var t = Text(byDefault > 0 && _defaultClass != null
-                ? $"⚠ לא צורף דו״ח מבנה מיסעה — שכבות האספלט והמצעים חושבו לפי ערכי ברירת מחדל ל\"{_defaultClass.Name}\" ({byDefault:N0} מ״ר). אלה מבנים טיפוסיים ולא תכנון הפרויקט — לחישוב מחייב צרף את דו״ח היועץ."
-                : awaiting > 0
-                ? $"לא צורף דו״ח מבנה מיסעה — לא ניתן לחשב את שכבות האספלט והמצעים. {awaiting:N0} מ״ר של כבישים, נת״צ, מדרכות ושבילים אינם מתומחרים עד שיצורף הדו״ח או ייבחר סוג דרך לערכי ברירת מחדל."
-                : "לא צורף דו״ח מבנה מיסעה — שכבות האספלט והמצעים אינן מחושבות.");
+                ? $"⚠ ללא דו״ח מבנה — מבנה לפי ברירת מחדל: {_defaultClass.Name} ({byDefault:N0} מ״ר)"
+                : awaiting > 0 ? $"ללא דו״ח מבנה — {awaiting:N0} מ״ר מיסעות לא תומחרו"
+                : "ללא דו״ח מבנה — שכבות האספלט והמצעים אינן מחושבות");
+            t.ToolTip = byDefault > 0 && _defaultClass != null
+                ? $"שכבות האספלט והמצעים חושבו לפי ערכי ברירת מחדל ל\"{_defaultClass.Name}\". אלה מבנים טיפוסיים ולא תכנון הפרויקט — לחישוב מחייב צרף את דו״ח היועץ. מסומן \"ברירת מחדל\" בכל שורה ובייצוא."
+                : "כבישים, נת״צ, מדרכות ושבילים אינם מתומחרים עד שיצורף הדו״ח או ייבחר סוג דרך לערכי ברירת מחדל (לוח \"כבישים\").";
+            t.TextWrapping = TextWrapping.NoWrap; t.TextTrimming = TextTrimming.CharacterEllipsis;
             var defaults = byDefault > 0;
             t.FontWeight = FontWeights.SemiBold; t.Foreground = defaults ? Theme.Review : Theme.Blocked; t.Margin = new Thickness(12, 0, 0, 0); t.VerticalAlignment = VerticalAlignment.Center;
             t.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "boq-pavement-banner-text");
@@ -345,11 +349,14 @@ internal sealed partial class InfrastructureBoqWindow
             // Every unpriced square metre once: the zones table already holds the awaiting areas (they sit in a zone with no structure).
             var unpriced = _plan != null ? _plan.UnpricedArea : awaiting;
             var byDefault = _plan?.DefaultArea ?? 0;
-            var line = Text($"דו״ח מבנה: {string.Join(" · ", _reports.Reports.Select(r => r.FileName))} — {structures} מבנים, " +
-                            $"{_reports.Reports.Sum(r => r.Content.Segments.Count)} מקטעים · {_plan?.Layers.Count ?? 0} שכבות מבנה בכתב הכמויות" +
-                            (byDefault > 0 && _defaultClass != null ? $" · ⚠ {byDefault:N0} מ״ר שאין להם מבנה בדו״ח — לפי ערכי ברירת מחדל ל\"{_defaultClass.Name}\"" : "") +
-                            (unpriced > 0 ? $" · {unpriced:N0} מ״ר לא תומחרו לפי מבנה (פירוט בלוח \"כבישים\")" : ""));
-            line.ToolTip = notes.Length > 0 ? string.Join("\n", notes) : null;
+            var line = Text($"דו״ח מבנה: {string.Join(" · ", _reports.Reports.Select(r => Path.GetFileNameWithoutExtension(r.FileName)))} · {structures} מבנים · " +
+                            $"{_reports.Reports.Sum(r => r.Content.Segments.Count)} מקטעים" +
+                            (byDefault > 0 && _defaultClass != null ? $" · ⚠ {byDefault:N0} מ״ר ברירת מחדל" : "") +
+                            (unpriced > 0 ? $" · {unpriced:N0} מ״ר לא תומחרו" : ""));
+            line.TextWrapping = TextWrapping.NoWrap; line.TextTrimming = TextTrimming.CharacterEllipsis;
+            line.ToolTip = string.Join("\n", new[] { $"{_plan?.Layers.Count ?? 0} שכבות מבנה בכתב הכמויות" }
+                .Concat(byDefault > 0 && _defaultClass != null ? new[] { $"{byDefault:N0} מ״ר שאין להם מבנה בדו״ח — לפי ערכי ברירת מחדל ל\"{_defaultClass.Name}\"" } : Array.Empty<string>())
+                .Concat(notes));
             line.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "boq-pavement-banner-text");
             banner.Children.Add(line);
             (tint, frame) = notes.Length > 0 || awaiting > 0 || byDefault > 0 ? (Theme.ReviewTint, Theme.Review) : (Theme.AccentTint, Theme.Accent);
@@ -360,12 +367,18 @@ internal sealed partial class InfrastructureBoqWindow
         FillReportCard();
     }
 
+    /// <summary>
+    /// The report card on the roads screen. Owner 2026-11-11: too much text, details hidden by default — so the card shows
+    /// the buttons, one summary line, the choices that change the price, and the zones table; the report's structures, its
+    /// variants, the band width and the notes are closed sections under it.
+    /// </summary>
     private void FillReportCard()
     {
         var c = _reportCard; c.Children.Clear();
         c.Children.Add(Heading("2  דו״ח מבנה מיסעה"));
         var buttons = new WrapPanel { Margin = new Thickness(0, 2, 0, 6) };
         var attach = ActionButton(_reports.HasReport ? "החלף דו״ח…" : "צרף דו״ח מבנה…", _reports.HasReport ? "PillButton" : "GoButton");
+        attach.ToolTip = "דו״ח יועץ המיסעות (PDF). MahodAI קורא את המבנים והמקטעים, והמבנים נפרסים על שטחי הכבישים לפי קווי הציר.";
         attach.Click += async (_, _) => await AttachReports(replace: true);
         attach.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "boq-pavement-replace");
         buttons.Children.Add(attach);
@@ -385,29 +398,30 @@ internal sealed partial class InfrastructureBoqWindow
         c.Children.Add(buttons);
         if (!_reports.HasReport)
         {
-            c.Children.Add(Text("שכבות האספלט והמצעים, הנפח והמחיר מחושבים לפי דו״ח יועץ המיסעות, בקובץ PDF. הדו״ח נקרא על ידי MahodAI, ומבני המיסעה נפרסים על שטחי הכבישים לפי המקטעים שבו. " +
-                                "בלי דו״ח — לפי ערכי ברירת מחדל של סוג הדרך שנבחר כאן, מסומנים כברירת מחדל בכל שורה."));
             DefaultsChooser(c);
             ZonesTable(c);
             return;
         }
+
+        // One line per report; what it says (structures, variants, its own doubts) is closed under it.
         for (var i = 0; i < _reports.Reports.Count; i++)
         {
             var r = _reports.Reports[i]; var d = r.Content.Document;
-            var head = Text((_reports.Reports.Count > 1 ? $"דו״ח {i + 1}: " : "") + string.Join(" · ", new[] { d.Title ?? r.FileName, d.Consultant, d.Date }.Where(x => !string.IsNullOrWhiteSpace(x))) +
+            var details = new StackPanel { Margin = new Thickness(10, 0, 0, 4) };
+            var head = Text(string.Join(" · ", new[] { d.Title ?? r.FileName, d.Consultant, d.Date }.Where(x => !string.IsNullOrWhiteSpace(x))) +
                             $"\nנקרא על ידי MahodAI ({r.Model}) {r.ReadUtc.ToLocalTime():dd/MM/yyyy HH:mm} · {r.FileName}");
-            head.FontWeight = FontWeights.SemiBold; c.Children.Add(head);
+            head.FontSize = 11.5; head.Foreground = Theme.Muted; details.Children.Add(head);
             foreach (var s in r.Content.Structures)
             {
                 var line = Text($"{s.ShortName} — {UseLabel(s.Use)}: {s.LayersDisplay}" + (s.TotalMatches ? "" : $" ⚠ בדו״ח: {s.StatedTotalCm:0.#} ס״מ") + (s.Page is { } p ? $" (עמ׳ {p})" : ""));
-                line.Margin = new Thickness(10, 1, 0, 1); if (!s.TotalMatches) line.Foreground = Theme.Review;
-                c.Children.Add(line);
+                line.Margin = new Thickness(0, 1, 0, 1); if (!s.TotalMatches) line.Foreground = Theme.Review;
+                details.Children.Add(line);
             }
             foreach (var family in PavementReportPlan.RoadFamilies(r.Content))
             {
                 var variants = PavementReportPlan.Variants(r.Content, family);
                 if (variants.Select(v => v.Variant).Distinct().Count() < 2) continue;
-                var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(10, 4, 0, 2) };
+                var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 4, 0, 2) };
                 row.Children.Add(Text($"מבנה {family} חל כ־"));
                 var pick = new ComboBox { MinWidth = 210, Padding = new Thickness(5), Margin = new Thickness(6, 0, 0, 0), ItemsSource = variants.Select(v => VariantLabel(v.Variant)).Distinct().ToArray() };
                 pick.SelectedItem = VariantLabel(_reports.VariantOf(i, family));
@@ -420,17 +434,22 @@ internal sealed partial class InfrastructureBoqWindow
                     RebuildRoads(); Refresh();
                 });
                 row.Children.Add(pick);
-                c.Children.Add(row);
+                details.Children.Add(row);
             }
-            foreach (var p in r.Content.Problems.Concat(r.Warnings)) { var t = Text("⚠ " + p); t.Foreground = Theme.Review; t.Margin = new Thickness(10, 1, 0, 1); c.Children.Add(t); }
+            var doubts = r.Content.Problems.Concat(r.Warnings).ToArray();
+            foreach (var p in doubts) { var t = Text("⚠ " + p); t.Foreground = Theme.Review; t.Margin = new Thickness(0, 1, 0, 1); details.Children.Add(t); }
+            var title = (_reports.Reports.Count > 1 ? $"דו״ח {i + 1}: " : "") + $"{Path.GetFileNameWithoutExtension(r.FileName)} · {r.Content.Structures.Count} מבנים · {r.Content.Segments.Count} מקטעים" +
+                        (doubts.Length > 0 ? $" · ⚠ {doubts.Length}" : "");
+            c.Children.Add(Details("report-" + i, title, details, doubts.Length > 0 ? Theme.Review : Theme.Ink));
         }
-        // Where the report's segments could not be found, the engineer may still say which structure holds everywhere.
+        // Where the report's segments could not be found, the engineer may still say which structure holds everywhere: a
+        // choice that prices the whole road stays on screen.
         var families = _reports.Reports.SelectMany(r => PavementReportPlan.RoadFamilies(r.Content)).Distinct().ToArray();
         var unlocated = _reports.Reports.Select((r, i) => (r, i)).Any(x => x.r.Content.Segments.Count > 0 && (_bands == null || _bands.Bands.All(b => b.Report != x.i)));
         if (unlocated || _reports.FallbackFamily != null)
         {
             var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 2) };
-            row.Children.Add(Text("מקטעי הדו״ח לא אותרו בשרטוט. מבנה לכל הכביש:"));
+            row.Children.Add(Text("המקטעים לא אותרו בשרטוט. מבנה לכל הכביש:"));
             var pick = new ComboBox { MinWidth = 120, Padding = new Thickness(5), Margin = new Thickness(6, 0, 0, 0),
                 ItemsSource = new[] { "— אל תתמחר" }.Concat(families.Select(f => "מבנה " + f)).ToArray() };
             pick.SelectedItem = _reports.FallbackFamily == null ? "— אל תתמחר" : "מבנה " + _reports.FallbackFamily;
@@ -443,26 +462,31 @@ internal sealed partial class InfrastructureBoqWindow
             row.Children.Add(pick);
             c.Children.Add(row);
         }
-        if (_reports.Reports.Any(r => r.Content.Segments.Count > 0))
-        {
-            var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 2) };
-            row.Children.Add(Text("רוחב רצועת המקטע מכל צד של קו הציר (מ׳):"));
-            var width = new TextBox { Text = _reports.BandHalfWidthMetres.ToString("0.#", CultureInfo.InvariantCulture), Width = 60, Padding = new Thickness(5), Margin = new Thickness(6, 0, 0, 0) };
-            width.ToolTip = "כל שטח כביש עד מרחק זה מקו הציר, בין חתך ההתחלה לחתך הסוף, שייך למקטע. ברירת מחדל 30 מ׳.";
-            width.LostFocus += (_, _) => UiGuard.Run("רוחב רצועה", () =>
-            {
-                if (!double.TryParse(width.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var w) || w < 2 || w > 200) { width.Text = _reports.BandHalfWidthMetres.ToString("0.#", CultureInfo.InvariantCulture); return; }
-                if (Math.Abs(w - _reports.BandHalfWidthMetres) < 1e-9) return;
-                _reports = _reports with { BandHalfWidthMetres = w }; PavementReportSet.Save(_pavementPath, _reports);
-                ComputeZones(popups: false); RebuildRoads(); Refresh();
-            });
-            row.Children.Add(width);
-            if (_bands != null) row.Children.Add(Text($"   {_bands.Bands.Count} מקטעים אותרו על {_centrelines?.Lines.Count ?? 0} קווי ציר"));
-            c.Children.Add(row);
-        }
         DefaultsChooser(c);
-        foreach (var note in PavementNotes().Where(n => !n.StartsWith("הערת קריאת", StringComparison.Ordinal)))
-        { var t = Text("• " + note); t.Foreground = Theme.Review; c.Children.Add(t); }
+        var notes = PavementNotes().Where(n => !n.StartsWith("הערת קריאת", StringComparison.Ordinal)).ToArray();
+        if (_reports.Reports.Any(r => r.Content.Segments.Count > 0) || notes.Length > 0)
+        {
+            var more = new StackPanel { Margin = new Thickness(10, 0, 0, 4) };
+            if (_reports.Reports.Any(r => r.Content.Segments.Count > 0))
+            {
+                var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 4) };
+                row.Children.Add(Text("רוחב רצועת המקטע מכל צד של קו הציר (מ׳):"));
+                var width = new TextBox { Text = _reports.BandHalfWidthMetres.ToString("0.#", CultureInfo.InvariantCulture), Width = 60, Padding = new Thickness(5), Margin = new Thickness(6, 0, 0, 0) };
+                width.ToolTip = "כל שטח כביש עד מרחק זה מקו הציר, בין חתך ההתחלה לחתך הסוף, שייך למקטע. ברירת מחדל 30 מ׳.";
+                width.LostFocus += (_, _) => UiGuard.Run("רוחב רצועה", () =>
+                {
+                    if (!double.TryParse(width.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var w) || w < 2 || w > 200) { width.Text = _reports.BandHalfWidthMetres.ToString("0.#", CultureInfo.InvariantCulture); return; }
+                    if (Math.Abs(w - _reports.BandHalfWidthMetres) < 1e-9) return;
+                    _reports = _reports with { BandHalfWidthMetres = w }; PavementReportSet.Save(_pavementPath, _reports);
+                    ComputeZones(popups: false); RebuildRoads(); Refresh();
+                });
+                row.Children.Add(width);
+                more.Children.Add(row);
+            }
+            foreach (var note in notes) { var t = Text("• " + note); t.Foreground = Theme.Review; t.FontSize = 12; more.Children.Add(t); }
+            var located = _bands != null ? $"{_bands.Bands.Count} מקטעים אותרו על {_centrelines?.Lines.Count ?? 0} קווי ציר" : "מיקום המקטעים";
+            c.Children.Add(Details("report-placement", located + (notes.Length > 0 ? $" · ⚠ {notes.Length} הערות" : ""), more, notes.Length > 0 ? Theme.Review : Theme.Ink));
+        }
         ZonesTable(c);
     }
 
@@ -477,12 +501,17 @@ internal sealed partial class InfrastructureBoqWindow
         c.Children.Add(_zoneGrid);
     }
 
-    /// <summary>The road type whose default structures price what the report and the engineer leave without one.</summary>
+    /// <summary>The road type whose default structures price what the report and the engineer leave without one. The
+    /// picker is always on screen; what the type's structures are is a closed section under it.</summary>
     private void DefaultsChooser(StackPanel c)
     {
         var box = new StackPanel { Margin = new Thickness(0, 6, 0, 4) };
         var row = new WrapPanel();
-        row.Children.Add(Text(_reports.HasReport ? "ערכי ברירת מחדל לשטחים שאין להם מבנה בדו״ח — סוג דרך:" : "ערכי ברירת מחדל — סוג דרך:"));
+        var label = Text(_reports.HasReport ? "ברירת מחדל לשטחים בלי מבנה בדו״ח:" : "בלי דו״ח — סוג דרך לברירת מחדל:");
+        label.VerticalAlignment = VerticalAlignment.Center;
+        label.ToolTip = "מבנים טיפוסיים, לא תכנון הפרויקט — מסומנים \"ברירת מחדל\" בכל שורה ובייצוא." +
+                        (_scan.Area != null ? "\nהבחירה חלה על האזור המסומן בלבד; כתב הכמויות לכל השרטוט שומר את הבחירה שלו." : "");
+        row.Children.Add(label);
         const string none = "— ללא ברירת מחדל (לא לתמחר)";
         var pick = new ComboBox { MinWidth = 260, Padding = new Thickness(5), Margin = new Thickness(6, 0, 0, 0),
             ItemsSource = PavementDefaults.Classes.Select(k => k.Name).Prepend(none).ToArray() };
@@ -500,15 +529,15 @@ internal sealed partial class InfrastructureBoqWindow
         box.Children.Add(row);
         if (_defaultClass != null)
         {
-            var detail = new StackPanel { Margin = new Thickness(10, 4, 0, 0) };
+            var detail = new StackPanel { Margin = new Thickness(10, 0, 0, 0) };
             var head = Text($"{_defaultClass.Traffic}. ⚠ ערכים טיפוסיים, לא תכנון הפרויקט — מסומנים \"ברירת מחדל\" בכל שורה ובייצוא.");
-            head.Foreground = Theme.Review; detail.Children.Add(head);
+            head.Foreground = Theme.Review; head.FontSize = 12; detail.Children.Add(head);
             foreach (var s in _defaultClass.Structures)
             { var t = Text($"{UseLabel(s.Use)}: {s.LayersDisplay} — {string.Join(" + ", s.Layers.Select(l => l.Material))}"); t.FontSize = 11.5; detail.Children.Add(t); }
             var source = Text("מקור: " + _defaultClass.Source); source.FontSize = 11; source.Foreground = Theme.Muted; detail.Children.Add(source);
-            box.Children.Add(detail);
+            var road = _defaultClass.StructureFor(RoadSurfaceKind.Road)?.LayersDisplay;
+            box.Children.Add(Details("defaults-structures", "מה כולל המבנה" + (road != null ? $" · מיסעה: {road}" : ""), detail, Theme.TextSoft));
         }
-        if (_scan.Area != null) { var t = Text("הבחירה חלה על האזור המסומן בלבד; כתב הכמויות לכל השרטוט שומר את הבחירה שלו."); t.FontSize = 11; t.Foreground = Theme.Muted; box.Children.Add(t); }
         c.Children.Add(box);
     }
 

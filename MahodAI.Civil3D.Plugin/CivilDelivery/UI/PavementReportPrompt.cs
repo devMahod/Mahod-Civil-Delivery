@@ -40,11 +40,15 @@ internal sealed class PavementReportPrompt : Window
         DefaultClass = current?.Id ?? PavementDefaults.NoneId;
 
         var body = new StackPanel { Margin = new Thickness(18) };
-        body.Children.Add(new TextBlock { Text = "צרף את דו״ח מבנה המיסעה של השרטוט", FontSize = 18, FontWeight = FontWeights.SemiBold, Foreground = Theme.Ink, Margin = new Thickness(0, 0, 0, 8) });
-        body.Children.Add(Paragraph("שכבות האספלט והמצעים, הנפח והמחיר שלהן מחושבים לפי דו״ח יועץ המיסעות, בקובץ PDF. " +
-                                    "הדו״ח נקרא על ידי MahodAI — מבני המיסעה, עובי כל שכבה ובאילו מקטעים חל כל מבנה — ושכבות המבנה נפרסות על שטחי הכבישים בשרטוט לפי קווי הציר."));
-        body.Children.Add(Paragraph("הדו״ח אינו חובה: בלי דו״ח השכבות מחושבות לפי ערכי ברירת מחדל של סוג הדרך שנבחר למטה. " +
-                                    "ערכי ברירת מחדל הם מבנים טיפוסיים ולא תכנון הפרויקט, ומסומנים ככאלה בכל שורה ובייצוא."));
+        // Two sentences; how the report is read is a closed section (owner 2026-11-11: the windows carried too much text).
+        body.Children.Add(new TextBlock { Text = "דו״ח מבנה מיסעה (לא חובה)", FontSize = 18, FontWeight = FontWeights.SemiBold, Foreground = Theme.Ink, Margin = new Thickness(0, 0, 0, 6) });
+        body.Children.Add(Paragraph("עם דו״ח היועץ (PDF) — שכבות האספלט והמצעים לפי הדו״ח. בלי דו״ח — לפי ברירת מחדל של סוג הדרך שתבחר כאן."));
+        body.Children.Add(new Expander
+        {
+            Header = "איך זה עובד", Margin = new Thickness(0, 2, 0, 2), Foreground = Theme.TextSoft,
+            Content = Paragraph("MahodAI קורא את הדו״ח — מבני המיסעה, עובי כל שכבה ובאילו מקטעים חל כל מבנה — ושכבות המבנה נפרסות על שטחי הכבישים בשרטוט לפי קווי הציר. " +
+                                "ערכי ברירת מחדל הם מבנים טיפוסיים ולא תכנון הפרויקט, ומסומנים \"ברירת מחדל\" בכל שורה ובייצוא."),
+        });
         if (existing.HasReport)
         {
             var list = string.Join("\n", existing.Reports.Select(r => "• " + r.FileName + (r.Content.Document.Consultant is { Length: > 0 } c ? " — " + c : "") +
@@ -57,7 +61,7 @@ internal sealed class PavementReportPrompt : Window
 
         // The road type for the defaults: for the whole area without a report, or for the areas the report does not cover.
         var typeRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 10, 0, 2) };
-        typeRow.Children.Add(new TextBlock { Text = existing.HasReport ? "סוג דרך לשטחים שאין להם מבנה בדו״ח:" : "סוג דרך לערכי ברירת מחדל:", VerticalAlignment = VerticalAlignment.Center, Foreground = Theme.Ink });
+        typeRow.Children.Add(new TextBlock { Text = existing.HasReport ? "ברירת מחדל לשטחים בלי מבנה:" : "סוג דרך:", VerticalAlignment = VerticalAlignment.Center, Foreground = Theme.Ink });
         var pick = new ComboBox { MinWidth = 280, Padding = new Thickness(5), Margin = new Thickness(8, 0, 0, 0),
             ItemsSource = PavementDefaults.Classes.Select(k => k.Name).Prepend(NoDefaults).ToArray(), SelectedItem = current?.Name ?? NoDefaults };
         pick.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "pavement-default-class");
@@ -92,7 +96,7 @@ internal sealed class PavementReportPrompt : Window
         };
         actions.Children.Add(attach);
         // Without a report there is one way on: the defaults of the chosen road type ("— ללא ברירת מחדל" = nothing priced).
-        var close = Action(existing.HasReport ? "סגור" : "המשך בלי דו״ח — ערכי ברירת מחדל", existing.HasReport ? "QuietButton" : "PillButton", "pavement-without");
+        var close = Action(existing.HasReport ? "סגור" : "המשך בלי דו״ח", existing.HasReport ? "QuietButton" : "PillButton", "pavement-without");
         close.IsCancel = true;
         close.Click += (_, _) => { Result = existing.HasReport ? Choice.KeepExisting : Choice.Without; DialogResult = false; };
         actions.Children.Add(close);
