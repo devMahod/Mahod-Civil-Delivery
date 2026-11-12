@@ -24,7 +24,8 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
         /// several TINs could be it.</param>
         internal sealed record Request(
             IReadOnlyList<TypicalSectionPick> Picks, ProjectProfile Profile, string? ProfileHash,
-            IReadOnlyDictionary<string, string>? CorridorChoices = null, string? ExistingSurfaceChoice = null);
+            IReadOnlyDictionary<string, string>? CorridorChoices = null, string? ExistingSurfaceChoice = null,
+            IReadOnlyList<string>? ScanNotes = null);
 
         internal sealed record Prerequisites(
             string AlignmentName, string CorridorName, string ExistingSurface, string TopSurface,
@@ -102,6 +103,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
         {
             var started = DateTime.UtcNow;
             var result = new Result { RunId = RunManifest.NewRunId("typical-sections", "create") };
+            if (request.ScanNotes != null) result.Warnings.AddRange(request.ScanNotes);
             var db = doc.Database;
             var picks = request.Picks
                 .OrderBy(pick => pick.AlignmentName, StringComparer.OrdinalIgnoreCase)
@@ -115,6 +117,8 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             // A drafted drawing has no corridor for the firm's program: its sections are read off the plan.
             if (picks.All(pick => pick.FromPlan))
                 return CreateDrafted(doc, request, picks, result, log, started);
+            var drafted = picks.Where(pick => pick.FromPlan).ToList();
+            picks = picks.Where(pick => !pick.FromPlan).ToList();
 
             // ----------------------------------------------------------------- guards
             var workingDatabase = HostApplicationServices.WorkingDatabase?.UnmanagedObject ?? IntPtr.Zero;
@@ -381,7 +385,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                         }
                         outcome.BlockHandle = added[0].ToString();
                         previousExtents = ReadBlockExtents(db, added[0], outcome, result);
-                        previousExtents = AddPlanOverlay(db, pick, added[0], prerequisites.CorridorName, prerequisites.ExistingSurface,
+                        previousExtents = AddPlanOverlay(db, pick, added[0], prerequisites.CorridorName, prerequisites.ExistingSurface, prerequisites.TopSurface,
                             outcome, result, previousExtents);
                     }
                     catch (Exception ex)
@@ -437,6 +441,8 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                 log?.End("typical.strip_names", $"named={result.NamedCount} unmatched={result.UnmatchedCount}");
             }
 
+            if (drafted.Count > 0)
+                return CreateDrafted(doc, request, drafted, result, log, started, layout, previousExtents);
             return Finish(result, request, started);
         }
 
@@ -446,19 +452,19 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
         /// crossed. Laid out on the same grid as the firm's blocks. The window reports widths, names and what was found.
         /// </summary>
         private Result CreateDrafted(Document doc, Request request, List<TypicalSectionPick> picks, Result result,
-            StageLog? log, DateTime started)
+            StageLog? log, DateTime started, TypicalSectionLayoutLogic.LayoutState? layout = null,
+            (double MinX, double MinY, double MaxX, double MaxY)? previousExtents = null)
         {
             var db = doc.Database;
             log?.Begin("typical.drafted", $"picks={picks.Count}");
-            result.Warnings.Add("בשרטוט אין קורידור — החתכים נקראו מקווי התנוחה (כולל XREF) ושורטטו סכמטית, ללא גבהים.");
-            TypicalSectionLayoutLogic.LayoutState layout;
-            using (var tr = db.TransactionManager.StartTransaction())
+            result.Warnings.Add("בתוואים ללא קורידור החתכים נקראו מקווי התנוחה (כולל XREF) ושורטטו סכמטית, ללא גבהים.");
+            if (layout == null)
             {
+                using var tr = db.TransactionManager.StartTransaction();
                 var (originX, originY) = SectionPlanService.ResolveLayoutOriginFor(db, tr);
                 layout = TypicalSectionLayoutLogic.LayoutState.Start(originX, originY);
                 tr.Abort();
             }
-            (double MinX, double MinY, double MaxX, double MaxY)? previousExtents = null;
             var hasMarkingPlan = true;
             using (doc.LockDocument())
             {
@@ -478,6 +484,11 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                         using var tr = db.TransactionManager.StartTransaction();
                         var (crossings, objects) = DraftedTypicalSectionService.Cut(tr, db, pick, corridorEdges: true);
                         var panels = DraftedTypicalSectionLogic.BuildPanels(crossings, objects, pick.HalfWidthM);
+                        if (pick.ScanFrom.HasValue && panels.All(panel => panel.Section.Breaks.All(b => b.Kind == "axis")))
+                        {
+                            outcome.Error = "קווי התכנון שאותרו בסריקה אינם זמינים עוד בתחנה.";
+                            continue;
+                        }
                         var title = FormattableString.Invariant($"חתך טיפוסי — {pick.AlignmentName}, תחנה {pick.Station:0.00}");
                         // Rows grow upward; the block hangs below its insertion point by its chain, names and title.
                         var slot = TypicalSectionLayoutLogic.NextSlot(layout, previousExtents);
@@ -514,14 +525,14 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
         /// leaves a note: the firm section stands on its own.
         /// </summary>
         private static (double MinX, double MinY, double MaxX, double MaxY)? AddPlanOverlay(Database db, TypicalSectionPick pick,
-            Handle firmBlock, string corridorName, string groundSurface, SectionOutcome outcome, Result result,
+            Handle firmBlock, string corridorName, string groundSurface, string topSurface, SectionOutcome outcome, Result result,
             (double MinX, double MinY, double MaxX, double MaxY)? blockExtents)
         {
             try
             {
                 using var tr = db.TransactionManager.StartTransaction();
                 var overlayId = DraftedTypicalSectionService.DrawOverPlanSection(tr, db, pick, firmBlock, corridorName, groundSurface,
-                    out var panels, out var reason);
+                    out var panels, out var reason, topSurface);
                 if (overlayId is not { } id)
                 {
                     tr.Abort();
@@ -712,7 +723,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             catch { return null; }
         }
 
-        private sealed record CorridorOnAlignment(string Name, ObjectId Id, TypicalCorridorChoiceLogic.Candidate Candidate);
+        internal sealed record CorridorOnAlignment(string Name, ObjectId Id, TypicalCorridorChoiceLogic.Candidate Candidate);
 
         /// <summary>
         /// The stations where the corridor applied its assembly along the alignment, read the way the firm's code reads
@@ -805,7 +816,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
         /// Every corridor with a baseline on the alignment, as evidence for the choice: its regions on that baseline,
         /// whether it is out of date, and the TIN names of its own corridor surfaces.
         /// </summary>
-        private static List<CorridorOnAlignment> CorridorsOn(Transaction tr, CivilDocument civilDoc, string alignmentName)
+        internal static List<CorridorOnAlignment> CorridorsOn(Transaction tr, CivilDocument civilDoc, string alignmentName)
         {
             var found = new List<CorridorOnAlignment>();
             foreach (ObjectId corridorId in civilDoc.CorridorCollection)
@@ -996,6 +1007,14 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
 
         private static Result Finish(Result result, Request request, DateTime started)
         {
+            var byMarker = request.Picks.Where(p => p.ScanFrom.HasValue).ToDictionary(p => p.LineHandle, StringComparer.OrdinalIgnoreCase);
+            foreach (var section in result.Sections)
+                if (byMarker.TryGetValue(section.LineHandle, out var pick))
+                {
+                    section.Notes.Add(FormattableString.Invariant($"חתך מייצג בסריקה החזותית למקטע {pick.ScanFrom:0.##}–{pick.ScanTo:0.##}."));
+                    if (pick.VisualCrossings.Any(c => c.Layer == TypicalPlanVision.InferredLaneMark))
+                        section.Notes.Add("קו הפרדת נתיבים זוהה לפי תבנית של צבע מקווקו בין שפות כביש מדודות.");
+                }
             try
             {
                 var payload = new
@@ -1006,6 +1025,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                     picks = request.Picks.Select(pick => new
                     {
                         pick.LineHandle, pick.TextHandle, pick.AlignmentName, pick.Station, pick.HalfWidthM, from_plan = pick.FromPlan,
+                        scan_from = pick.ScanFrom, scan_to = pick.ScanTo,
                         axis = new[] { pick.AxisX, pick.AxisY }, tangent_deg = pick.TangentDeg,
                     }),
                     prerequisites = result.ByAlignment.Values,

@@ -64,8 +64,41 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Commands
 
             try
             {
-                var alignmentAnswer = ed.GetString(new PromptStringOptions("\nתוואי (Enter = הראשון עם קורידור): ") { AllowSpaces = true });
+                var alignmentAnswer = ed.GetString(new PromptStringOptions("\nתוואי (Enter = הראשון עם קורידור, AUTO = בדיקת הסריקה האוטומטית): ") { AllowSpaces = true });
                 if (alignmentAnswer.Status is not (PromptStatus.OK or PromptStatus.None)) return;
+                if (string.Equals(alignmentAnswer.StringResult?.Trim(), "AUTO", StringComparison.OrdinalIgnoreCase))
+                {
+                    var active = new ActiveProjectProfileService().LoadForDocument(doc, new SectionsWorkflowService());
+                    Check("profile", active.IsUsable && active.Profile != null, active.ProfileSource ?? "(none)");
+                    if (active.IsUsable && active.Profile is { } profile)
+                    {
+                        var scanRequest = new TypicalSectionPickRequest("smoke", doc.Database.UnmanagedObject,
+                            TypicalSectionPickLogic.DefaultHalfWidth(profile.Sections.Typical?.HalfWidthM),
+                            profile.Sections.Alignments.AllowedNames, true) { PreferredCorridor = profile.Sections.Typical?.CorridorName };
+                        var scan = new TypicalSectionPickResult(scanRequest.Token) { Automatic = true };
+                        MhdTypicalSectionsCommand.Scan(doc, scanRequest, scan);
+                        report["scan"] = scan;
+                        Check("automatic stations", scan.Picks.Count > 0 && scan.Picks.All(p => p.Station >= p.ScanFrom && p.Station <= p.ScanTo),
+                            scan.Error ?? string.Join(" | ", scan.Notes));
+                        if (scan.Picks.Count > 0)
+                        {
+                            var produced = new TypicalSectionsService().Create(doc, new TypicalSectionsService.Request(
+                                scan.Picks, profile, active.ProfileHash, scan.Corridors), log);
+                            report["result"] = produced;
+                            Check("one section per automatic station", produced.CreatedCount == scan.Picks.Count, string.Join(" | ", produced.Blockers));
+                            using var tr = doc.Database.TransactionManager.StartOpenCloseTransaction();
+                            foreach (var section in produced.Sections.Where(s => s.Created))
+                            {
+                                var exists = doc.Database.TryGetObjectId(new Handle(Convert.ToInt64(section.BlockHandle, 16)), out var id) &&
+                                    !id.IsErased && tr.GetObject(id, OpenMode.ForRead) is BlockReference block &&
+                                    ((BlockTableRecord)tr.GetObject(block.BlockTableRecord, OpenMode.ForRead)).Cast<ObjectId>().Any();
+                                Check("read back " + section.BlockHandle, exists, section.AlignmentName + " " + Format(section.Station));
+                            }
+                        }
+                    }
+                    Finish(ed, report, checks);
+                    return;
+                }
                 var stationsAnswer = ed.GetString(new PromptStringOptions("\nתחנות, מופרדות בפסיק: ") { AllowSpaces = true });
                 if (stationsAnswer.Status != PromptStatus.OK) return;
                 var halfWidth = MhdTypicalSectionsCommand.PromptHalfWidth(ed, TypicalSectionContracts.DefaultHalfWidthM);

@@ -44,7 +44,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Commands
                 return;
             }
 
-            var result = new TypicalSectionPickResult(request.Token);
+            var result = new TypicalSectionPickResult(request.Token) { Automatic = request.Automatic };
             try
             {
                 if (doc.Database.UnmanagedObject != request.Database)
@@ -53,11 +53,17 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Commands
                     result.Error = "סימון חתכים דורש Civil 3D.";
                 else
                 {
-                    Pick(doc, ed, request, result);
+                    if (request.Automatic) Scan(doc, request, result);
+                    else Pick(doc, ed, request, result);
+                    foreach (var note in result.Notes) ed.WriteMessage("\n" + note);
                     // The palette shows this in its footer, which a docked or tall panel can hide (2026-11-09: the
                     // button "did nothing" on a drawing with no axis); the command line always shows it.
                     if (result.Error != null) ed.WriteMessage("\n" + result.Error + "\n");
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                result.Cancelled = true;
             }
             catch (System.Exception ex)
             {
@@ -68,6 +74,21 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Commands
             {
                 CivilDeliveryPalette.ResumeTypicalSectionPicks(result);
             }
+        }
+
+        internal static void Scan(Document doc, TypicalSectionPickRequest request, TypicalSectionPickResult result)
+        {
+            var width = TypicalSectionPickLogic.DefaultHalfWidth(request.DefaultHalfWidthM);
+            result.HalfWidthM = width;
+            var civil = CivilApplication.ActiveDocument;
+            using var references = TypicalPlanReferences.Open(doc.Database);
+            result.Notes.AddRange(references.Notes);
+            using var picker = TypicalSectionPicker.Open(doc.Database, civil, request.AllowedAlignmentNames, automatic: true);
+            picker.Scan(civil, width, result, request.PreferredCorridor, (name, candidates) =>
+            {
+                var dialog = TypicalChoiceDialog.ForCorridor(name, candidates);
+                return CivilModalHost.ShowFromPalette(dialog) == true ? dialog.Chosen : null;
+            });
         }
 
         internal static void Pick(Document doc, Editor ed, TypicalSectionPickRequest request, TypicalSectionPickResult result)

@@ -46,7 +46,9 @@ public sealed class TypicalSectionsSourceContractTests
     public void PickCommand_IsLaunchedWithAUniqueTokenAndReportsBackThroughThePalette()
     {
         var panel = Ui("CivilDeliveryControl.TypicalSections.cs");
-        var start = Method(panel, "private void OnTypicalSections(");
+        Method(panel, "private void OnTypicalSections(").Should().Contain("StartTypicalSections(true)");
+        panel.Should().Contain("OnTypicalManual(object sender, RoutedEventArgs e) => StartTypicalSections(false)");
+        var start = Method(panel, "private void StartTypicalSections(");
         start.Should().Contain("Guid.NewGuid().ToString(\"N\")")
             .And.Contain("doc!.CommandInProgress")
             .And.Contain("TryClearPreview(")
@@ -57,6 +59,7 @@ public sealed class TypicalSectionsSourceContractTests
         At(start, "_pendingTypicalPickToken = token;").Should().BeLessThan(At(start, "doc.SendStringToExecute("));
 
         var resume = Method(panel, "internal void ResumeTypicalSectionPicks(");
+        At(resume, "if (result.Automatic)").Should().BeLessThan(At(resume, "CreateTypicalWithChoices(doc, result.Picks)"));
         resume.Should().Contain("SavedDrawingContinuationPolicy.CanConsume(")
             .And.Contain("doc!.Database.UnmanagedObject != expectedDatabase");
         At(resume, "SavedDrawingContinuationPolicy.CanConsume(").Should().BeLessThan(At(resume, "_typicalPicks.AddRange("));
@@ -78,6 +81,7 @@ public sealed class TypicalSectionsSourceContractTests
             .And.Contain("_picker.Resolve(")
             .And.Contain("current.IsReady ? ReadyColor : RefusedColor");
         var run = Method(command, "public void Run(");
+        run.Should().Contain("if (request.Automatic) Scan(doc, request, result);");
         At(run, "TypicalSectionPickRequests.TryTake(").Should().BeLessThan(At(run, "finally"));
         At(run, "finally").Should().BeLessThan(At(run, "CivilDeliveryPalette.ResumeTypicalSectionPicks(result);"));
 

@@ -154,7 +154,9 @@
                   <WrapPanel Margin="0,12,0,0">
                     <Button x:Name="BtnSectionNext" Content="התחל תכנון" Click="OnSectionNext" Style="{StaticResource PillPrimaryButton}" Tag="play"/>
                     <Button x:Name="BtnShow" Content="הצג מיקום בתכנית" Click="OnShow" Style="{StaticResource PillButton}" Tag="locate"/>
-                    <Button x:Name="BtnTypicalSections" Content="חתכים טיפוסיים" Click="OnTypicalSections" Style="{StaticResource PillButton}" Tag="pin"/>
+                    <Button x:Name="BtnTypicalSections" Content="חתכים טיפוסיים" Click="OnTypicalSections" Style="{StaticResource PillButton}" Tag="pin"
+                            ToolTip="סורק את התוכנית ויוצר חתך מייצג בכל מקטע שבו זוהה מבנה כביש או מסילה שונה."/>
+                    <Button x:Name="BtnTypicalManual" Content="סימון ידני" Click="OnTypicalManual" Style="{StaticResource PillButton}"/>
                     <Button x:Name="BtnTypicalCancel" Content="בטל סימון" Click="OnCancelTypicalPicks" Style="{StaticResource PillButton}" Visibility="Collapsed"/>
                     <Button x:Name="BtnTypicalSheet" Content="גיליון חתכים" Click="OnTypicalSheet" Style="{StaticResource PillButton}" Tag="sheet"
                             ToolTip="מעמיד חתכים טיפוסיים שכבר נוצרו על גיליונות A0 (1:100, מקרא וכותרת). בחר אותם בשרטוט, או Enter לכולם."/>

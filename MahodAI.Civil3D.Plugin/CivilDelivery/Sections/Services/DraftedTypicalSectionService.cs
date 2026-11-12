@@ -53,14 +53,27 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
         /// <summary>Every entity of model space and of the blocks and XREFs it inserts, with its world transform and
         /// the layer it shows on (an entity on layer 0 inside a block takes the insert's layer, as AutoCAD draws it).</summary>
         private static void Walk(Transaction tr, BlockTableRecord owner, Matrix3d toWcs, string? inheritedLayer, int depth,
-            Action<Entity, Matrix3d, string> visit)
+            Action<Entity, Matrix3d, string> visit, Dictionary<ObjectId, bool>? visibleLayers = null)
         {
+            var visited = 0;
             foreach (ObjectId id in owner)
             {
+                if (visibleLayers != null && ++visited % 256 == 0 && HostApplicationServices.Current.UserBreak())
+                    throw new OperationCanceledException();
                 Entity? entity;
                 try { entity = tr.GetObject(id, OpenMode.ForRead) as Entity; }
                 catch { continue; }
                 if (entity == null) continue;
+                if (visibleLayers != null)
+                {
+                    if (!entity.Visible) continue;
+                    if (!visibleLayers.TryGetValue(entity.LayerId, out var visible))
+                    {
+                        var record = (LayerTableRecord)tr.GetObject(entity.LayerId, OpenMode.ForRead);
+                        visibleLayers[entity.LayerId] = visible = !record.IsOff && !record.IsFrozen;
+                    }
+                    if (!visible) continue;
+                }
                 var layer = inheritedLayer != null && entity.Layer == "0" ? inheritedLayer : entity.Layer;
                 visit(entity, toWcs, layer);
                 if (entity is not BlockReference reference || depth >= MaxDepth) continue;
@@ -70,7 +83,9 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                 if (inner.IsLayout || (inner.IsFromExternalReference && !inner.IsResolved)) continue;
                 if (inner.Name.StartsWith(BlockPrefix, StringComparison.OrdinalIgnoreCase) ||
                     inner.Name.StartsWith(FirmSectionAdapter.SectionBlockNamePrefix, StringComparison.OrdinalIgnoreCase)) continue;
-                Walk(tr, inner, toWcs * reference.BlockTransform, layer, depth + 1, visit);
+                if (visibleLayers != null && inner.IsFromExternalReference &&
+                    (Estimate.DrawingVisibility.IsInset(reference.ScaleFactors) || Estimate.DrawingVisibility.IsSectionSheets(inner.Name, inner.PathName))) continue;
+                Walk(tr, inner, toWcs * reference.BlockTransform, layer, depth + 1, visit, visibleLayers);
             }
         }
 
@@ -83,37 +98,45 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
         /// The plan's road axes (<see cref="PlanAxis.IsAxisLayer"/>) in world coordinates, arcs sampled every metre.
         /// Two polylines on one layer are told apart by a number (AX-40-st-01-1, AX-40-st-01-1 #2).
         /// </summary>
-        public static List<PlanAxis> CollectPlanAxes(Transaction tr, Database db, IReadOnlyList<string> allowed)
+        public static List<PlanAxis> CollectPlanAxes(Transaction tr, Database db, IReadOnlyList<string> allowed, bool automatic = false)
         {
             var found = new List<(string Name, List<P2> Vertices)>();
+            var fallback = new List<(string Name, List<P2> Vertices)>();
             Walk(tr, ModelSpace(tr, db), Matrix3d.Identity, null, 0, (entity, toWcs, layer) =>
             {
                 if (entity is not Curve curve || entity is BlockReference) return;
-                if (!PlanAxis.IsAxisLayer(layer)) return;
+                var leaf = PlanAxis.LayerLeaf(layer);
+                var explicitAxis = PlanAxis.IsAxisLayer(layer);
+                var track = automatic && DraftedTypicalSectionLogic.ClassifyLayer(layer) == DraftedTypicalSectionLogic.Kind.Track;
+                var centreMark = automatic && leaf.Equals("TR-MARK-808", StringComparison.OrdinalIgnoreCase);
+                if (!explicitAxis && !track && !centreMark) return;
                 var vertices = Sample(curve, toWcs);
                 if (vertices.Count < 2) return;
                 var length = 0.0;
                 for (var i = 1; i < vertices.Count; i++)
                     length += Math.Sqrt(Math.Pow(vertices[i].X - vertices[i - 1].X, 2) + Math.Pow(vertices[i].Y - vertices[i - 1].Y, 2));
                 if (length < MinAxisLengthM) return;
-                found.Add((PlanAxis.LayerLeaf(layer), vertices));
-            });
+                if (centreMark) fallback.Add((leaf, vertices));
+                else found.Add((leaf, vertices));
+            }, automatic ? new Dictionary<ObjectId, bool>() : null);
 
             // The office's real axes are AX-* (the CL XREF); a GM/SM 'cl' or CENTERLINE line is a short lane arrow or a
             // label leader. When any AX-* axis exists, only those count (MAAKAF: 27 'cl' pieces of 60-71 m beside AX-40).
             if (found.Any(f => f.Name.StartsWith("AX", StringComparison.OrdinalIgnoreCase)))
-                found = found.Where(f => f.Name.StartsWith("AX", StringComparison.OrdinalIgnoreCase)).ToList();
+                found = found.Where(f => f.Name.StartsWith("AX", StringComparison.OrdinalIgnoreCase) ||
+                    (automatic && DraftedTypicalSectionLogic.ClassifyLayer(f.Name) == DraftedTypicalSectionLogic.Kind.Track)).ToList();
             var axes = new List<PlanAxis>();
             // No drawn axis at all: the alignments may have been exploded onto their layer (2026-11-04, a TR plan).
             if (found.Count == 0)
             {
-                foreach (var axis in CollectExplodedAlignments(tr, db))
+                foreach (var axis in CollectExplodedAlignments(tr, db, automatic))
                 {
                     if (allowed.Count > 0 && !allowed.Any(pattern => ClInstructionReader.WildcardMatch(axis.Name, pattern))) continue;
                     try { axes.Add(new PlanAxis(axis.Name, axis.Vertices, axis.StartStation)); }
                     catch (ArgumentException) { /* degenerate */ }
                 }
-                return axes;
+                if (axes.Count > 0 || fallback.Count != 1) return axes;
+                found.Add(fallback[0]);
             }
             foreach (var group in found.GroupBy(f => f.Name, StringComparer.OrdinalIgnoreCase))
             {
@@ -134,7 +157,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
         /// alignment layer; its Lines are the curves' tangent construction lines), the station ticks (AeccTickLine
         /// blocks) paired with their printed values, and the curve labels with the PI their leader points at.
         /// </summary>
-        public static List<ExplodedAlignmentLogic.Axis> CollectExplodedAlignments(Transaction tr, Database db)
+        public static List<ExplodedAlignmentLogic.Axis> CollectExplodedAlignments(Transaction tr, Database db, bool visibleOnly = false)
         {
             var pieces = new List<IReadOnlyList<P2>>();
             var lines = new List<(P2 A, P2 B)>();
@@ -181,7 +204,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                         layerName ??= PlanAxis.LayerLeaf(layer);
                         return;
                 }
-            });
+            }, visibleOnly ? new Dictionary<ObjectId, bool>() : null);
             if (pieces.Count == 0) return new List<ExplodedAlignmentLogic.Axis>();
 
             void AddText(string? text, Point3d at, string layer)
@@ -285,6 +308,59 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
 
         // ---------------------------------------------------------------------------------------------------- cut
 
+        internal static TypicalPlanVision ReadVisionPlan(Transaction tr, Database db, Extents3d? scanBounds = null)
+        {
+            var image = new TypicalPlanVision();
+            var channels = new Dictionary<string, (string? Kind, int Stage)>(StringComparer.OrdinalIgnoreCase);
+            Walk(tr, ModelSpace(tr, db), Matrix3d.Identity, null, 0, (entity, transform, layer) =>
+            {
+                if (entity is not Curve curve) return;
+                if (!channels.TryGetValue(layer, out var channel))
+                {
+                    var kind = DraftedTypicalSectionLogic.ClassifyLayer(layer);
+                    if (kind == null && DraftedTypicalSectionLogic.IsCorridorEdgeLayer(layer)) kind = DraftedTypicalSectionLogic.Kind.Edge;
+                    if (kind == null && PlanAxis.LayerLeaf(layer) == "0") kind = TypicalPlanVision.UnclassifiedStroke;
+                    var bar = layer.IndexOf('|');
+                    channels[layer] = channel = (kind, DraftedTypicalSectionLogic.StageOf(bar < 0 ? "host" : layer[..bar]).Order);
+                }
+                if (channel.Kind is null or DraftedTypicalSectionLogic.Kind.Work or DraftedTypicalSectionLogic.Kind.Row or DraftedTypicalSectionLogic.Kind.Fence) return;
+                if (channel.Kind == TypicalPlanVision.UnclassifiedStroke && curve is not (Line or Polyline)) return;
+                if (scanBounds is { } bounds)
+                {
+                    try
+                    {
+                        var ext = curve.GeometricExtents;
+                        ext.TransformBy(transform);
+                        if (ext.MaxPoint.X < bounds.MinPoint.X || ext.MinPoint.X > bounds.MaxPoint.X ||
+                            ext.MaxPoint.Y < bounds.MinPoint.Y || ext.MinPoint.Y > bounds.MaxPoint.Y) return;
+                    }
+                    catch (Autodesk.AutoCAD.Runtime.Exception) { /* read curves with no usable bounds normally */ }
+                }
+                if (curve is Line line)
+                {
+                    var a = line.StartPoint.TransformBy(transform);
+                    var b = line.EndPoint.TransformBy(transform);
+                    image.Add(new P2(a.X, a.Y), new P2(b.X, b.Y), channel.Kind, channel.Stage);
+                    return;
+                }
+                if (curve is Polyline poly && !poly.HasBulges && poly.NumberOfVertices > 1)
+                {
+                    var last = poly.GetPoint3dAt(0).TransformBy(transform);
+                    var count = poly.NumberOfVertices;
+                    for (var i = 1; i < count + (poly.Closed ? 1 : 0); i++)
+                    {
+                        var next = poly.GetPoint3dAt(i % count).TransformBy(transform);
+                        image.Add(new P2(last.X, last.Y), new P2(next.X, next.Y), channel.Kind, channel.Stage);
+                        last = next;
+                    }
+                    return;
+                }
+                var points = Sample(curve, transform);
+                for (var i = 1; i < points.Count; i++) image.Add(points[i - 1], points[i], channel.Kind, channel.Stage);
+            }, new Dictionary<ObjectId, bool>());
+            return image;
+        }
+
         /// <summary>
         /// The plan along one pick's chord: every classified line it crosses (signed offset from the axis, right
         /// positive) and every tree, pole or sign standing within <see cref="ObjectReachM"/> of it.
@@ -304,6 +380,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             var chordLength = a.DistanceTo(b);
 
             var crossings = new List<Crossing>();
+            crossings.AddRange(pick.VisualCrossings);
             var objects = new List<PlacedObject>();
             var chordCache = new Dictionary<Matrix3d, (Line Chord, Plane Plan)>();
             // ~40 patterns per entity over a large XREF set (6403: 15,944 host polylines + survey XREFs) timed out the
@@ -362,7 +439,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                     }
                     foreach (Point3d hit in hits)
                         crossings.Add(new Crossing(OffsetOf(hit.TransformBy(toWcs)), kind, PlanAxis.LayerLeaf(layer), source));
-                });
+                }, pick.ScanFrom.HasValue ? new Dictionary<ObjectId, bool>() : null);
             }
             finally
             {
@@ -399,7 +476,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
         /// <summary>Gap between two stacked panels.</summary>
         private const double PanelGapM = 4.0;
 
-        private static bool IsLane(string? name) => name is "נתיב" or "נתיב זמני";
+        private static bool IsLane(string? name) => name is "נתיב" or "נתיב זמני" || SectionFurnitureLogic.VehicleForStrip(name ?? "") == SectionFurnitureLogic.Bus;
 
         /// <summary>
         /// Draws the typical section the way the office draws one (2026-11-02, their sheet MHD-HW-000-IC_00000-DD-5001-02):
@@ -641,6 +718,13 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                     Poly(WorkLayer, true, new[] { (zone.FromM, y0 + 0.05), (zone.ToM, y0 + 0.05), (zone.ToM, y0 + 1.2), (zone.FromM, y0 + 1.2) });
                     Text(zone.Name, (zone.FromM + zone.ToM) / 2, y0 + 0.45, TextHeight * 0.8, WorkLayer);
                 }
+                foreach (var rail in section.Breaks.Where(b => b.Kind is DraftedTypicalSectionLogic.Kind.Track or DraftedTypicalSectionLogic.Kind.Rail))
+                {
+                    var x = rail.OffsetM;
+                    var y = level(x);
+                    Seg(x, y, x, y + 0.35, ObjectLayer);
+                    Text(rail.Kind == DraftedTypicalSectionLogic.Kind.Track ? "ציר מסילה" : "פס מסילה", x, y + 0.45, TextHeight * 0.7, ObjectLayer);
+                }
                 foreach (var fence in section.Fences)
                 {
                     var y0 = level(fence.OffsetM);
@@ -688,7 +772,15 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                 foreach (var lane in section.Strips.Where(s => IsLane(s.Name)))
                 {
                     var x = (lane.FromM + lane.ToM) / 2;
-                    DrawCar(x, level(x));
+                    var bus = SectionFurnitureLogic.VehicleForStrip(lane.Name!) == SectionFurnitureLogic.Bus;
+                    var seat = TypicalSheetGeometryLogic.VehicleSeat(geometry?.Surface, x, bus ? 0.85 : 0.7);
+                    if (seat == null) continue;
+                    if (bus)
+                    {
+                        var busId = OfficeTypicalRenderer.EnsureSymbol(tr, db, table, x > 0 ? "BusBack" : "BusFront");
+                        Add(new BlockReference(new Point3d(x, seat.Value.Y + dy, 0), busId) { Rotation = seat.Value.Rotation }, VehicleLayer);
+                    }
+                    else DrawCar(x, seat.Value.Y, Math.Tan(seat.Value.Rotation));
                     var up = x > 0;
                     var ya = chainY - 3.6;
                     Seg(x, ya - 0.6, x, ya + 0.6, ChainLayer);
@@ -865,16 +957,18 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             return referenceId;
 
             // A car seen from behind, 1.8 m wide, standing on the road.
-            void DrawCar(double x, double road)
+            void DrawCar(double x, double road, double slope)
             {
+                void CarPart((double X, double Y)[] points) =>
+                    Poly(VehicleLayer, true, points.Select(p => (p.X, p.Y + (p.X - x) * slope)));
                 var b = road + 0.3;
-                Poly(VehicleLayer, true, new[] { (x - 0.9, b), (x + 0.9, b), (x + 0.9, b + 0.55), (x + 0.68, b + 0.62),
+                CarPart(new[] { (x - 0.9, b), (x + 0.9, b), (x + 0.9, b + 0.55), (x + 0.68, b + 0.62),
                     (x + 0.55, b + 1.15), (x - 0.55, b + 1.15), (x - 0.68, b + 0.62), (x - 0.9, b + 0.55) });
-                Poly(VehicleLayer, true, new[] { (x - 0.6, b + 0.66), (x + 0.6, b + 0.66), (x + 0.5, b + 1.07), (x - 0.5, b + 1.07) });
-                Poly(VehicleLayer, true, new[] { (x - 0.82, road), (x - 0.58, road), (x - 0.58, b), (x - 0.82, b) });
-                Poly(VehicleLayer, true, new[] { (x + 0.58, road), (x + 0.82, road), (x + 0.82, b), (x + 0.58, b) });
-                Poly(VehicleLayer, true, new[] { (x - 0.8, b + 0.22), (x - 0.5, b + 0.22), (x - 0.5, b + 0.38), (x - 0.8, b + 0.38) });
-                Poly(VehicleLayer, true, new[] { (x + 0.5, b + 0.22), (x + 0.8, b + 0.22), (x + 0.8, b + 0.38), (x + 0.5, b + 0.38) });
+                CarPart(new[] { (x - 0.6, b + 0.66), (x + 0.6, b + 0.66), (x + 0.5, b + 1.07), (x - 0.5, b + 1.07) });
+                CarPart(new[] { (x - 0.82, road), (x - 0.58, road), (x - 0.58, b), (x - 0.82, b) });
+                CarPart(new[] { (x + 0.58, road), (x + 0.82, road), (x + 0.82, b), (x + 0.58, b) });
+                CarPart(new[] { (x - 0.8, b + 0.22), (x - 0.5, b + 0.22), (x - 0.5, b + 0.38), (x - 0.8, b + 0.38) });
+                CarPart(new[] { (x + 0.5, b + 0.22), (x + 0.8, b + 0.22), (x + 0.8, b + 0.38), (x + 0.5, b + 0.38) });
             }
         }
 
@@ -911,14 +1005,14 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
         /// </summary>
         public static ObjectId? DrawOverPlanSection(Transaction tr, Database db, TypicalSectionPick pick, Handle firmBlock,
             string? corridorName, string? groundSurface,
-            out IReadOnlyList<DraftedTypicalSectionLogic.Panel> panels, out string? reason)
+            out IReadOnlyList<DraftedTypicalSectionLogic.Panel> panels, out string? reason, string? topSurface = null)
         {
             panels = Array.Empty<DraftedTypicalSectionLogic.Panel>();
             reason = null;
             TypicalSheetGeometryLogic.SectionGeometry? design = null;
             if (!string.IsNullOrEmpty(corridorName))
             {
-                try { design = TypicalSheetCorridorReader.Read(tr, corridorName!, pick.AlignmentName, pick.Station, pick, groundSurface); }
+                try { design = TypicalSheetCorridorReader.Read(tr, corridorName!, pick.AlignmentName, pick.Station, pick, groundSurface, topSurface); }
                 catch { design = null; }
             }
             var (crossings, objects) = Cut(tr, db, pick);
@@ -954,6 +1048,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             var designPanel = built.FirstOrDefault(p => p.Order == designOrder);
             if (design != null && design.Surface.Count > 0 && designPanel != null)
             {
+                designPanel = designPanel with { Section = TypicalSheetGeometryLogic.FitToSurface(designPanel.Section, design.Surface) };
                 panels = new[] { designPanel };
                 var input = new OfficeTypicalRenderer.Input(pick, designPanel.Section, design, DesignSpeedAt(tr, db, pick), designPanel.Section.Findings);
                 return OfficeTypicalRenderer.Draw(tr, db, input, axisX, firmTop, overlay: true);

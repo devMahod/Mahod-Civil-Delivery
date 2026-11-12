@@ -25,14 +25,20 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
         private static readonly string[] PavementCodes = { "ASF", "ASPH", "PAVE", "AC-", "BIT" };
 
         public static SectionGeometry? Read(Transaction tr, string corridorName, string alignmentName, double station,
-            TypicalSectionPick pick, string? groundSurfaceName)
+            TypicalSectionPick pick, string? groundSurfaceName, string? topSurfaceName = null)
         {
             var civil = CivilApplication.ActiveDocument;
             AppliedAssembly? applied = null;
+            TinSurface? corridorTop = null;
             foreach (ObjectId id in civil.CorridorCollection)
             {
                 if (tr.GetObject(id, OpenMode.ForRead) is not Corridor corridor ||
                     !string.Equals(corridor.Name, corridorName, StringComparison.OrdinalIgnoreCase)) continue;
+                if (!string.IsNullOrEmpty(topSurfaceName))
+                    foreach (CorridorSurface cs in corridor.CorridorSurfaces)
+                        if (string.Equals(cs.Name, topSurfaceName, StringComparison.OrdinalIgnoreCase) &&
+                            !cs.SurfaceId.IsNull && tr.GetObject(cs.SurfaceId, OpenMode.ForRead) is TinSurface tin)
+                        { corridorTop = tin; break; }
                 foreach (Baseline baseline in corridor.Baselines)
                 {
                     string name;
@@ -67,6 +73,12 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                         surface.Add(new SurfaceLink(new Pt(points[i - 1].Y, points[i - 1].Z), new Pt(points[i].Y, points[i].Z), paved));
                 }
             }
+            if (corridorTop != null)
+            {
+                try { ReadMissingTop(corridorTop, pick, surface); }
+                catch (Autodesk.AutoCAD.Runtime.Exception) { /* an unavailable TIN does not invalidate measured assembly links */ }
+                catch (InvalidOperationException) { /* unbuilt surface */ }
+            }
             if (surface.Count == 0) return null;
 
             // Levels relative to the surface at the axis (or its nearest point), so the block's 0 is the road at the axis.
@@ -96,6 +108,61 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             return new SectionGeometry(surface, layers, ground);
         }
 
+        // Fill only missing portions of this cut using visible triangles of this corridor's selected
+        // finished surface. Keep assembly links and pavement shapes authoritative wherever present.
+        private static void ReadMissingTop(TinSurface tin, TypicalSectionPick pick, List<SurfaceLink> surface)
+        {
+            var angle = pick.TangentDeg * Math.PI / 180;
+            var dx = Math.Sin(angle);
+            var dy = -Math.Cos(angle);
+            var spans = TypicalSheetGeometryLogic.Coverage(surface);
+            double start = -pick.HalfWidthM;
+            foreach (var span in spans)
+            {
+                if (span.To <= start) continue;
+                ReadGap(start, Math.Min(span.From, pick.HalfWidthM));
+                start = Math.Max(start, span.To);
+                if (start >= pick.HalfWidthM) break;
+            }
+            ReadGap(start, pick.HalfWidthM);
+
+            void ReadGap(double from, double to)
+            {
+                for (var x = from + 1e-5; x < to; )
+                {
+                    TinSurfaceTriangle triangle;
+                    try { triangle = tin.FindTriangleAtXY(pick.AxisX + dx * x, pick.AxisY + dy * x); }
+                    catch (ArgumentException) { x += 0.25; continue; } // outside, or a hole
+                    if (triangle == null || !triangle.IsVisible) { x += 0.25; continue; }
+                    var vertices = new[] { triangle.Vertex1.Location, triangle.Vertex2.Location, triangle.Vertex3.Location };
+                    var hits = new List<Pt>(3);
+                    for (int i = 0; i < 3; i++)
+                    {
+                        var a = vertices[i]; var b = vertices[(i + 1) % 3];
+                        double Side(Point3d v) => dx * (v.Y - pick.AxisY) - dy * (v.X - pick.AxisX);
+                        double Offset(Point3d v) => dx * (v.X - pick.AxisX) + dy * (v.Y - pick.AxisY);
+                        var sa = Side(a); var sb = Side(b);
+                        if (Math.Abs(sa) < 1e-8) hits.Add(new Pt(Offset(a), a.Z));
+                        if (sa * sb < 0)
+                        {
+                            var t = sa / (sa - sb);
+                            hits.Add(new Pt(Offset(a) + t * (Offset(b) - Offset(a)), a.Z + t * (b.Z - a.Z)));
+                        }
+                    }
+                    if (hits.Count < 2) { x += 0.25; continue; }
+                    var left = hits.MinBy(p => p.X); var right = hits.MaxBy(p => p.X);
+                    var lo = Math.Max(from, left.X); var hi = Math.Min(to, right.X);
+                    if (hi - lo > 1e-7 && hi > x)
+                    {
+                        Pt At(double offset) => new(offset, left.Y + (offset - left.X) * (right.Y - left.Y) / (right.X - left.X));
+                        surface.Add(new SurfaceLink(At(lo), At(hi), false));
+                        x = hi + 1e-5;
+                    }
+                    else x += 0.25;
+                }
+            }
+        }
+
         /// <summary>The applied assembly nearest the station on this baseline, within 25 m.</summary>
         private static AppliedAssembly? Nearest(Baseline baseline, double station)
         {
@@ -103,7 +170,8 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             var bestDistance = 25.0;
             foreach (BaselineRegion region in baseline.BaselineRegions)
             {
-                if (station < region.StartStation - 25 || station > region.EndStation + 25) continue;
+                if (station < region.StartStation - TypicalCorridorChoiceLogic.RegionToleranceM ||
+                    station > region.EndStation + TypicalCorridorChoiceLogic.RegionToleranceM) continue;
                 foreach (AppliedAssembly applied in region.AppliedAssemblies)
                 {
                     var first = applied.Points.Cast<CalculatedPoint>().FirstOrDefault();

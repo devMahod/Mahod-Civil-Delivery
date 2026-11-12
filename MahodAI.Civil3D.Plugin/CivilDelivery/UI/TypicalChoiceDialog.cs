@@ -49,7 +49,7 @@ internal sealed class TypicalChoiceDialog : Window
     }
 
     internal static TypicalChoiceDialog ForCorridor(string alignmentName, IReadOnlyList<string> corridors) => new(
-        "בחירת קורידור", $"לתוואי {alignmentName} כמה קורידורים מכסים את החתכים שסומנו", corridors,
+        "בחירת קורידור", $"איזה קורידור ישמש להפקת החתכים בתוואי {alignmentName}?", corridors,
         "השתמש בקורידור", "קורידורים");
 
     internal static TypicalChoiceDialog ForExistingGround(IReadOnlyList<string> surfaces) => new(

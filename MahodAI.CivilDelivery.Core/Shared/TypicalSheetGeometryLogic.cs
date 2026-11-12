@@ -44,6 +44,74 @@ public static class TypicalSheetGeometryLogic
         return best;
     }
 
+    /// <summary>The continuous offset intervals where the finished surface was actually measured.</summary>
+    public static List<(double From, double To)> Coverage(IEnumerable<SurfaceLink> links)
+    {
+        var result = new List<(double From, double To)>();
+        foreach (var (lo, hi) in links.Select(l => (Math.Min(l.A.X, l.B.X), Math.Max(l.A.X, l.B.X)))
+                     .Where(v => double.IsFinite(v.Item1) && double.IsFinite(v.Item2) && v.Item2 > v.Item1)
+                     .OrderBy(v => v.Item1))
+        {
+            if (result.Count == 0 || lo > result[^1].To + 1e-6) result.Add((lo, hi));
+            else if (hi > result[^1].To) result[^1] = (result[^1].From, hi);
+        }
+        return result;
+    }
+
+    public static bool Covers(IReadOnlyList<(double From, double To)> spans, double from, double to) =>
+        spans.Any(s => from >= s.From - 1e-6 && to <= s.To + 1e-6);
+
+    /// <summary>A plan cut also crosses adjacent roads. A modeled panel dimensions only its own
+    /// surface. At a clipped edge retain the measured width, but not the identity of a full lane.</summary>
+    public static DraftedTypicalSectionLogic.DraftedSection FitToSurface(
+        DraftedTypicalSectionLogic.DraftedSection section, IReadOnlyList<SurfaceLink> surface)
+    {
+        var spans = Coverage(surface);
+        bool At(double x) => Covers(spans, x, x);
+        var breaks = section.Breaks.Where(b => At(b.OffsetM)).ToList();
+        var strips = new List<DraftedTypicalSectionLogic.Strip>();
+        var clipped = false;
+        foreach (var strip in section.Strips)
+        {
+            if (Covers(spans, strip.FromM, strip.ToM)) { strips.Add(strip); continue; }
+            clipped = true;
+            foreach (var span in spans)
+            {
+                var from = Math.Max(span.From, strip.FromM);
+                var to = Math.Min(span.To, strip.ToM);
+                if (to - from < 0.01) continue;
+                strips.Add(strip with { FromM = from, ToM = to, Name = null });
+                foreach (var x in new[] { from, to })
+                    if (!breaks.Any(b => Math.Abs(b.OffsetM - x) < 1e-6))
+                        breaks.Add(new(x, "surface-limit", "", "corridor"));
+            }
+        }
+        return section with
+        {
+            Breaks = breaks.OrderBy(b => b.OffsetM).ToList(), Strips = strips,
+            Objects = section.Objects.Where(o => At(o.OffsetM)).ToList(),
+            Barriers = section.Barriers.Where(o => At(o.OffsetM)).ToList(),
+            Fences = section.Fences.Where(o => At(o.OffsetM)).ToList(),
+            Zones = section.Zones.Where(z => Covers(spans, z.FromM, z.ToM)).ToList(),
+            Groups = section.Groups.Where(z => Covers(spans, z.FromM, z.ToM)).ToList(),
+            Findings = clipped ? section.Findings.Append("רצועות התוכנית הוגבלו לתחום פני הדרך של הקורידור בתחנה זו.").ToList() : section.Findings,
+        };
+    }
+
+    /// <summary>Use both contact points and the complete tyre span. A vehicle cannot straddle a
+    /// missing portion of the model. Flat at zero is the convention for an explicitly schematic panel.</summary>
+    public static (double Y, double Rotation)? VehicleSeat(IReadOnlyList<SurfaceLink>? surface, double x, double halfTrack)
+    {
+        if (surface == null) return (0, 0);
+        if (!Covers(Coverage(surface), x - halfTrack, x + halfTrack)) return null;
+        var left = LevelAt(surface, x - halfTrack);
+        var right = LevelAt(surface, x + halfTrack);
+        if (left == null || right == null) return null;
+        var slope = (right.Value - left.Value) / (2 * halfTrack);
+        if (Math.Abs(slope) > 0.25) return null;
+        return ((left.Value + right.Value) / 2, Math.Atan(slope));
+    }
+
     /// <summary>The share of [from, to] the paved links cover (0-1).</summary>
     public static double PavedShare(IReadOnlyList<SurfaceLink> surface, double from, double to)
     {

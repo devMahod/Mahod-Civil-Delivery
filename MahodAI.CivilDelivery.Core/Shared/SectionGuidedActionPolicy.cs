@@ -134,9 +134,9 @@ namespace MahodAI.CivilDelivery.Shared
             // the plan would read as stale and the guide would wrongly ask for a re-plan.
             if (value.PickingTypicalSections)
                 return At(SectionGuidedActionKind.WaitForTypicalPicks, SectionGuidedStage.Planning,
-                    "סימון חתכים בשרטוט",
-                    "לחיצה על הכביש בכל מיקום חתך · Enter לסיום · Esc לביטול.",
-                    "ממתין ללחיצות…");
+                    "איתור תחנות לחתכים טיפוסיים",
+                    "התחנות נקבעות בשרטוט לפי אופן ההפעלה שנבחר.",
+                    "מאתר תחנות…");
 
             if (value.TypicalPicksPending > 0)
                 return At(SectionGuidedActionKind.ConfirmTypicalSections, SectionGuidedStage.Creation,
@@ -146,8 +146,8 @@ namespace MahodAI.CivilDelivery.Shared
 
             if (value.NeedsSectionSetup && !value.HasPlan && value.OfferTypicalSections)
                 return At(SectionGuidedActionKind.StartTypicalSections, SectionGuidedStage.Planning,
-                    "סימון חתכים על הכביש",
-                    "חתך משרדי בכל מקום שמסמנים בשרטוט, עם שמות הרצועות מהתנוחה. לחתכים לפי קובץ CL יש 'הגדרת פרויקט' בפעולות נוספות.",
+                    "חתכים טיפוסיים לאורך התוואי",
+                    "הסריקה בוחרת תחנה מייצגת בכל מקטע יציב ויוצרת את החתכים. לחתכים לפי קובץ CL יש 'הגדרת פרויקט' בפעולות נוספות.",
                     "חתכים טיפוסיים");
 
             if (value.NeedsSectionSetup && !value.HasPlan)

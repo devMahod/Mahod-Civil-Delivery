@@ -6,7 +6,10 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
     /// <summary>What the palette hands the pick command (2026-10): the drawing it was started from, the half-width to
     /// offer, and which alignments the profile allows. Never the profile itself — the panel already validated it.</summary>
     internal sealed record TypicalSectionPickRequest(
-        string Token, IntPtr Database, double DefaultHalfWidthM, IReadOnlyList<string> AllowedAlignmentNames);
+        string Token, IntPtr Database, double DefaultHalfWidthM, IReadOnlyList<string> AllowedAlignmentNames, bool Automatic = false)
+    {
+        public string? PreferredCorridor { get; init; }
+    }
 
     /// <summary>One marked section: the two marker entities, the alignment and station the click resolved to, and the
     /// chord geometry (axis point, tangent, ends) in world coordinates.</summary>
@@ -19,6 +22,10 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
         /// off the plan (<see cref="DraftedTypicalSectionService"/>), there being no corridor for the firm's program.
         /// </summary>
         public bool FromPlan { get; init; }
+        public double? ScanFrom { get; init; }
+        public double? ScanTo { get; init; }
+        public IReadOnlyList<MahodAI.CivilDelivery.Shared.DraftedTypicalSectionLogic.Crossing> VisualCrossings { get; init; }
+            = Array.Empty<MahodAI.CivilDelivery.Shared.DraftedTypicalSectionLogic.Crossing>();
     }
 
     /// <summary>The pick command's report back to the palette. Always sent, so a pending request never leaks.</summary>
@@ -28,6 +35,9 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
         public string Token { get; }
         public List<TypicalSectionPick> Picks { get; } = new();
         public bool Cancelled { get; set; }
+        public bool Automatic { get; init; }
+        public List<string> Notes { get; } = new();
+        public Dictionary<string, string> Corridors { get; } = new(StringComparer.OrdinalIgnoreCase);
         public string? Error { get; set; }
         public double? HalfWidthM { get; set; }
     }

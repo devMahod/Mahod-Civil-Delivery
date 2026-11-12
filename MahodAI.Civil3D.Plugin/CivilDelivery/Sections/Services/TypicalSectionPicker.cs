@@ -25,7 +25,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
     /// open/close transaction that is independent of the transaction stack, so committing a marker in an ordinary
     /// transaction meanwhile is safe. Dispose when the picking session ends.
     /// </summary>
-    internal sealed class TypicalSectionPicker : IDisposable
+    internal sealed partial class TypicalSectionPicker : IDisposable
     {
         /// <summary>Magenta, like the section ticks engineers draw by hand.</summary>
         private const short MarkerColorIndex = 6;
@@ -66,7 +66,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
         /// Each corridor alignment also carries the stations its corridors computed, so a pick snaps to one of them
         /// (<see cref="TypicalSectionPickLogic.SnapToCorridorStation"/>).
         /// </summary>
-        public static TypicalSectionPicker Open(Database db, CivilDocument civilDoc, IReadOnlyList<string> allowed)
+        public static TypicalSectionPicker Open(Database db, CivilDocument civilDoc, IReadOnlyList<string> allowed, bool automatic = false)
         {
             var read = db.TransactionManager.StartOpenCloseTransaction();
             try
@@ -89,16 +89,17 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                 foreach (ObjectId alignmentId in civilDoc.GetAlignmentIds())
                 {
                     if (read.GetObject(alignmentId, OpenMode.ForRead) is not CivilDb.Alignment alignment) continue;
+                    if (automatic && !(alignment.Length > 0)) continue;
                     if (allowed.Count > 0 && !allowed.Any(pattern => ClInstructionReader.WildcardMatch(alignment.Name, pattern)))
                         continue;
                     all.Add(alignment);
                 }
                 var withCorridor = all.Where(a => baselineAlignments.Contains(a.ObjectId)).ToList();
                 if (withCorridor.Count > 0)
-                    return new TypicalSectionPicker(db, read, withCorridor, corridorOnly: true, corridorStations);
+                    return new TypicalSectionPicker(db, read, automatic ? all : withCorridor, corridorOnly: true, corridorStations);
                 // A drafted drawing (MAAKAF DD-500X, 2026-11-02): no alignment anywhere, the axes are plan polylines.
                 var planAxes = all.Count == 0
-                    ? DraftedTypicalSectionService.CollectPlanAxes(read, db, allowed)
+                    ? DraftedTypicalSectionService.CollectPlanAxes(read, db, allowed, automatic)
                     : new List<PlanAxis>();
                 return new TypicalSectionPicker(db, read, all, corridorOnly: false, corridorStations, planAxes);
             }
@@ -218,9 +219,16 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
         /// </summary>
         public (ObjectId Line, ObjectId Text, TypicalSectionPick Pick) Commit(PickResolution resolution, double halfWidth)
         {
+            using var tr = _db.TransactionManager.StartTransaction();
+            var added = AddMarker(tr, resolution, halfWidth, PlanOnly);
+            tr.Commit();
+            return added;
+        }
+
+        private (ObjectId Line, ObjectId Text, TypicalSectionPick Pick) AddMarker(Transaction tr, PickResolution resolution, double halfWidth, bool fromPlan)
+        {
             if (!resolution.IsReady || resolution.AlignmentName == null)
                 throw new InvalidOperationException(resolution.Reason ?? "The pick is not ready.");
-            using var tr = _db.TransactionManager.StartTransaction();
             var layerId = EnsureLayer(tr, _db, TypicalSectionContracts.MarkerLayer, MarkerColorIndex);
             var blockTable = (BlockTable)tr.GetObject(_db.BlockTableId, OpenMode.ForRead);
             var modelSpace = (BlockTableRecord)tr.GetObject(blockTable[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
@@ -247,12 +255,11 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             var textId = modelSpace.AppendEntity(text);
             tr.AddNewlyCreatedDBObject(text, true);
             text.AdjustAlignment(_db);
-            tr.Commit();
 
             return (lineId, textId, new TypicalSectionPick(
                 line.Handle.ToString(), text.Handle.ToString(), resolution.AlignmentName, resolution.Station, halfWidth,
                 resolution.Axis.X, resolution.Axis.Y, resolution.TangentDeg,
-                resolution.A.X, resolution.A.Y, resolution.B.X, resolution.B.Y) { FromPlan = PlanOnly });
+                resolution.A.X, resolution.A.Y, resolution.B.X, resolution.B.Y) { FromPlan = fromPlan });
         }
 
         /// <summary>

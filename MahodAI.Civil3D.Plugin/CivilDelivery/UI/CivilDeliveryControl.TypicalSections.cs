@@ -25,6 +25,7 @@ public partial class CivilDeliveryControl
     private readonly List<TypicalSectionPick> _typicalPicks = new();
     private IntPtr _typicalPicksDatabase;
     private double? _typicalPickHalfWidthM;
+    private IReadOnlyList<string> _typicalScanNotes = Array.Empty<string>();
 
     // No CL setup is required: the firm's section program cuts at the picked stations, so CL layers and sampled
     // sources (what ProjectSetupService.NeedsSetup checks) play no part. A usable profile is still needed for the
@@ -41,6 +42,7 @@ public partial class CivilDeliveryControl
         if (_typicalPicks.Count > 0 && (doc?.Database.UnmanagedObject ?? IntPtr.Zero) != _typicalPicksDatabase)
             _typicalPicks.Clear();
         BtnTypicalSections.IsEnabled = CanStartTypicalSections(doc, profileUsable);
+        BtnTypicalManual.IsEnabled = BtnTypicalSections.IsEnabled;
         // The sheet needs only typical sections already in the drawing: no profile, no CL.
         BtnTypicalSheet.IsEnabled = doc != null && _pendingTypicalPickDocument == null && _busyProgress == null;
         BtnTypicalCancel.Visibility = _typicalPicks.Count > 0 && _pendingTypicalPickDocument == null
@@ -48,6 +50,14 @@ public partial class CivilDeliveryControl
     }
 
     private void OnTypicalSections(object sender, RoutedEventArgs e)
+    {
+        if (_typicalPicks.Count > 0) OnConfirmTypicalSections(sender, e);
+        else StartTypicalSections(true);
+    }
+
+    private void OnTypicalManual(object sender, RoutedEventArgs e) => StartTypicalSections(false);
+
+    private void StartTypicalSections(bool automatic)
     {
         var doc = Doc();
         var profileUsable = _profile != null && !string.IsNullOrWhiteSpace(_profileWriteTarget);
@@ -60,20 +70,28 @@ public partial class CivilDeliveryControl
                 return;
             }
             if (!TryClearPreview("סימון חתכים טיפוסיים")) return;
+            if (automatic && !HostDrawingUnitService.Resolve(doc.Database, _profile).AllowsMetricSections)
+            {
+                SetStatus("הסריקה דורשת שרטוט במטרים. יש לבדוק את היחידות הפיזיות בלשונית הפרויקט.");
+                return;
+            }
 
             var token = Guid.NewGuid().ToString("N");
+            if (_typicalPicks.Count == 0) _typicalScanNotes = Array.Empty<string>();
             var expectedDatabase = doc.Database.UnmanagedObject;
             TypicalSectionPickRequests.Register(new TypicalSectionPickRequest(
                 token, expectedDatabase,
                 TypicalSectionPickLogic.DefaultHalfWidth(_typicalPickHalfWidthM ?? _profile.Sections.Typical?.HalfWidthM),
-                _profile.Sections.Alignments.AllowedNames.ToList()));
+                _profile.Sections.Alignments.AllowedNames.ToList(), automatic)
+                { PreferredCorridor = _profile.Sections.Typical?.CorridorName });
             _pendingTypicalPickDocument = doc;
             _pendingTypicalPickDatabase = expectedDatabase;
             _pendingTypicalPickToken = token;
             doc.CommandCancelled += OnTypicalPickCommandEnded;
             doc.CommandFailed += OnTypicalPickCommandEnded;
-            SetStatus("סימון חתכים: לחיצה על הכביש לכל חתך · Enter לסיום · Esc לביטול");
-            Log("סימון חתכים טיפוסיים הופעל בשרטוט");
+            SetStatus(automatic ? "סורק את התוואים לאיתור שינויים בכביש ובמסילה…" :
+                "סימון חתכים: לחיצה על הכביש לכל חתך · Enter לסיום · Esc לביטול");
+            Log(automatic ? "הופעלה סריקה חזותית לחתכים טיפוסיים" : "סימון חתכים טיפוסיים הופעל בשרטוט");
             doc.SendStringToExecute(CivilDeliveryCommandNames.TypicalSections + "\n" + token + "\n", true, false, false);
         }
         catch (Exception ex)
@@ -121,7 +139,12 @@ public partial class CivilDeliveryControl
             var doc = Doc();
             if (result.Error != null)
             {
-                SetStatus("סימון החתכים נכשל: " + result.Error);
+                SetStatus((result.Automatic ? "סריקת החתכים: " : "סימון החתכים נכשל: ") + result.Error);
+                if (result.Automatic)
+                {
+                    SectionDetail.Text = string.Join("\n", new[] { result.Error }.Concat(result.Notes));
+                    SectionDiagnostics.IsExpanded = true;
+                }
                 return;
             }
             if (result.Cancelled)
@@ -146,6 +169,14 @@ public partial class CivilDeliveryControl
             _typicalPickHalfWidthM = result.HalfWidthM ?? _typicalPickHalfWidthM;
             SetStatus($"{_typicalPicks.Count} חתכים סומנו בשרטוט");
             Log($"סומנו {result.Picks.Count} חתכים טיפוסיים (סה\"כ {_typicalPicks.Count})");
+            if (result.Automatic)
+            {
+                foreach (var note in result.Notes) Log(note);
+                _typicalScanNotes = result.Notes.ToArray();
+                foreach (var (alignment, corridor) in result.Corridors) _typicalCorridorChoices[alignment] = corridor;
+                var created = CreateTypicalWithChoices(doc, result.Picks);
+                if (created != null) ShowTypicalSectionsResult(doc, created);
+            }
         }
         finally { RefreshGates(); }
     }
@@ -232,7 +263,7 @@ public partial class CivilDeliveryControl
         }
         if (review.Choice == TypicalSectionsDialog.Outcome.AddMore)
         {
-            OnTypicalSections(sender, e);
+            OnTypicalManual(sender, e);
             return;
         }
         if (_typicalPicks.Count == 0) return;
@@ -322,6 +353,11 @@ public partial class CivilDeliveryControl
 
     private TypicalSectionsService.Result? RunTypicalCreate(Document doc, IReadOnlyList<TypicalSectionPick> picks)
     {
+        if (Doc()?.Database.UnmanagedObject != doc.Database.UnmanagedObject)
+        {
+            SetStatus("השרטוט הפעיל הוחלף. יש לחזור לשרטוט שבו אותרו התחנות.");
+            return null;
+        }
         TypicalSectionsService.Result? result = null;
         try
         {
@@ -331,7 +367,7 @@ public partial class CivilDeliveryControl
                 : null;
             var request = new TypicalSectionsService.Request(
                 picks, _profile!, _profileHash, new Dictionary<string, string>(_typicalCorridorChoices, StringComparer.OrdinalIgnoreCase),
-                ground);
+                ground, _typicalScanNotes);
             RunBusy("יוצר חתכים טיפוסיים…", () => result = new TypicalSectionsService().Create(doc, request, log));
         }
         catch (Exception ex)
@@ -454,7 +490,7 @@ public partial class CivilDeliveryControl
             window.Closed += (_, _) =>
             {
                 if (window.Choice == TypicalSectionsDialog.Outcome.AddMore)
-                    Dispatcher.BeginInvoke(new Action(() => OnTypicalSections(this, new RoutedEventArgs())));
+                    Dispatcher.BeginInvoke(new Action(() => OnTypicalManual(this, new RoutedEventArgs())));
                 if (window.Choice == TypicalSectionsDialog.Outcome.Sheet)
                     Dispatcher.BeginInvoke(new Action(() => CreateTypicalSheet(doc, sheetHandles)));
                 if (ReferenceEquals(_typicalResultWindow, window)) _typicalResultWindow = null;

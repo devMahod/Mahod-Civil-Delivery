@@ -26,6 +26,9 @@ public static class DraftedTypicalSectionLogic
     public static class Kind
     {
         public const string Edge = "edge";
+        public const string Track = "track-centre";
+        public const string Rail = "rail";
+        public const string Platform = "platform";
         public const string Shoulder = "shoulder";
         public const string Curb = "curb";
         public const string Sidewalk = "sidewalk";
@@ -117,6 +120,9 @@ public static class DraftedTypicalSectionLogic
     {
         ("*-811*", ""), ("*-815*", ""), ("*-810*", ""), ("*-809*", ""), ("*ZEBRA*", ""), ("TR-MARK-ARW*", ""),
         ("*-TXT*", ""), ("*-TX-*", ""), ("*TEXT*", ""), ("*-DIM*", ""), ("*-NOTE*", ""), ("CL_*", ""),
+        ("RR-ALGN", Kind.Track), ("RR-TRACK-CL*", Kind.Track), ("TRACK-CENTER*", Kind.Track),
+        ("RR-RAIL", Kind.Rail), ("RR-RAIL-*", Kind.Rail), ("RAIL-LINE*", Kind.Rail),
+        ("RR-PLTF*", Kind.Platform), ("PLATFORM-EDGE*", Kind.Platform),
         ("*FENCE*", Kind.Fence), ("*GADER*", Kind.Fence),
         ("*BARI*", Kind.Barrier), ("*MAAKE*", Kind.Barrier), ("מעקה*", Kind.Barrier), ("*GUARD*", Kind.Barrier),
         ("*WORK*", Kind.Work),
@@ -241,7 +247,7 @@ public static class DraftedTypicalSectionLogic
     private static readonly HashSet<string> SurfaceKinds = new(StringComparer.Ordinal)
     {
         Kind.Edge, Kind.Shoulder, Kind.Curb, Kind.Sidewalk, Kind.Garden, Kind.Bike, Kind.Marking, Kind.EdgeLine, Kind.HovLine,
-        Kind.Routing, Kind.Row,
+        Kind.Routing, Kind.Row, Kind.Track, Kind.Rail, Kind.Platform,
     };
 
     /// <summary>
@@ -479,6 +485,9 @@ public static class DraftedTypicalSectionLogic
         bool Both(Func<string, bool> test) => test(leftKind) && test(rightKind);
         static bool LaneLine(string kind) => kind is Kind.Marking or Kind.EdgeLine or Kind.HovLine or Kind.Routing;
         static bool Outer(string kind) => kind is Kind.Edge or Kind.Curb or Kind.Shoulder;
+
+        if (leftKind == Kind.Platform && rightKind == Kind.Platform) return "רציף";
+        if (Either(Kind.Track) || Either(Kind.Rail) || Either(Kind.Platform)) return null;
 
         if (Either(Kind.Sidewalk) && !Either(Kind.Garden) && !Either(Kind.Bike)) return "מדרכה";
         if (Either(Kind.Garden)) return "גינון";

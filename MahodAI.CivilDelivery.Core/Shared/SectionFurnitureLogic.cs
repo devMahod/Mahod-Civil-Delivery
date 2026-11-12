@@ -73,7 +73,7 @@ namespace MahodAI.CivilDelivery.Shared
             // New PLANs retain separate source-arrow tracks within this envelope;
             // never fabricate dimension marks merely to obtain several cars.
             "נתיבי נסיעה" => Car,
-            "נת\"צ" => Bus,
+            "נת\"צ" or "נר\"ת" or "נר״ת" or "נת״צ" => Bus,
             "נתיב אופניים" => Bike,
             "שביל אופניים" => Bike,
             _ => null,

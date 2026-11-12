@@ -173,6 +173,7 @@ public static class OfficeTypicalSheet
     /// <summary>The primitives of an office symbol by its name in <see cref="TypicalSymbolData.All"/>.</summary>
     public static IReadOnlyList<SymbolPrim> Symbol(string name)
     {
+        if (name is "BusFront" or "BusBack") return BusSymbol(name == "BusFront");
         if (!TypicalSymbolData.All.TryGetValue(name, out var data)) throw new ArgumentException("no symbol " + name, nameof(name));
         using var doc = JsonDocument.Parse(data.Json);
         var list = new List<SymbolPrim>();
@@ -189,5 +190,24 @@ public static class OfficeTypicalSheet
                 e.TryGetProperty("loops", out var loops) ? loops.EnumerateArray().Select(Arr).ToArray() : null));
         }
         return list;
+    }
+
+    // Metric front/rear elevations. Tyres touch y=0 at x=±0.85, matching VehicleSeat.
+    private static IReadOnlyList<SymbolPrim> BusSymbol(bool front)
+    {
+        static SymbolPrim Outline(params (double X, double Y)[] vertices) => new("P", 0,
+            vertices.SelectMany(p => new[] { p.X, p.Y, 0.0 }).ToArray(), true, 0, null, null);
+        static SymbolPrim Box(double x0, double y0, double x1, double y1) =>
+            Outline((x0, y0), (x1, y0), (x1, y1), (x0, y1));
+        var half = SectionFurnitureLogic.Bus.WidthM / 2;
+        var top = SectionFurnitureLogic.Bus.HeightM;
+        return new[]
+        {
+            Outline((-half, .34), (half, .34), (half, top - .15), (half - .15, top), (.15 - half, top), (-half, top - .15)),
+            Box(-1.02, 0, -.68, .34), Box(.68, 0, 1.02, .34),
+            Box(-1.12, front ? 1.17 : 1.75, 1.12, 2.60),
+            Box(-.77, 2.68, .77, 2.93), Box(-1.16, .58, -.84, .77), Box(.84, .58, 1.16, .77),
+            Box(-.42, .48, .42, .63),
+        };
     }
 }

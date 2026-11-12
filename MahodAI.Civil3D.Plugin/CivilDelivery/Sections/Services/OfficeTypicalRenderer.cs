@@ -264,6 +264,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                 }
             }
             var chain = breaks.Where(o => !groupInner.Contains(o)).Concat(extra).OrderBy(o => o).ToList();
+            var coverage = design == null ? null : TypicalSheetGeometryLogic.Coverage(design.Surface);
             var roadTop = chain.Count > 0 ? chain.Max(x => level(x)) : level(0);
             var chainY = Math.Max(level(0), roadTop) + ChainAboveM;
 
@@ -309,6 +310,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             }
             void Dim(double from, double to, double y, double extTop = double.NaN)
             {
+                if (coverage != null && !TypicalSheetGeometryLogic.Covers(coverage, from, to)) return;
                 var dim = new RotatedDimension(Math.PI, new Point3d(to, level(to) + 1.7, 0), new Point3d(from, level(from) + 1.7, 0),
                     new Point3d(from, y, 0), string.Empty, dimStyle);
                 Add(dim, "HW-TYP-DIM");
@@ -342,17 +344,20 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             {
                 var mid = (strip.FromM + strip.ToM) / 2;
                 var road = level(mid);
-                var slope = Math.Atan2(level(Math.Min(strip.ToM, mid + 0.9)) - level(Math.Max(strip.FromM, mid - 0.9)), Math.Min(strip.ToM, mid + 0.9) - Math.Max(strip.FromM, mid - 0.9));
+                var bus = SectionFurnitureLogic.VehicleForStrip(strip.Name ?? "") == SectionFurnitureLogic.Bus;
+                var seat = TypicalSheetGeometryLogic.VehicleSeat(design?.Surface, mid, bus ? 0.85 : 0.635);
                 switch (strip.Name)
                 {
                     case "נתיב" or "נתיב זמני":
                         // The office's arrows stand in one row whatever the road's slope; d-13's centre is 0.23 off its base.
                         Symbol("Arrow", mid, arrowRow + (mid > 0 ? 0.23 : -0.24), -0.2, 0.2, mid > 0 ? 0 : Math.PI, "HW-TYP-DIM");
-                        Symbol(mid > 0 ? "CarBack" : "CarFront", mid, road, 0.025, 0.025, slope, "0", 7);
+                        if (seat is { } carSeat)
+                            Symbol(mid > 0 ? "CarBack" : "CarFront", mid, carSeat.Y, 0.025, 0.025, carSeat.Rotation, "0", 7);
                         break;
-                    case "נר\"ת":
+                    case var _ when bus:
                         Hatch("HW-TYP-DIM", new[] { (mid, arrowRow - 0.36), (mid + 0.215, arrowRow), (mid, arrowRow + 0.36), (mid - 0.215, arrowRow) }, "SOLID", 1, 0, 40);
-                        Symbol(mid > 0 ? "CarBack" : "CarFront", mid, road, 0.025, 0.025, slope, "0", 7);
+                        if (seat is { } busSeat)
+                            Symbol(mid > 0 ? "BusBack" : "BusFront", mid, busSeat.Y, 1, 1, busSeat.Rotation, "0", 7);
                         break;
                     case "שביל אופניים":
                         Symbol("Cyclist", mid - 0.5, road, 0.79, 0.79, 0, "4MAN");
@@ -641,7 +646,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
         }
 
         /// <summary>The office symbol as a block of this drawing ("MHD-TYP-SYM-Car..."), defined once from its primitives.</summary>
-        private static ObjectId EnsureSymbol(Transaction tr, Database db, BlockTable table, string name)
+        internal static ObjectId EnsureSymbol(Transaction tr, Database db, BlockTable table, string name)
         {
             // v2: every primitive by block, so the panel's palette colours the symbol (v1 kept the office's red cars)
             var blockName = "MHD-TYP-SYM2-" + name;

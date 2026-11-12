@@ -27,6 +27,47 @@ public class TypicalSheetGeometryLogicTests
     }
 
     [Fact]
+    public void VehicleNeedsMeasuredSurfaceAtBothWheelsAndBetweenThem()
+    {
+        VehicleSeat(Road, -9, .635).Should().BeNull();
+        VehicleSeat(new[] { L(-2, 0, -.1, 0), L(.1, 0, 2, 0) }, 0, .85).Should().BeNull();
+        VehicleSeat(Road, 10, .85).Should().BeNull();
+        var seat = VehicleSeat(Road, 3.5, .85)!.Value;
+        seat.Y.Should().BeApproximately(-.07, 1e-9);
+        System.Math.Tan(seat.Rotation).Should().BeApproximately(-.02, 1e-9);
+        VehicleSeat(null, 3.5, .85)!.Value.Y.Should().Be(0);
+    }
+
+    [Fact]
+    public void AdjacentRoadAndHolesAreExcludedWithoutCallingPartialWidthsLanes()
+    {
+        var section = DraftedTypicalSectionLogic.Build(new[] { -7.0, -3.5, 0, 3.5, 7 }
+            .Select(x => new DraftedTypicalSectionLogic.Crossing(x, DraftedTypicalSectionLogic.Kind.Marking, "TR", "host")), null, 20);
+        var fitted = FitToSurface(section, new[] { L(-2, 0, 2, 0), L(2.5, 0, 7, 0) });
+        fitted.Breaks.Should().OnlyContain(b => b.OffsetM >= -2);
+        fitted.Strips.Should().NotContain(s => s.FromM < 2.5 && s.ToM > 2);
+        fitted.Strips.Where(s => s.FromM < 3.5).Should().OnlyContain(s => s.Name == null);
+        fitted.Strips.Last().Name.Should().Be("נתיב");
+        fitted.Findings.Should().Contain(s => s.Contains("לתחום פני הדרך"));
+    }
+
+    [Theory]
+    [InlineData("נר\"ת", "BusFront")]
+    [InlineData("נר״ת", "BusBack")]
+    [InlineData("נת\"צ", "BusFront")]
+    public void TransitLanesUseGroundedMetricBusElevations(string name, string symbol)
+    {
+        SectionFurnitureLogic.VehicleForStrip(name).Should().Be(SectionFurnitureLogic.Bus);
+        var loops = OfficeTypicalSheet.Symbol(symbol);
+        loops.Should().OnlyContain(l => l.Closed && l.Type == "P");
+        var xs = loops.SelectMany(l => l.P.Where((_, i) => i % 3 == 0)).ToList();
+        var ys = loops.SelectMany(l => l.P.Where((_, i) => i % 3 == 1)).ToList();
+        (xs.Max() - xs.Min()).Should().BeApproximately(2.55, 1e-9);
+        ys.Min().Should().Be(0);
+        ys.Max().Should().BeApproximately(3.1, 1e-9);
+    }
+
+    [Fact]
     public void CrossSlopes_AreOnePerCarriageway_PointingDownhill()
     {
         var slopes = CrossSlopes(Road, new[] { (-7.0, -3.5), (-3.5, 0.0), (0.0, 3.5), (3.5, 7.0) });
