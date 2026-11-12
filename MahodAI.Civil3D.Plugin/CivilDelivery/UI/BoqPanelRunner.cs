@@ -22,9 +22,21 @@ internal static class BoqPanelRunner
         internal required InfrastructureDrawingService View { get; init; }
         internal required CatalogSnapshot Catalog { get; init; }
         internal BoqAreaPicker.Outline? Outline { get; init; }
+        internal double Factor { get; init; } = 1;
+        /// <summary>The topography and earthworks of this read (recomputed when its settings change).</summary>
+        internal EarthworksReader.Result? Earth { get; set; }
+        internal EarthworksMap Map { get; } = new();
         internal bool IsArea => View.Area != null;
+        /// <summary>A bill window over this read, with its earthworks rows.</summary>
+        internal InfrastructureBoqWindow Window()
+        {
+            var w = new InfrastructureBoqWindow(View, Catalog);
+            w.SetEarthworks(Earth);
+            return w;
+        }
         public void Dispose()
         {
+            Map.Dispose();
             Outline?.Dispose();
             if (!ReferenceEquals(View, Source)) View.Dispose();
             Source.Dispose();
@@ -91,8 +103,12 @@ internal static class BoqPanelRunner
                 else view = source;
                 panel.Step("מתמחר לפי מחירון נתיבי ישראל");
                 var catalog = _catalog ??= InfrastructureBoqWindow.LoadCatalog();
-                var estimate = new InfrastructureBoqWindow(view, catalog).Estimate(panel.Wait);
-                Replace(new Session { Drawing = doc.Name, Source = source, View = view, Catalog = catalog, Outline = outline });
+                var window = new InfrastructureBoqWindow(view, catalog);
+                var earth = Earth(doc, panel, view, window, factor);
+                window.SetEarthworks(earth);
+                panel.Step("מתמחר לפי מחירון נתיבי ישראל");
+                var estimate = window.Estimate(panel.Wait);
+                Replace(new Session { Drawing = doc.Name, Source = source, View = view, Catalog = catalog, Outline = outline, Factor = factor, Earth = earth });
                 panel.EndBusy();
                 panel.ShowResult(estimate, area);
             }
@@ -112,7 +128,7 @@ internal static class BoqPanelRunner
     internal static void Export(BoqPanel panel)
     {
         if (Current(panel) is not { } s) return;
-        var folder = new InfrastructureBoqWindow(s.View, s.Catalog).ExportBoq(null);
+        var folder = s.Window().ExportBoq(null);
         if (folder != null) panel.ShowExported(folder);
     }
 
@@ -120,7 +136,7 @@ internal static class BoqPanelRunner
     internal static void Details(BoqPanel panel, InfrastructureBoqWindow.Sheet table)
     {
         if (Current(panel) is not { } s) return;
-        var window = new InfrastructureBoqWindow(s.View, s.Catalog);
+        var window = s.Window();
         window.Open(table);
         CivilModalHost.ShowFromPalette(window);
         if (window.NextStep == InfrastructureBoqWindow.Step.MarkArea) { Bill(panel, area: true); return; }
@@ -128,9 +144,67 @@ internal static class BoqPanelRunner
         try
         {
             panel.BeginBusy("מעדכן את האומדן");
-            var estimate = new InfrastructureBoqWindow(s.View, s.Catalog).Estimate(panel.Wait);
+            var estimate = s.Window().Estimate(panel.Wait);
             panel.EndBusy();
             panel.ShowResult(estimate, s.IsArea);
+        }
+        catch (OperationCanceledException) { panel.EndBusy(); panel.ShowLast(); }
+    }
+
+    // ───────────────────────────── topography and earthworks ─────────────────────────────
+
+    private static string EarthSettingsPath(string drawing) => System.IO.Path.ChangeExtension(System.IO.Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MahodCivilDelivery", "infrastructure-reviews",
+        MahodAI.CivilDelivery.Estimate.Infrastructure.InfrastructureReviewStore.FileName(drawing)), ".earthworks.json");
+
+    /// <summary>The ground and design of the read, cut and fill between them. Never stops the bill: a failure is its note.</summary>
+    private static EarthworksReader.Result Earth(Document doc, BoqPanel panel, InfrastructureDrawingService view, InfrastructureBoqWindow window, double factor)
+    {
+        panel.Step("מנתח טופוגרפיה ועבודות עפר");
+        var settings = MahodAI.CivilDelivery.Estimate.Infrastructure.Earthworks.Load(EarthSettingsPath(doc.Name));
+        try
+        {
+            var result = EarthworksReader.Run(doc, view.Area, factor, settings, window.PavementFootprints(), panel.Step, n => panel.Tick(n, "עצמי מדידה נקראו"));
+            doc.Editor.WriteMessage(result.Missing != null ? $"\nBOQ earthworks: {result.Missing}\n"
+                : $"\nBOQ earthworks: cut {result.Balance!.CutInPlace:N0} m3, fill {result.Balance.FillCompacted:N0} m3, {result.Topography!.Terrain}, grid {result.Grid!.Cell} m, {result.Took.TotalSeconds:N1} s.\n");
+            return result;
+        }
+        catch (OperationCanceledException) { throw; }
+        catch (System.Exception ex) { return new EarthworksReader.Result { Missing = "עבודות העפר לא חושבו: " + ex.Message }; }
+    }
+
+    internal static void ToggleEarthMap(BoqPanel panel)
+    {
+        if (Current(panel) is not { } s) return;
+        if (s.Map.Visible) { s.Map.Clear(); if (s.View.Area is { } area) s.Outline?.Show(area); }
+        else if (s.Earth?.Grid is { } grid) { s.Outline?.LineOnly(); s.Map.Show(grid, s.Earth.Level, s.Factor); }
+        AcadApp.DocumentManager.MdiActiveDocument?.Editor.UpdateScreen();
+        panel.ShowMapState(s.Map.Visible);
+    }
+
+    /// <summary>The earthworks settings; on "recompute" the earthworks of the same read are worked out again and priced.</summary>
+    internal static void EarthSettings(BoqPanel panel)
+    {
+        if (Current(panel) is not { } s) return;
+        var doc = AcadApp.DocumentManager.MdiActiveDocument!;
+        var path = EarthSettingsPath(doc.Name);
+        var current = MahodAI.CivilDelivery.Estimate.Infrastructure.Earthworks.Load(path);
+        var dialog = new EarthworksSettingsWindow(current, s.Earth?.Surfaces ?? Array.Empty<EarthworksReader.SurfaceInfo>(), s.Earth);
+        if (CivilModalHost.ShowFromPalette(dialog) != true || dialog.Result is not { } chosen) return;
+        MahodAI.CivilDelivery.Estimate.Infrastructure.Earthworks.Save(path, chosen);
+        var mapWasOn = s.Map.Visible;
+        s.Map.Clear();
+        if (s.View.Area is { } shown) s.Outline?.Show(shown);
+        try
+        {
+            panel.BeginBusy("מחשב עבודות עפר מחדש");
+            var window = new InfrastructureBoqWindow(s.View, s.Catalog);
+            s.Earth = Earth(doc, panel, s.View, window, s.Factor);
+            window.SetEarthworks(s.Earth);
+            var estimate = window.Estimate(panel.Wait);
+            panel.EndBusy();
+            panel.ShowResult(estimate, s.IsArea);
+            if (mapWasOn && s.Earth.Grid is { } grid) { s.Outline?.LineOnly(); s.Map.Show(grid, s.Earth.Level, s.Factor); doc.Editor.UpdateScreen(); panel.ShowMapState(true); }
         }
         catch (OperationCanceledException) { panel.EndBusy(); panel.ShowLast(); }
     }

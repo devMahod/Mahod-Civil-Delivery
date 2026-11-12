@@ -32,6 +32,7 @@ internal sealed class BoqPanel : UserControl
 {
     internal event Action? MarkArea, WholeDrawing, Export;
     internal event Action<InfrastructureBoqWindow.Sheet>? Details;
+    internal event Action? EarthMap, EarthSettings;
     internal bool Busy { get; private set; }
 
     private const int Shown = 5;
@@ -70,7 +71,19 @@ internal sealed class BoqPanel : UserControl
         body.Children.Add(choose);
         _state.Margin = new Thickness(0, 14, 0, 0);
         body.Children.Add(_state);
-        Content = body;   // the Civil Delivery window scrolls; a scroll area of our own kept the wheel from reaching it
+        // A scroll area of our own: the Civil Delivery window's content is held to the palette's height (MinHeight 855), so an
+        // estimate taller than that was cut off — the earthworks card's buttons could not be reached (live 2026-11-12). The
+        // wheel goes on to the window once this area is at its end, so a nested scroller no longer swallows it (2026-11-11).
+        var scroller = new ScrollViewer { Content = body, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+        scroller.PreviewMouseWheel += (_, e) =>
+        {
+            var down = e.Delta < 0;
+            if (down ? scroller.VerticalOffset < scroller.ScrollableHeight - 0.5 : scroller.VerticalOffset > 0.5) return;
+            if (Parent is not UIElement outer) return;
+            e.Handled = true;
+            outer.RaiseEvent(new System.Windows.Input.MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta) { RoutedEvent = MouseWheelEvent, Source = this });
+        };
+        Content = scroller;
         SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "boq-panel");
         // The palette is inactive after any work on the plan, and AutoCAD spends the first press on an inactive palette
         // activating it: "I click and nothing happens" (live 2026-11-11). The mouse reaching the panel activates it first.
@@ -240,6 +253,7 @@ internal sealed class BoqPanel : UserControl
             }
         }
         else _state.Children.Add(Hint("לא נמצאו שכבות עם סעיף ומחיר."));
+        _state.Children.Add(EarthCard(e.Earth, e.EarthTotal));
 
         var notes = new StackPanel { Margin = new Thickness(0, 14, 0, 0) };
         notes.Children.Add(Note((e.PavementIsDefault ? "⚠ " : "") + e.Pavement, e.PavementIsDefault ? Theme.Review : Theme.Muted,
@@ -283,6 +297,154 @@ internal sealed class BoqPanel : UserControl
         advanced.Click += (_, _) => Later(() => menu.IsOpen = true);
         row.Children.Add(advanced);
         return row;
+    }
+
+    // ───────────────────────────── topography and earthworks ─────────────────────────────
+
+    private static readonly Brush CutBrush = Frozen(new SolidColorBrush(Color.FromRgb(0xD3, 0x3F, 0x3A)));
+    private static readonly Brush FillBrush = Frozen(new SolidColorBrush(Color.FromRgb(0x1E, 0x78, 0xC8)));
+    private Button? _mapButton;
+    private WrapPanel? _mapLegend;
+
+    /// <summary>
+    /// The ground of the area and the cut and fill it needs: terrain class, slopes, levels, the two volumes, the balance,
+    /// where the ground and the design came from, a map on the plan, settings and "how is it worked out?".
+    /// </summary>
+    private UIElement EarthCard(MahodAI.Civil3D.Plugin.CivilDelivery.Estimate.EarthworksReader.Result? r, decimal total)
+    {
+        var card = Card(); card.Margin = new Thickness(0, 14, 0, 0);
+        card.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "boq-earth-card");
+        var stack = new StackPanel();
+        var head = new DockPanel();
+        var guide = Action("איך זה מחושב?", "QuietButton", "boq-earth-guide");
+        guide.Padding = new Thickness(8, 3, 8, 3); guide.MinHeight = 26; guide.Margin = new Thickness(0);
+        guide.Click += (_, _) => Later(() => EarthworksGuideWindow.Show(null));
+        DockPanel.SetDock(guide, Dock.Right); head.Children.Add(guide);   // RightToLeft: the visual left
+        head.Children.Add(new TextBlock { Text = "טופוגרפיה ועבודות עפר", FontSize = 15, FontWeight = FontWeights.SemiBold, Foreground = Theme.Ink, VerticalAlignment = VerticalAlignment.Center });
+        stack.Children.Add(head);
+        if (r == null || r.Missing != null || r.Topography is not { } t || r.Balance is not { } b)
+        {
+            stack.Children.Add(Hint(r?.Missing ?? "עבודות העפר לא חושבו."));
+            stack.Children.Add(EarthButtons(mapReady: false));
+            card.Child = stack;
+            return card;
+        }
+        var terrain = new TextBlock { Text = Ltr($"שטח {t.Terrain} · שיפוע ממוצע {t.MeanSlopePercent:0.0}% · ניקוז ל{t.Downhill}"), Foreground = Theme.Ink, Margin = new Thickness(0, 6, 0, 0), FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap };
+        terrain.ToolTip = t.TerrainWhy;
+        terrain.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "boq-earth-terrain");
+        stack.Children.Add(terrain);
+        stack.Children.Add(new TextBlock { Text = Ltr($"רום {t.MinZ:0.0} עד {t.MaxZ:0.0} מ׳ · הפרש {t.Relief:0.0} מ׳ · {t.Area:N0} מ״ר"), Foreground = Theme.Muted, FontSize = 12, Margin = new Thickness(0, 2, 0, 6) });
+        stack.Children.Add(SlopeBar(t));
+
+        // The two volumes, side by side, and how they compare.
+        var numbers = new UniformGrid { Columns = 2, Margin = new Thickness(0, 10, 0, 4) };
+        numbers.Children.Add(Volume("חפירה", b.CutInPlace, CutBrush, "boq-earth-cut"));
+        numbers.Children.Add(Volume("מילוי", b.FillCompacted, FillBrush, "boq-earth-fill"));
+        stack.Children.Add(numbers);
+        var sum = b.CutInPlace + b.FillCompacted;
+        if (sum > 0)
+        {
+            var bar = new Grid { Height = 8, Margin = new Thickness(0, 2, 0, 6) };
+            bar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(Math.Max(b.CutInPlace / sum, 0.005), GridUnitType.Star) });
+            bar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(Math.Max(b.FillCompacted / sum, 0.005), GridUnitType.Star) });
+            var c = new Border { Background = CutBrush, CornerRadius = new CornerRadius(4, 0, 0, 4) };
+            var f = new Border { Background = FillBrush, CornerRadius = new CornerRadius(0, 4, 4, 0) }; Grid.SetColumn(f, 1);
+            bar.Children.Add(c); bar.Children.Add(f);
+            stack.Children.Add(bar);
+        }
+        var balance = b.CutToWaste >= 1 && b.ImportFill < 1 ? $"עודף {b.CutToWaste:N0} מ״ק לסילוק (כ־{b.HaulLoose:N0} מ״ק תפוח, ~{Math.Ceiling(b.HaulLoose / 15):N0} משאיות)"
+            : b.ImportFill >= 1 ? $"חסר {b.ImportFill:N0} מ״ק — מילוי מובא" + (b.CutToWaste >= 1 ? $"; {b.CutToWaste:N0} מ״ק חפירה לסילוק" : "")
+            : "מאוזן — החפירה מספקת את המילוי";
+        var bal = new TextBlock { Text = balance, Foreground = Theme.Ink, TextWrapping = TextWrapping.Wrap };
+        bal.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "boq-earth-balance");
+        stack.Children.Add(bal);
+        if (total > 0) stack.Children.Add(new TextBlock { Text = $"בכתב הכמויות: {Shekels(total)} · {r.Rows.Count} סעיפי פרק 51", Foreground = Money, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 4, 0, 0) });
+        stack.Children.Add(Note("קרקע: " + r.Ground, Theme.Muted, null));
+        stack.Children.Add(Note("תכנון: " + r.Design, r.LevelIsBalanced ? Theme.Review : Theme.Muted, r.LevelIsBalanced ? "אין משטח תכנון: המפלס המוצע מאזן חפירה ומילוי. לשינוי — הגדרות." : null));
+        if (r.Defaults) stack.Children.Add(Note("⚠ מקדמי עפר טיפוסיים (ברירת מחדל) — לאמת מול דו״ח קרקע", Theme.Review, "חישוף 20 ס״מ, התכווצות 0.90, מדרונות 1:2 / 1:1.5"));
+        foreach (var n in r.Notes.Take(3)) stack.Children.Add(Note("• " + n, Theme.Muted, null));
+        stack.Children.Add(EarthButtons(mapReady: r.Grid != null));
+        card.Child = stack;
+        return card;
+    }
+
+    private UIElement EarthButtons(bool mapReady)
+    {
+        var row = new WrapPanel { Margin = new Thickness(0, 8, 0, 0) };
+        _mapButton = null;
+        if (mapReady)
+        {
+            _mapButton = Action("הצג על התכנית", "PillButton", "boq-earth-map");
+            _mapButton.ToolTip = "מפת חפירה ומילוי על השרטוט (גרפיקה זמנית בלבד — השרטוט אינו משתנה).";
+            _mapButton.Click += (_, _) => Later(() => EarthMap?.Invoke());
+            row.Children.Add(_mapButton);
+        }
+        var settings = Action("הגדרות עפר…", "QuietButton", "boq-earth-settings");
+        settings.ToolTip = "משטח קרקע ותכנון, מפלס פילוס, חישוף, מקדמי התכווצות ותפיחה, סלע, מדרונות.";
+        settings.Click += (_, _) => Later(() => EarthSettings?.Invoke());
+        row.Children.Add(settings);
+        if (!mapReady) return row;
+        var both = new StackPanel();
+        both.Children.Add(row);
+        _mapLegend = new WrapPanel { Margin = new Thickness(0, 6, 0, 0), Visibility = Visibility.Collapsed };
+        _mapLegend.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "boq-earth-legend");
+        foreach (var c in EarthworksMap.Classes)
+        {
+            var item = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 10, 2) };
+            item.Children.Add(new Border { Width = 12, Height = 12, CornerRadius = new CornerRadius(2), Margin = new Thickness(0, 0, 4, 0),
+                Background = Frozen(new SolidColorBrush(Color.FromRgb(c.R, c.G, c.B))) });
+            item.Children.Add(new TextBlock { Text = Ltr(c.Label), FontSize = 11, Foreground = Theme.TextSoft });
+            _mapLegend.Children.Add(item);
+        }
+        both.Children.Add(_mapLegend);
+        return both;
+    }
+
+    /// <summary>Numbers with % or a range stay in reading order inside Hebrew text ("10%–15%", not "%15–%10").</summary>
+    private static string Ltr(string text) => System.Text.RegularExpressions.Regex.Replace(text, @"[\d.,]+%?(?:\s*[–-]\s*[\d.,]+%?)*", m => "\u202A" + m.Value + "\u202C");
+
+    internal void ShowMapState(bool visible)
+    {
+        if (_mapButton != null) _mapButton.Content = visible ? "הסתר מהתכנית" : "הצג על התכנית";
+        if (_mapLegend != null) _mapLegend.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private static UIElement Volume(string label, double value, Brush colour, string id)
+    {
+        var s = new StackPanel();
+        s.Children.Add(new TextBlock { Text = label, Foreground = Theme.Muted, FontSize = 12 });
+        var t = new TextBlock { Text = $"{value:N0} מ״ק", Foreground = colour, FontSize = 22, FontWeight = FontWeights.Bold };
+        t.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, id);
+        s.Children.Add(t);
+        return s;
+    }
+
+    /// <summary>The share of the area in each slope class, as one segmented bar with its labels.</summary>
+    private static UIElement SlopeBar(MahodAI.CivilDelivery.Estimate.Infrastructure.Earthworks.Topography t)
+    {
+        var colours = new[] { Color.FromRgb(0x81, 0xC7, 0x84), Color.FromRgb(0x43, 0xA0, 0x47), Color.FromRgb(0xF9, 0xA8, 0x25), Color.FromRgb(0xEF, 0x6C, 0x00), Color.FromRgb(0xC6, 0x28, 0x28) };
+        var panel = new StackPanel();
+        var bar = new Grid { Height = 10 };
+        var legend = new WrapPanel { Margin = new Thickness(0, 3, 0, 0) };
+        for (var i = 0; i < t.Slopes.Count; i++)
+        {
+            var share = t.Slopes[i].Share;
+            bar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(Math.Max(share, 0.0001), GridUnitType.Star) });
+            var brush = Frozen(new SolidColorBrush(colours[i]));
+            var cell = new Border { Background = brush, ToolTip = $"{t.Slopes[i].Label}: {share * 100:0}%" };
+            Grid.SetColumn(cell, i); bar.Children.Add(cell);
+            if (share >= 0.005)
+            {
+                var item = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 10, 0) };
+                item.Children.Add(new Border { Width = 9, Height = 9, Background = brush, Margin = new Thickness(0, 0, 4, 0), VerticalAlignment = VerticalAlignment.Center });
+                item.Children.Add(new TextBlock { Text = $"{t.Slopes[i].Label}: {share * 100:0}%", FontSize = 11, Foreground = Theme.TextSoft, FlowDirection = System.Windows.FlowDirection.LeftToRight });
+                legend.Children.Add(item);
+            }
+        }
+        panel.Children.Add(new Border { CornerRadius = new CornerRadius(5), ClipToBounds = true, Child = bar });
+        panel.Children.Add(legend);
+        panel.ToolTip = "התפלגות השטח לפי שיפוע הקרקע הקיימת (באחוזים)";
+        return panel;
     }
 
     /// <summary>The last estimate's read is gone (a new one started): no "back to it".</summary>

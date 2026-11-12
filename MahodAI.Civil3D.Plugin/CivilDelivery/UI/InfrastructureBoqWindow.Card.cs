@@ -17,7 +17,13 @@ internal sealed partial class InfrastructureBoqWindow
     internal sealed record EstimateLine(string Code, string Description, string Unit, double Quantity, decimal Total);
 
     internal sealed record AreaEstimate(decimal Total, decimal Demolition, IReadOnlyList<EstimateLine> Lines, int Entities,
-        double AreaSquareMetres, int Unpriced, string Pavement, bool PavementIsDefault, string? ConcreteNote);
+        double AreaSquareMetres, int Unpriced, string Pavement, bool PavementIsDefault, string? ConcreteNote)
+    {
+        /// <summary>The topography and earthworks of the same area (null when it was not worked out).</summary>
+        public MahodAI.Civil3D.Plugin.CivilDelivery.Estimate.EarthworksReader.Result? Earth { get; init; }
+        /// <summary>What the earthworks rows add to the total.</summary>
+        public decimal EarthTotal { get; init; }
+    }
 
     /// <summary>
     /// Prices the area the way "auto-assign" would (every pay layer still without an item gets the recommended one, saved as
@@ -50,6 +56,7 @@ internal sealed partial class InfrastructureBoqWindow
             : _derived.Count > 0 ? "מבנה המיסעה כפי שהוזן ידנית" : "ללא מבנה מיסעה — האספלט והמצעים לא תומחרו";
         var concrete = _concretePlan.Defaults > 0 ? $"בטון: {_concretePlan.Defaults} אלמנטים לפי מידות טיפוסיות" : null;
         return new AreaEstimate(lines.Sum(l => l.Total), demolition, lines, _scan.Measurements.Count, area,
-            pay.Count(g => g.Total == null && g.Quantity > 0), pavement, byDefault || (!_reports.HasReport && _derived.Count == 0), concrete);
+            pay.Count(g => g.Total == null && g.Quantity > 0), pavement, byDefault || (!_reports.HasReport && _derived.Count == 0), concrete)
+        { Earth = _earth, EarthTotal = pay.Where(g => g.Source == Earthworks.DerivedSource).Sum(g => g.Total ?? 0m) };
     }
 }

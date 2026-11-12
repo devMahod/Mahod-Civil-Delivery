@@ -128,6 +128,16 @@ internal static class BoqAreaPicker
         }
         internal void Show(SpatialQuantityClip area)
             => Show(area.Vertices.Select(v => new Point3d(v.X, v.Y, 0)).ToList(), closed: true);
+        /// <summary>The area as its line only: the earthworks map takes the inside.</summary>
+        internal void LineOnly()
+        {
+            foreach (var fill in _shown.OfType<Hatch>().ToArray())
+            {
+                try { TransientManager.CurrentTransientManager.EraseTransient(fill, new IntegerCollection()); } catch (System.Exception) { }
+                fill.Dispose();
+                _shown.Remove(fill);
+            }
+        }
         private void Add(Entity entity, TransientDrawingMode mode)
         {
             try { TransientManager.CurrentTransientManager.AddTransient(entity, mode, 128, new IntegerCollection()); _shown.Add(entity); }

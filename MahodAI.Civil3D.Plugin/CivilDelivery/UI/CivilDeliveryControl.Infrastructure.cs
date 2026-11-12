@@ -24,6 +24,8 @@ public partial class CivilDeliveryControl
         panel.WholeDrawing += () => BoqPanelRunner.Start(panel, p => BoqPanelRunner.Bill(p, area: false));
         panel.Export += () => BoqPanelRunner.Start(panel, BoqPanelRunner.Export);
         panel.Details += table => BoqPanelRunner.Start(panel, p => BoqPanelRunner.Details(p, table));
+        panel.EarthMap += () => BoqPanelRunner.Start(panel, BoqPanelRunner.ToggleEarthMap);
+        panel.EarthSettings += () => BoqPanelRunner.Start(panel, BoqPanelRunner.EarthSettings);
     }
 
     /// <summary>Selects the BOQ tab and returns its panel (MHD_BOQ / MHD_BOQ_AREA show their result there).</summary>

@@ -652,7 +652,7 @@ internal sealed partial class InfrastructureBoqWindow : Window
                 _dispositionEvidence.Foreground = g.Disposition == InfrastructureDisposition.ExistingDemolish ? Theme.Blocked : Theme.Muted;
                 _catalogPanel.IsEnabled = g.Disposition != InfrastructureDisposition.ExistingKeep;
                 _items.IsEnabled = _catalogPanel.IsEnabled;
-                _dNew.IsEnabled = _dKeep.IsEnabled = _dDemolish.IsEnabled = g.Source != RoadPavement.DerivedSource && g.Source != StructureConcrete.DerivedSource && g.GroupPart != RoadCorridorVolumes.Part;
+                _dNew.IsEnabled = _dKeep.IsEnabled = _dDemolish.IsEnabled = g.Source != RoadPavement.DerivedSource && g.Source != StructureConcrete.DerivedSource && g.Source != Earthworks.DerivedSource && g.GroupPart != RoadCorridorVolumes.Part;
             }
             else
             {
@@ -843,11 +843,15 @@ internal sealed partial class InfrastructureBoqWindow : Window
             _corridor = groups.ToList();
             InfrastructureReviewStore.Restore(_reviewPath, _scan.DrawingHash, _books.Select(b => b.Catalog).ToArray(), _corridor, _excluded);
             _groups.AddRange(_corridor);
+            // Cut and fill from the corridor's sections replace the topographic estimate of the same works: never both.
+            var sectionsEarth = _corridor.Any(g => g.Layer.StartsWith("earthworks:", StringComparison.OrdinalIgnoreCase));
+            if (sectionsEarth) foreach (var e in _earthDerived) _excluded.Add(e);
             foreach (var f in findings) if (!_scan.Findings.Contains(f)) _scan.Findings.Add(f);
             _corridorGrid.ItemsSource = _corridor; _corridorGrid.Visibility = _corridor.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
             Persist(); RefreshRoads();
             _message.Text = _corridor.Count > 0
-                ? $"נקראו {_corridor.Count} קודי נפח מקורידורים ({_corridor.Sum(g => g.VolumeCubicMetres):N1} מ״ק) — נוספו ל\"עבודות חדשות\" לשיוך סעיף"
+                ? $"נקראו {_corridor.Count} קודי נפח מקורידורים ({_corridor.Sum(g => g.VolumeCubicMetres):N1} מ״ק) — נוספו ל\"עבודות חדשות\" לשיוך סעיף" +
+                  (sectionsEarth && _earthDerived.Count > 0 ? " · חפירה ומילוי מהחתכים מחליפים את חישוב העפר הטופוגרפי (הוסר מהאומדן)" : "")
                 : "לא נמצאו נפחי מבנה בקורידורים (אין Shapes עם קודים)" + (findings.Count > 0 ? " · " + findings[0] : "");
         }
         finally { Cursor = previous; }
@@ -921,7 +925,7 @@ internal sealed partial class InfrastructureBoqWindow : Window
         if (demolition > 0)
             InfrastructureBoq.ExportDemolition(Path.Combine(directory, Path.GetFileNameWithoutExtension(file) + " - פירוקים.xlsx"),
                 selected, catalogs, _scan.Findings, _scan.Drawing, _scan.DrawingHash, engine);
-        var notCopied = _scan.SaveDrawing(Path.Combine(directory, "Infrastructure-lines.dwg"), selected.Where(g => g.Source != RoadPavement.DerivedSource && g.Source != StructureConcrete.DerivedSource && g.GroupPart != RoadCorridorVolumes.Part));
+        var notCopied = _scan.SaveDrawing(Path.Combine(directory, "Infrastructure-lines.dwg"), selected.Where(g => g.Source != RoadPavement.DerivedSource && g.Source != StructureConcrete.DerivedSource && g.Source != Earthworks.DerivedSource && g.GroupPart != RoadCorridorVolumes.Part));
         File.WriteAllText(Path.Combine(directory, "review.json"), JsonSerializer.Serialize(selected, new JsonSerializerOptions { WriteIndented = true }));
         File.WriteAllText(Path.Combine(directory, "igor-audit.json"), JsonSerializer.Serialize(_igorAudit ??
             new IgorPolylineAudit.Result("not-run", "", "Model Space LWPOLYLINE only", Array.Empty<IgorPolylineAudit.Comparison>(), "Run the Igor comparison before relying on it"), new JsonSerializerOptions { WriteIndented = true }));

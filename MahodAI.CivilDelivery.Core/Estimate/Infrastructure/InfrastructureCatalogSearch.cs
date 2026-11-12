@@ -56,7 +56,8 @@ public sealed class InfrastructureCatalogSearch
             ? Normalize(group.Element).Split(' ', StringSplitOptions.RemoveEmptyEntries) : Array.Empty<string>();
         // A concrete row names its NTI item by phrases ("^קירות תומכים מבטון", "בקוטר 60 · 10.01"): the wall item and the
         // wall-footing item share every word, so loose words could not tell them apart.
-        (string? Lead, string[] Phrases)? phrases = group.GroupPart == StructureConcrete.DerivedPart ? Phrases(group.Element) : null;
+        // An earthworks row too: "מילוי מובא" must not drift to "מילוי מובא עליון" or the bridge-fill items.
+        (string? Lead, string[] Phrases)? phrases = group.GroupPart is StructureConcrete.DerivedPart or Earthworks.DerivedPart ? Phrases(group.Element) : null;
         // A firm layer whose name carries the specification (barrier N2/W4, concrete barrier, lighting pole): its own item, or
         // none at all — a known element is never handed the nearest word match (see FirmItemHints).
         var firm = phrases == null && hint.Length == 0 && !demolish ? FirmItemHints.For(group.Layer, group.MeasurementUnit) : null;
