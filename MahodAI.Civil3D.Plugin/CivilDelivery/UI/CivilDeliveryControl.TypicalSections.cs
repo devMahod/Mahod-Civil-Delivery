@@ -468,7 +468,7 @@ public partial class CivilDeliveryControl
                         : $"{section.NamedStrips} מתוך {section.ChainSegments} רוחבים עם שם")
                     : section.Error ?? "לא נוצר",
                 Good = section.Created && section.UnmatchedStrips == 0 && section.ChainSegments > 0,
-                BlockHandle = section.Created ? section.BlockHandle : null,
+                BlockHandle = section.Created ? section.OverlayHandle ?? section.BlockHandle : null,
             }).ToList();
             var notes = result.Sections
                 .SelectMany(section => section.Notes.Select(note =>
@@ -486,7 +486,7 @@ public partial class CivilDeliveryControl
             var window = TypicalSectionsDialog.ForResult(
                 result.CreatedCount, result.NamedCount, result.UnmatchedCount, rows, subtitle, notes, failed != null, offerSheet);
             window.RunFolder = result.ArtifactPath == null ? null : System.IO.Path.GetDirectoryName(result.ArtifactPath);
-            window.ShowSectionRequested += handle => ZoomToTypicalSection(handle);
+            window.ShowSectionRequested += handle => ZoomToTypicalSection(doc, handle);
             window.Closed += (_, _) =>
             {
                 if (window.Choice == TypicalSectionsDialog.Outcome.AddMore)
@@ -556,10 +556,15 @@ public partial class CivilDeliveryControl
     internal const double TypicalSectionZoomMargin = 1.25, TypicalAllSectionsZoomMargin = 1.10;
 
     /// <summary>Zooms to one created section block (the result window's "הצג"); says so when it cannot.</summary>
-    private void ZoomToTypicalSection(string blockHandle)
+    private void ZoomToTypicalSection(Document sourceDocument, string blockHandle)
     {
         var doc = Doc();
         if (doc == null) return;
+        if (!ReferenceEquals(doc, sourceDocument))
+        {
+            SetStatus("החתך שייך לשרטוט אחר — חזור לשרטוט שבו נוצרו החתכים ולחץ על הצג.");
+            return;
+        }
         try
         {
             Autodesk.AutoCAD.DatabaseServices.Extents3d? extents = null;

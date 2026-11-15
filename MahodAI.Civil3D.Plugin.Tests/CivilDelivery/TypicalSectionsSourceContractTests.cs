@@ -126,7 +126,7 @@ public sealed class TypicalSectionsSourceContractTests
         show.Should().Contain("TypicalSectionsDialog.ForBlocked(")
             .And.Contain("TypicalSectionsDialog.ForResult(")
             .And.Contain("ShowModelessWindow(")
-            .And.Contain("window.ShowSectionRequested += handle => ZoomToTypicalSection(handle);");
+            .And.Contain("window.ShowSectionRequested += handle => ZoomToTypicalSection(doc, handle);");
     }
 
     [Fact]
