@@ -16,14 +16,24 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
         private static CivilDeliveryControl? _control;
         private static ElementHost? _host;
 
+#if MAHOD_CD_STANDALONE
+        // The local build (this repo's standalone plugin, started by tools\Test-InCivil3D.ps1) runs in a Civil 3D where the
+        // installed MahodAI loads its own copy of this panel. Under one name and GUID the two palettes shared a slot and
+        // looked alike (2026-11-16: the owner tested the installed copy twice, thinking it was the new build).
+        internal const string PaletteName = "MahodCivilDeliveryLocal";
+        internal const string PaletteTitle = "Mahod Civil Delivery · LOCAL BUILD";
+        internal static readonly Guid PaletteId = new("8AEF4A74-6407-4332-9BA5-867B02FA4931");
+#else
+        internal const string PaletteName = "MahodCivilDelivery";
+        internal const string PaletteTitle = "Mahod Civil Delivery";
+        internal static readonly Guid PaletteId = new("C1D2E3F4-5A6B-4C7D-8E9F-0A1B2C3D4E5F");
+#endif
+
         public static void Show()
         {
             if (_paletteSet == null)
             {
-                _paletteSet = new PaletteSet(
-                    "MahodCivilDelivery",
-                    "Mahod Civil Delivery",
-                    new Guid("C1D2E3F4-5A6B-4C7D-8E9F-0A1B2C3D4E5F"))
+                _paletteSet = new PaletteSet(PaletteName, PaletteTitle, PaletteId)
                 {
                     // AutoCAD restores the last size from the registry and clamps it to the
                     // minimum; the minimum therefore IS the size most engineers see. 620 px

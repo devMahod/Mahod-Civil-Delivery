@@ -86,5 +86,23 @@ namespace MahodAI.Civil3D.Plugin.Tests.CivilDelivery
             var control = File.ReadAllText(PluginFile("CivilDelivery", "UI", "CivilDeliveryControl.xaml.cs"));
             control.Should().Contain("MahodLogger.Info($\"palette load {loadTimer.ElapsedMilliseconds} ms\");");
         }
+
+        [Fact]
+        public void TheLocalBuild_HasItsOwnPalette_AndMahodAIKeepsItsIdentity()
+        {
+            // 2026-11-16: the installed MahodAI and the local build each opened "Mahod Civil Delivery" under one GUID, and
+            // the owner tested the installed copy twice. MahodAI's palette (this build) keeps its name, title and GUID.
+            MahodAI.Civil3D.Plugin.CivilDelivery.UI.CivilDeliveryPalette.PaletteName.Should().Be("MahodCivilDelivery");
+            MahodAI.Civil3D.Plugin.CivilDelivery.UI.CivilDeliveryPalette.PaletteTitle.Should().Be("Mahod Civil Delivery");
+            MahodAI.Civil3D.Plugin.CivilDelivery.UI.CivilDeliveryPalette.PaletteId
+                .Should().Be(new System.Guid("C1D2E3F4-5A6B-4C7D-8E9F-0A1B2C3D4E5F"));
+
+            var palette = File.ReadAllText(PluginFile("CivilDelivery", "UI", "CivilDeliveryPalette.cs"));
+            var local = Between(palette, "#if MAHOD_CD_STANDALONE", "#else");
+            local.Should().Contain("\"Mahod Civil Delivery · LOCAL BUILD\"")
+                .And.Contain("\"MahodCivilDeliveryLocal\"")
+                .And.NotContain("C1D2E3F4-5A6B-4C7D-8E9F-0A1B2C3D4E5F", "the local build must not share MahodAI's palette slot");
+            palette.Should().Contain("new PaletteSet(PaletteName, PaletteTitle, PaletteId)");
+        }
     }
 }
