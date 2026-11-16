@@ -73,20 +73,59 @@ public static class TypicalSheetGeometryLogic
     public static bool Covers(IReadOnlyList<(double From, double To)> spans, double from, double to) =>
         spans.Any(s => from >= s.From - 1e-6 && to <= s.To + 1e-6);
 
+    private static double Overlap(IReadOnlyList<(double From, double To)> spans, double from, double to) =>
+        spans.Sum(s => Math.Max(0, Math.Min(s.To, to) - Math.Max(s.From, from)));
+
+    /// <summary>A surface link at least this steep, with at least <see cref="DaylightMinRunM"/> of run, is a daylight
+    /// slope: a 1:2.5 embankment or the side of a ditch. A curb face is steeper but has no run; a 1:5 verge is flatter.</summary>
+    public const double DaylightGrade = 0.25;
+    public const double DaylightMinRunM = 1.0;
+
+    /// <summary>
+    /// The road platform of the corridor surface: from the axis out to the top of the first daylight slope on each side.
+    /// 2026-11-16, RAMP-12 24403 on 6403: the plan beside the ramp shows a curb strip, a bike path and verges right of the
+    /// shoulder, and the section drew them, cyclists included, over the 1:2.5 embankment the corridor builds there. The
+    /// plan's strips are fitted to the platform; the links beyond it stay in the surface for the drawing.
+    /// </summary>
+    public static (double From, double To) Platform(IReadOnlyList<SurfaceLink> surface)
+    {
+        var spans = Coverage(surface);
+        if (spans.Count == 0) return (0, 0);
+        // The whole measured width (a hole in the model is the caller's business), cut back to the slope tops.
+        var (from, to) = (spans[0].From, spans[^1].To);
+        foreach (var link in surface)
+        {
+            var (a, b) = link.A.X <= link.B.X ? (link.A, link.B) : (link.B, link.A);
+            var run = b.X - a.X;
+            if (run < DaylightMinRunM || Math.Abs(b.Y - a.Y) / run < DaylightGrade) continue;
+            if (b.X <= 1e-6) from = Math.Max(from, b.X);
+            else if (a.X >= -1e-6) to = Math.Min(to, a.X);
+        }
+        return (from, to);
+    }
+
     /// <summary>A plan cut also crosses adjacent roads. A modeled panel dimensions only its own
-    /// surface. At a clipped edge retain the measured width, but not the identity of a full lane.</summary>
+    /// surface, and only its road platform (<see cref="Platform"/>): a strip the plan shows beside the road is not drawn
+    /// over the daylight slope, while an object on the slope (a tree, a fence) stays. At a clipped edge retain the
+    /// measured width, but not the identity of a full lane.</summary>
     public static DraftedTypicalSectionLogic.DraftedSection FitToSurface(
         DraftedTypicalSectionLogic.DraftedSection section, IReadOnlyList<SurfaceLink> surface)
     {
-        var spans = Coverage(surface);
+        var measured = Coverage(surface);
+        var platform = Platform(surface);
+        var spans = measured.Select(s => (From: Math.Max(s.From, platform.From), To: Math.Min(s.To, platform.To)))
+            .Where(s => s.To - s.From > 0.01).ToList();
         bool At(double x) => Covers(spans, x, x);
+        bool Measured(double x) => Covers(measured, x, x);
         var breaks = section.Breaks.Where(b => At(b.OffsetM)).ToList();
         var strips = new List<DraftedTypicalSectionLogic.Strip>();
         var clipped = false;
+        var beyondPlatform = false;
         foreach (var strip in section.Strips)
         {
             if (Covers(spans, strip.FromM, strip.ToM)) { strips.Add(strip); continue; }
             clipped = true;
+            if (Overlap(measured, strip.FromM, strip.ToM) - Overlap(spans, strip.FromM, strip.ToM) > 0.01) beyondPlatform = true;
             foreach (var span in spans)
             {
                 var from = Math.Max(span.From, strip.FromM);
@@ -98,15 +137,20 @@ public static class TypicalSheetGeometryLogic
                         breaks.Add(new(x, "surface-limit", "", "corridor"));
             }
         }
+        var findings = section.Findings;
+        if (clipped) findings = findings.Append("רצועות התוכנית הוגבלו לתחום פני הדרך של הקורידור בתחנה זו.").ToList();
+        if (beyondPlatform)
+            findings = findings.Append(FormattableString.Invariant(
+                $"רצועות התוכנית שמעבר לראש מדרון הקורידור (משטח הדרך {platform.From:0.0} עד {platform.To:0.0} מ' מהציר) לא שורטטו.")).ToList();
         return section with
         {
             Breaks = breaks.OrderBy(b => b.OffsetM).ToList(), Strips = strips,
-            Objects = section.Objects.Where(o => At(o.OffsetM)).ToList(),
-            Barriers = section.Barriers.Where(o => At(o.OffsetM)).ToList(),
-            Fences = section.Fences.Where(o => At(o.OffsetM)).ToList(),
+            Objects = section.Objects.Where(o => Measured(o.OffsetM)).ToList(),
+            Barriers = section.Barriers.Where(o => Measured(o.OffsetM)).ToList(),
+            Fences = section.Fences.Where(o => Measured(o.OffsetM)).ToList(),
             Zones = section.Zones.Where(z => Covers(spans, z.FromM, z.ToM)).ToList(),
             Groups = section.Groups.Where(z => Covers(spans, z.FromM, z.ToM)).ToList(),
-            Findings = clipped ? section.Findings.Append("רצועות התוכנית הוגבלו לתחום פני הדרך של הקורידור בתחנה זו.").ToList() : section.Findings,
+            Findings = findings,
         };
     }
 

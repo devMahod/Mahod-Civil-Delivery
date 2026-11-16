@@ -109,6 +109,42 @@ public class TypicalSheetGeometryLogicTests
         LayersAt(layers, 6).Should().BeEmpty();
     }
 
+    // RAMP-12 24403 on 6403 (2026-11-16): a 3.5 m shoulder right of the axis, then the 1:2.5 embankment down to a ditch.
+    private static readonly SurfaceLink[] Ramp12 =
+    {
+        L(-15.86, -0.57, -14.56, -0.52, paved: false), L(-14.56, -0.52, -8.08, -0.29), L(-8.08, -0.29, 0, 0), L(0, 0, 3.5, 0.13),
+        L(3.5, 0.13, 12.02, -3.28, paved: false), L(12.02, -3.28, 13.02, -3.30, paved: false), L(13.02, -3.30, 13.86, -3.63, paved: false),
+        L(13.86, -3.63, 14.86, -3.63, paved: false), L(14.86, -3.63, 19.29, -1.86, paved: false),
+    };
+
+    [Fact]
+    public void Platform_EndsAtTheTopOfTheDaylightSlope_NotAtACurbOrAFlatVerge()
+    {
+        Platform(Ramp12).Should().Be((-15.86, 3.5));
+        Platform(Road).Should().Be((-7.0, 8.0), "the curb and the 1 m verge are road; the 1:2.5 embankment is not");
+        Platform(new[] { L(-4, 0, 0, 0), L(0, 0, 4, 0), L(4, 0, 4, 0.15, paved: false), L(4, 0.15, 6, -0.25, paved: false) })
+            .Should().Be((-4.0, 6.0), "a curb face has no run and a 1:5 verge is not a daylight slope");
+    }
+
+    [Fact]
+    public void FitToSurface_DropsThePlanStripsOverTheEmbankment_AndKeepsTheTreeOnIt()
+    {
+        // The plan beside RAMP-12 shows a 0.6 curb strip, a 3.5 bike path and two verges right of the shoulder - all of
+        // them over the slope. Live 2026-11-16: the section drew them there, cyclists included.
+        var crossings = new[] { -15.86, -14.56, -8.08, 0, 3.5, 4.1, 7.6, 8.1, 9.1 }
+            .Select(x => new DraftedTypicalSectionLogic.Crossing(x, DraftedTypicalSectionLogic.Kind.Marking, "TR", "host"));
+        var objects = new[] { new DraftedTypicalSectionLogic.PlacedObject(10.5, DraftedTypicalSectionLogic.ObjectKind.Tree, "LA", "tree") };
+        var section = DraftedTypicalSectionLogic.Build(crossings, objects, 20);
+        section.Strips.Should().Contain(s => s.FromM > 3.5 + 1e-6, "before the fit the plan's strips over the slope are there");
+
+        var fitted = FitToSurface(section, Ramp12);
+
+        fitted.Strips.Should().OnlyContain(s => s.ToM <= 3.5 + 1e-6 && s.FromM >= -15.86 - 1e-6);
+        fitted.Breaks.Should().OnlyContain(b => b.OffsetM <= 3.5 + 1e-6);
+        fitted.Objects.Should().ContainSingle(o => o.OffsetM == 10.5, "a tree on the embankment is still drawn there");
+        fitted.Findings.Should().Contain(f => f.Contains("ראש מדרון"));
+    }
+
     [Fact]
     public void TheSectionDrawsNoPavementLayers_AndKeepsThemForWhatIsReadOffThem()
     {
