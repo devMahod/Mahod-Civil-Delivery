@@ -76,19 +76,42 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Commands
             }
         }
 
+        internal const string ScanProgressMessage = "סורק את התוואים לאיתור חתכים טיפוסיים… (Esc לעצירה)";
+
         internal static void Scan(Document doc, TypicalSectionPickRequest request, TypicalSectionPickResult result)
         {
             var width = TypicalSectionPickLogic.DefaultHalfWidth(request.DefaultHalfWidthM);
             result.HalfWidthM = width;
             var civil = CivilApplication.ActiveDocument;
-            using var references = TypicalPlanReferences.Open(doc.Database);
-            result.Notes.AddRange(references.Notes);
-            using var picker = TypicalSectionPicker.Open(doc.Database, civil, request.AllowedAlignmentNames, automatic: true);
-            picker.Scan(civil, width, result, request.PreferredCorridor, (name, candidates) =>
+            // The scan runs inside this command, outside the panel's RunBusy, so it brings its own progress window and
+            // stage log (2026-11-15: on 6403 it "looked stuck" for minutes — XREF loading, 13 corridor questions, the
+            // plan read — with nothing on screen and nothing on disk).
+            using var log = new StageLog("ui_typical_scan");
+            var progress = BusyProgressWindow.Show("Mahod Civil Delivery", ScanProgressMessage);
+            try
             {
-                var dialog = TypicalChoiceDialog.ForCorridor(name, candidates);
-                return CivilModalHost.ShowFromPalette(dialog) == true ? dialog.Chosen : null;
-            });
+                progress.Update("טוען את ההפניות (XREF) של התנוחה…");
+                log.Begin("scan.plan_references");
+                using var references = TypicalPlanReferences.Open(doc.Database);
+                log.End("scan.plan_references", $"marking={references.HasMarkingPlan}");
+                result.Notes.AddRange(references.Notes);
+                progress.Update("פותח את התוואים והקורידורים…");
+                using var picker = TypicalSectionPicker.Open(doc.Database, civil, request.AllowedAlignmentNames, automatic: true);
+                picker.Scan(civil, width, result, request.PreferredCorridor, (name, candidates) =>
+                {
+                    // The question would open under the topmost progress window: the window goes while the engineer answers.
+                    progress?.Dispose();
+                    progress = null;
+                    var dialog = TypicalChoiceDialog.ForCorridor(name, candidates);
+                    var chosen = CivilModalHost.ShowFromPalette(dialog) == true ? dialog.Chosen : null;
+                    if (chosen != null) progress = BusyProgressWindow.Show("Mahod Civil Delivery", ScanProgressMessage);
+                    return chosen;
+                }, step => progress?.Update(step), log);
+            }
+            finally
+            {
+                progress?.Dispose();
+            }
         }
 
         internal static void Pick(Document doc, Editor ed, TypicalSectionPickRequest request, TypicalSectionPickResult result)

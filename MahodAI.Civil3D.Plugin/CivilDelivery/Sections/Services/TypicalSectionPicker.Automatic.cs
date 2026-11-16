@@ -15,17 +15,20 @@ internal sealed partial class TypicalSectionPicker
 {
     /// <summary>Read the entire drawing first. A single write transaction owns all new markers.</summary>
     internal void Scan(CivilDocument civil, double width, TypicalSectionPickResult result, string? preferredCorridor,
-        Func<string, IReadOnlyList<string>, string?> chooseCorridor)
+        Func<string, IReadOnlyList<string>, string?> chooseCorridor, Action<string>? progress = null, StageLog? log = null)
     {
         if (AlignmentNames.Count == 0)
         {
             result.Error = "לא נמצא ציר קריא התואם לפרופיל. יש לבדוק את שכבות הצירים ואת קובצי ה־XREF.";
             return;
         }
+        progress?.Invoke("קורא את התנוחה: קווי כביש, שוליים וסימון…");
+        log?.Begin("scan.read_plan", $"axes={_planAxes.Count} alignments={_alignments.Count}");
         var image = DraftedTypicalSectionService.ReadVisionPlan(_read, _db, ScanBounds(width));
         foreach (ObjectId id in civil.GetAlignmentIds())
             if (_read.GetObject(id, OpenMode.ForRead) is CivilDb.Alignment { AlignmentType: CivilDb.AlignmentType.Rail } rail && rail.Length > 0)
                 AddTrack(image, rail);
+        log?.End("scan.read_plan");
         var taken = ExistingMarkerMidpoints();
         var proposals = new List<(PickResolution Position, bool FromPlan, TypicalPlanVision.Stretch Span)>();
         int duplicates = 0;
@@ -66,11 +69,7 @@ internal sealed partial class TypicalSectionPicker
             }
         }
 
-        foreach (var axis in _planAxes)
-            Evaluate(axis.Name, PlanStations(axis.StartStation, axis.Length),
-                s => (axis.PointAt(s, 0), axis.TangentDegAt(s)), true);
-
-        foreach (var alignment in _alignments)
+        void ScanAlignment(CivilDb.Alignment alignment)
         {
             (P2, double) Locate(double station)
             {
@@ -81,14 +80,14 @@ internal sealed partial class TypicalSectionPicker
             if (!_corridorStations.ContainsKey(alignment.ObjectId))
             {
                 Evaluate(alignment.Name, PlanStations(alignment.StartingStation, alignment.EndingStation - alignment.StartingStation), Locate, true);
-                continue;
+                return;
             }
             var corridors = TypicalSectionsService.CorridorsOn(_read, civil, alignment.Name);
             var candidates = corridors.Select(c => c.Candidate).Where(c => c.Regions.Count > 0).ToList();
             if (candidates.Count == 0)
             {
                 result.Notes.Add($"{alignment.Name}: לקורידור אין אזורים מחושבים.");
-                continue;
+                return;
             }
             var choice = TypicalCorridorChoiceLogic.Choose(candidates, Array.Empty<double>(), preferredCorridor, null);
             var name = choice.Chosen ?? chooseCorridor(alignment.Name, choice.AskAmong);
@@ -101,6 +100,24 @@ internal sealed partial class TypicalSectionPicker
                     foreach (var run in ModelRuns(baseline, alignment.Name, width, result.Notes))
                         Evaluate(alignment.Name, run, Locate, false);
         }
+
+        var total = _planAxes.Count + _alignments.Count;
+        var index = 0;
+        foreach (var axis in _planAxes)
+        {
+            progress?.Invoke($"תוואי {axis.Name} ({++index}/{total})");
+            log?.Begin("scan.alignment", axis.Name);
+            Evaluate(axis.Name, PlanStations(axis.StartStation, axis.Length),
+                s => (axis.PointAt(s, 0), axis.TangentDegAt(s)), true);
+            log?.End("scan.alignment", $"proposals={proposals.Count}");
+        }
+        foreach (var alignment in _alignments)
+        {
+            progress?.Invoke($"תוואי {alignment.Name} ({++index}/{total})");
+            log?.Begin("scan.alignment", alignment.Name);
+            ScanAlignment(alignment);
+            log?.End("scan.alignment", $"proposals={proposals.Count}");
+        }
         if (duplicates > 0) result.Notes.Add($"{duplicates} תחנות מייצגות כבר מסומנות בשרטוט.");
         if (proposals.Count == 0)
         {
@@ -108,6 +125,32 @@ internal sealed partial class TypicalSectionPicker
             return;
         }
 
+        // One road gets at most MaxTypicalPerAlignment sections, the longest stretches first, a repeated section once;
+        // then the scan's own cap. What the cut-off left out is a note: the engineer adds it by hand (2026-11-15,
+        // 6403: 381 proposals, 146 of them on road 40).
+        var found = proposals.Count;
+        var kept = new List<(PickResolution Position, bool FromPlan, TypicalPlanVision.Stretch Span)>();
+        foreach (var road in proposals.GroupBy(p => p.Position.AlignmentName ?? "", StringComparer.OrdinalIgnoreCase))
+        {
+            var candidates = road.ToList();
+            var pruned = new HashSet<TypicalPlanVision.Stretch>(
+                TypicalPlanVision.Prune(candidates.Select(p => p.Span).ToList(), TypicalPlanVision.MaxTypicalPerAlignment,
+                    distinct: candidates.Any(p => !p.FromPlan), out var dropped),
+                ReferenceEqualityComparer.Instance);
+            kept.AddRange(candidates.Where(p => pruned.Contains(p.Span)));
+            if (dropped > 0)
+                result.Notes.Add($"{road.Key}: נמצאו {candidates.Count} מקטעים — סומנו {pruned.Count} (הארוכים; חתך שחוזר על עצמו פעם אחת). להוסיף: 'סימון ידני'.");
+        }
+        if (kept.Count > TypicalPlanVision.MaxTypicalPerScan)
+        {
+            kept = kept.OrderByDescending(p => p.Span.Length).Take(TypicalPlanVision.MaxTypicalPerScan)
+                .OrderBy(p => p.Position.AlignmentName, StringComparer.OrdinalIgnoreCase).ThenBy(p => p.Position.Station).ToList();
+            result.Notes.Add($"הסריקה מצאה {found} מקטעים; סומנו {kept.Count} הארוכים. להוסיף: 'סימון ידני'.");
+        }
+        proposals = kept;
+
+        progress?.Invoke($"מסמן {proposals.Count} תחנות בשרטוט…");
+        log?.Begin("scan.mark", $"count={proposals.Count} found={found}");
         var marked = new List<TypicalSectionPick>();
         using (var tr = _db.TransactionManager.StartTransaction())
         {
@@ -124,6 +167,7 @@ internal sealed partial class TypicalSectionPicker
             }
             tr.Commit();
         }
+        log?.End("scan.mark", $"marked={marked.Count}");
         result.Picks.AddRange(marked);
     }
 

@@ -136,6 +136,54 @@ public sealed class TypicalPlanVisionTests
         Assert.Equal(110, Assert.Single(runs).Representative.Station);
     }
 
+    /// <summary>A corridor station every 25 m: lane edges at ±half, one assembly (the 6403 shape, 2026-11-15).</summary>
+    private static Sample Model(double station, double half, string assembly = "asm") => new(station,
+        new[] { new Feature(-1, "ETW", -half), new Feature(-1, "ETW", half) }, assembly);
+
+    [Fact]
+    public void ACorridorTaperBetweenTwoPlateausGivesOneSectionPerPlateauAndNoneInTheTaper()
+    {
+        var samples = new List<Sample>();
+        double station = 0;
+        for (var i = 0; i < 6; i++, station += 25) samples.Add(Model(station, 7));
+        for (var i = 1; i <= 6; i++, station += 25) samples.Add(Model(station, 7 + 0.9 * i));   // 1:28 taper, 0.9 m a station
+        for (var i = 0; i < 6; i++, station += 25) samples.Add(Model(station, 12.4));
+        var stretches = Select(samples, modelRegion: true);
+        Assert.Equal(2, stretches.Count);
+        Assert.InRange(stretches[0].Representative.Station, 25, 100);
+        Assert.InRange(stretches[1].Representative.Station, 325, 425);
+    }
+
+    [Fact]
+    public void ASlowTaperReadInPiecesIsNoTypicalSection()
+    {
+        // 0.2 m a station for 300 m: every station is steady against its neighbours, the road still never settles.
+        var samples = Enumerable.Range(0, 30).Select(i => Model(i * 10, 7 + 0.2 * i)).ToList();
+        Assert.Empty(Select(samples, modelRegion: true));
+        // The same count of stations with only jitter is one stretch.
+        var jitter = Enumerable.Range(0, 30).Select(i => Model(i * 10, 7 + (i % 2 == 0 ? 0.1 : -0.1))).ToList();
+        Assert.Single(Select(jitter, modelRegion: true));
+    }
+
+    [Fact]
+    public void PruneKeepsTheLongestStretchesOfARoadInStationOrderAndARepeatedSectionOnce()
+    {
+        Stretch At(double from, double to, double half, string assembly = "asm") => new(from, to, Model(from + (to - from) / 2, half, assembly));
+        var stretches = new List<Stretch>
+        {
+            At(0, 100, 7), At(150, 450, 10.5), At(500, 540, 7, "other"), At(600, 800, 7), At(850, 900, 14), At(950, 1200, 3.5),
+        };
+        var kept = Prune(stretches, 3, distinct: true, out var dropped);
+        Assert.Equal(3, dropped);
+        // 600–800 (±7) is the longest ±7 stretch; 0–100 and 500–540 repeat it, whatever the assembly, and go.
+        Assert.Equal(new[] { 150.0, 600, 950 }, kept.Select(s => s.From));
+        var plain = Prune(stretches, 10, distinct: false, out dropped);
+        Assert.Equal(0, dropped);
+        Assert.Equal(6, plain.Count);
+        Assert.Equal(MaxTypicalPerAlignment, Prune(Enumerable.Range(0, 40).Select(i => At(i * 50, i * 50 + 30, 7 + i)).ToList(),
+            MaxTypicalPerAlignment, distinct: true, out _).Count);
+    }
+
     [Fact]
     public void AlternatingEvidenceIsNotAStableRoadLayout()
     {

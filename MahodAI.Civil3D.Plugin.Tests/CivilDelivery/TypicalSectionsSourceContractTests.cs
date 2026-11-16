@@ -59,8 +59,11 @@ public sealed class TypicalSectionsSourceContractTests
         At(start, "_pendingTypicalPickToken = token;").Should().BeLessThan(At(start, "doc.SendStringToExecute("));
 
         var resume = Method(panel, "internal void ResumeTypicalSectionPicks(");
-        At(resume, "if (result.Automatic)").Should().BeLessThan(At(resume, "CreateTypicalWithChoices(doc, result.Picks)"));
-        resume.Should().Contain("SavedDrawingContinuationPolicy.CanConsume(")
+        // 2026-11-15: the scan's marks go to the review window, never straight to the drawing (6403: 381 of them).
+        At(resume, "if (result.Automatic)").Should().BeLessThan(At(resume, "OnConfirmTypicalSections(this, new RoutedEventArgs())"));
+        resume.Should().NotContain("CreateTypicalWithChoices(")
+            .And.Contain("DispatcherPriority.ApplicationIdle", "the review opens once the pick command has fully ended")
+            .And.Contain("SavedDrawingContinuationPolicy.CanConsume(")
             .And.Contain("doc!.Database.UnmanagedObject != expectedDatabase");
         At(resume, "SavedDrawingContinuationPolicy.CanConsume(").Should().BeLessThan(At(resume, "_typicalPicks.AddRange("));
 
@@ -171,12 +174,21 @@ public sealed class TypicalSectionsSourceContractTests
 
         var panel = Ui("CivilDeliveryControl.TypicalSections.cs");
         var show = Method(panel, "private void ShowTypicalSectionsResult(");
-        show.Should().Contain("var offerFix = result.CanFixCorridors && !afterFix;")
+        // 2026-11-16 (6403): rebuilding RD-40 put M-40-R, which targets RD-40's surfaces, out of date; the retry then
+        // said "M-40-R was rebuilt and still has no sections" — it never was — and offered nothing. A retry whose
+        // corridors to mend were not mended yet is a further round (up to MaxTypicalFixRounds); a corridor mended and
+        // still blocking is the "did not help" case.
+        show.Should().Contain("var stillBroken = fixable.Where(name => mended?.Contains(name, StringComparer.OrdinalIgnoreCase) == true).ToList();")
+            .And.Contain("var cascade = afterFix && result.CanFixCorridors && stillBroken.Count == 0 && round < MaxTypicalFixRounds;")
+            .And.Contain("var offerFix = result.CanFixCorridors && (!afterFix || cascade);")
+            .And.Contain("TypicalFixDidNotHelp(stillBroken)")
             .And.Contain("offerFix ? TypicalFixLabel : null")
-            .And.Contain("offerFix && blocked.Choice == TypicalSectionsDialog.Outcome.Fix");
+            .And.Contain("offerFix && blocked.Choice == TypicalSectionsDialog.Outcome.Fix")
+            .And.Contain("FixCorridorsAndRetryTypical(doc, result, round + 1)");
+        panel.Should().Contain("internal const int MaxTypicalFixRounds = 3;");
         var retry = Method(panel, "private void FixCorridorsAndRetryTypical(");
         At(retry, "TypicalSectionsService.FixCorridors(").Should().BeLessThan(At(retry, "CreateTypicalWithChoices(doc,"));
-        retry.Should().Contain("afterFix: true", "a mend that did not help is not offered again");
+        retry.Should().Contain("mended: mended, round: round", "the retry knows what was mended: no second offer for it, a further round for the rest");
     }
 
     [Fact]
@@ -282,6 +294,39 @@ public sealed class TypicalSectionsSourceContractTests
             .And.Contain("PlanAxis.AxisLayerFor(")
             .And.Contain("DraftedTypicalSectionService.MinAxisLengthM");
         Method(command, "public void Run(").Should().Contain("if (result.Error != null) ed.WriteMessage(");
+    }
+
+    [Fact]
+    public void ALargeScan_ShowsProgress_IsCapped_IsReviewed_AndEscStopsTheRun()
+    {
+        // Live 2026-11-15 (6403): the scan ran for minutes with nothing on screen, proposed 381 stations (146 on road 40,
+        // one every two corridor stations through its tapers) and the panel began creating them all, with no way out.
+        var command = Read("CivilDelivery", "Commands", "MhdTypicalSectionsCommand.cs");
+        var scan = Method(command, "internal static void Scan(");
+        scan.Should().Contain("new StageLog(\"ui_typical_scan\")")
+            .And.Contain("BusyProgressWindow.Show(\"Mahod Civil Delivery\", ScanProgressMessage)")
+            .And.Contain("step => progress?.Update(step)");
+        At(scan, "progress?.Dispose();").Should().BeLessThan(At(scan, "TypicalChoiceDialog.ForCorridor(name, candidates)"),
+            "the corridor question must not open under the topmost progress window");
+
+        var picker = Read("CivilDelivery", "Sections", "Services", "TypicalSectionPicker.Automatic.cs");
+        picker.Should().Contain("TypicalPlanVision.Prune(")
+            .And.Contain("TypicalPlanVision.MaxTypicalPerAlignment")
+            .And.Contain("TypicalPlanVision.MaxTypicalPerScan")
+            .And.Contain("log?.Begin(\"scan.alignment\", alignment.Name)");
+
+        var panel = Ui("CivilDeliveryControl.TypicalSections.cs");
+        var confirm = Method(panel, "private void OnConfirmTypicalSections(");
+        confirm.Should().Contain("TypicalReviewNotes(ordered.Count, _typicalScanNotes)");
+        panel.Should().Contain("internal const int LargeTypicalRun = 20;")
+            .And.Contain("Esc עוצר בין חתך לחתך");
+
+        var service = Read("CivilDelivery", "Sections", "Services", "TypicalSectionsService.cs");
+        var loopStart = At(service, "log?.Begin(\"typical.firm_sections\"");
+        var loop = service[loopStart..At(service, "log?.End(\"typical.firm_sections\"")];
+        At(loop, "HostApplicationServices.Current.UserBreak()").Should().BeLessThan(At(loop, "adapter.ProcessAt("),
+            "Esc is read before each section, not after the run");
+        loop.Should().Contain("result.Interrupted = true;").And.Contain("log?.Begin(\"typical.section\"");
     }
 
     [Fact]

@@ -174,8 +174,11 @@ public partial class CivilDeliveryControl
                 foreach (var note in result.Notes) Log(note);
                 _typicalScanNotes = result.Notes.ToArray();
                 foreach (var (alignment, corridor) in result.Corridors) _typicalCorridorChoices[alignment] = corridor;
-                var created = CreateTypicalWithChoices(doc, result.Picks);
-                if (created != null) ShowTypicalSectionsResult(doc, created);
+                // The review window first, never straight to the drawing (2026-11-15: a scan on 6403 proposed 381
+                // stations and the panel began creating them all — half an hour with no way out). Posted for when
+                // Civil is idle, once the pick command has fully ended.
+                Dispatcher.BeginInvoke(new Action(() => OnConfirmTypicalSections(this, new RoutedEventArgs())),
+                    System.Windows.Threading.DispatcherPriority.ApplicationIdle);
             }
         }
         finally { RefreshGates(); }
@@ -244,7 +247,8 @@ public partial class CivilDeliveryControl
                 LineHandle = pick.LineHandle,
             }).ToList(),
             TypicalSubtitle(ordered),
-            ordered.Select(pick => pick.HalfWidthM).DefaultIfEmpty(TypicalSectionContracts.DefaultHalfWidthM).Max());
+            ordered.Select(pick => pick.HalfWidthM).DefaultIfEmpty(TypicalSectionContracts.DefaultHalfWidthM).Max(),
+            TypicalReviewNotes(ordered.Count, _typicalScanNotes), expandNotes: LargeRunWarning(ordered.Count) != null);
         var reviewed = CivilModalHost.ShowFromPalette(review);
         try
         {
@@ -270,6 +274,26 @@ public partial class CivilDeliveryControl
 
         var result = CreateTypicalWithChoices(doc, _typicalPicks.ToList());
         if (result != null) ShowTypicalSectionsResult(doc, result);
+    }
+
+    /// <summary>Over this many marks the review says how long the run takes and that Esc stops it.</summary>
+    internal const int LargeTypicalRun = 20;
+
+    /// <summary>Seconds one firm section takes on a 6403-size drawing (logs 2026-11-04/08: 39 s for 8, 49 s for 6–7).</summary>
+    internal const int SecondsPerTypicalSection = 7;
+
+    /// <summary>The review's warning for a large run, null below <see cref="LargeTypicalRun"/>. Pure, for the tests.</summary>
+    internal static string? LargeRunWarning(int count) => count <= LargeTypicalRun ? null :
+        $"כמות גדולה: {count} חתכים. היצירה נמשכת כ-{Math.Max(1, (int)Math.Ceiling(count * SecondsPerTypicalSection / 60.0))} דקות, " +
+        "ואפשר לעצור אותה באמצע ב-Esc (מה שנוצר נשאר). כדאי להסיר כאן חתכים שאינם נחוצים.";
+
+    /// <summary>The review's notes: the large-run warning first, then what the scan said (where it cut the count).</summary>
+    internal static IReadOnlyList<string> TypicalReviewNotes(int count, IReadOnlyList<string> scanNotes)
+    {
+        var notes = new List<string>();
+        if (LargeRunWarning(count) is { } warning) notes.Add(warning);
+        notes.AddRange(scanNotes);
+        return notes;
     }
 
     /// <summary>
@@ -320,8 +344,25 @@ public partial class CivilDeliveryControl
         "ו-Civil 3D עדיין לא חישב בו חתכים לאורך התוואי — יש לבדוק ב-Civil 3D את ה-Baseline, האזורים וה-Assembly שלו " +
         "(Corridor Properties → Parameters) ואת ה-Event Viewer.";
 
-    private void FixCorridorsAndRetryTypical(Document doc, TypicalSectionsService.Result blocked)
+    /// <summary>
+    /// A rebuild can put the corridors that lean on the rebuilt one out of date (6403, 2026-11-15 and 16: M-40-R
+    /// targets RD-40's surfaces, so every rebuild of RD-40 left M-40-R "Out of date" on the retry). Such a retry
+    /// finds only corridors not yet mended and gets a further round, up to this many.
+    /// </summary>
+    internal const int MaxTypicalFixRounds = 3;
+
+    /// <summary>Said with the steps of a further round: why there is one.</summary>
+    internal static string TypicalCascadeNote(IReadOnlyList<string> mended, IReadOnlyList<string> next) =>
+        $"הבנייה מחדש של {string.Join(", ", mended)} הוציאה מעדכון את {string.Join(", ", next)} (נשען על המשטחים שנבנו) — עוד סבב אחד.";
+
+    /// <summary>Said when the rounds ran out and corridors still go out of date one after the other.</summary>
+    internal static string TypicalRoundsExhausted(int rounds) =>
+        $"אחרי {rounds} סבבי בנייה מחדש עדיין יש קורידור שאינו מעובד — יש לבנות אותו ב-Civil 3D (Rebuild) וללחוץ שוב על צור.";
+
+    private void FixCorridorsAndRetryTypical(Document doc, TypicalSectionsService.Result blocked, int round = 1)
     {
+        var mended = blocked.CorridorsToRebuild.Concat(blocked.CorridorsWithoutSurface)
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         try
         {
             List<string>? lines = null;
@@ -339,7 +380,7 @@ public partial class CivilDeliveryControl
         finally { RefreshGates(); }
 
         var result = CreateTypicalWithChoices(doc, _typicalPicks.ToList());
-        if (result != null) ShowTypicalSectionsResult(doc, result, afterFix: true);
+        if (result != null) ShowTypicalSectionsResult(doc, result, mended: mended, round: round);
     }
 
     /// <summary>The engineer's corridor choices in this session (alignment → corridor), asked only when ambiguous.</summary>
@@ -368,7 +409,7 @@ public partial class CivilDeliveryControl
             var request = new TypicalSectionsService.Request(
                 picks, _profile!, _profileHash, new Dictionary<string, string>(_typicalCorridorChoices, StringComparer.OrdinalIgnoreCase),
                 ground, _typicalScanNotes);
-            RunBusy("יוצר חתכים טיפוסיים…", () => result = new TypicalSectionsService().Create(doc, request, log));
+            RunBusy("יוצר חתכים טיפוסיים… (Esc עוצר בין חתך לחתך)", () => result = new TypicalSectionsService().Create(doc, request, log));
         }
         catch (Exception ex)
         {
@@ -392,24 +433,36 @@ public partial class CivilDeliveryControl
     /// <summary>The result window is modeless: "הצג" moves the drawing while it stays open.</summary>
     private TypicalSectionsDialog? _typicalResultWindow;
 
-    private void ShowTypicalSectionsResult(Document doc, TypicalSectionsService.Result result, bool afterFix = false)
+    /// <param name="mended">After a mend: the corridors it rebuilt or completed. Null on a first run.</param>
+    /// <param name="round">Which mend round this result follows (0: none yet).</param>
+    private void ShowTypicalSectionsResult(Document doc, TypicalSectionsService.Result result,
+        IReadOnlyList<string>? mended = null, int round = 0)
     {
         try
         {
             if (result.Blockers.Count > 0)
             {
-                // An unbuilt corridor or one without a surface is the tool's to mend, once the engineer says so — once:
-                // a mend that did not help is not offered again.
-                var offerFix = result.CanFixCorridors && !afterFix;
-                var shown = afterFix && result.CanFixCorridors
-                    ? result.Blockers.Where(line => !result.FixSteps.Contains(line))
-                        .Append(TypicalFixDidNotHelp(result.CorridorsToRebuild.Concat(result.CorridorsWithoutSurface)
-                            .Distinct(StringComparer.OrdinalIgnoreCase).ToList())).ToList()
-                    : result.Blockers.ToList();
+                // An unbuilt corridor or one without a surface is the tool's to mend, once the engineer says so — once
+                // per corridor: a mend that did not help is not offered again. A mend that put OTHER corridors out of
+                // date (M-40-R leans on RD-40's surfaces) is a further round, offered again, up to MaxTypicalFixRounds.
+                var afterFix = mended != null;
+                var fixable = result.CorridorsToRebuild.Concat(result.CorridorsWithoutSurface)
+                    .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+                var stillBroken = fixable.Where(name => mended?.Contains(name, StringComparer.OrdinalIgnoreCase) == true).ToList();
+                var cascade = afterFix && result.CanFixCorridors && stillBroken.Count == 0 && round < MaxTypicalFixRounds;
+                var offerFix = result.CanFixCorridors && (!afterFix || cascade);
+                var shown = !afterFix || !result.CanFixCorridors || cascade
+                    ? result.Blockers.ToList()
+                    : stillBroken.Count > 0
+                        ? result.Blockers.Where(line => !result.FixSteps.Contains(line)).Append(TypicalFixDidNotHelp(stillBroken)).ToList()
+                        : result.Blockers.Append(TypicalRoundsExhausted(round)).ToList();
+                var cascadeNote = cascade ? TypicalCascadeNote(mended!, fixable) : null;
+                if (cascadeNote != null) Log(cascadeNote);
                 var reasons = string.Join("\n• ", shown);
                 var onlySteps = offerFix && result.OnlyFixSteps;
                 SetStatus((onlySteps ? "עוד שלב לפני היצירה — " : "החתכים לא נוצרו — ") + shown[0]);
-                SectionDetail.Text = (onlySteps ? "לפני היצירה:\n• " : "יצירת חתכים טיפוסיים נעצרה:\n• ") + reasons;
+                SectionDetail.Text = (onlySteps ? "לפני היצירה:\n• " : "יצירת חתכים טיפוסיים נעצרה:\n• ") + reasons
+                                     + (cascadeNote != null ? "\n" + cascadeNote : "");
                 SectionDiagnostics.IsExpanded = !onlySteps;
                 // Only a step short (2026-11-03, a coworker's unbuilt R-14): the step in green, one green button that
                 // takes it and creates. Anything else is an error, with the mendable lines still marked as steps.
@@ -418,7 +471,7 @@ public partial class CivilDeliveryControl
                     : TypicalSectionsDialog.ForBlocked(shown, TypicalSubtitle(_typicalPicks), offerFix ? TypicalFixLabel : null, result.FixSteps);
                 CivilModalHost.ShowFromPalette(blocked);
                 if (offerFix && blocked.Choice == TypicalSectionsDialog.Outcome.Fix)
-                    Dispatcher.BeginInvoke(new Action(() => FixCorridorsAndRetryTypical(doc, result)));
+                    Dispatcher.BeginInvoke(new Action(() => FixCorridorsAndRetryTypical(doc, result, round + 1)));
                 return;
             }
 
@@ -432,6 +485,8 @@ public partial class CivilDeliveryControl
             var failed = result.Sections.FirstOrDefault(section => section.Error != null);
             if (failed != null)
                 summary += FormattableString.Invariant($" · נעצר בתחנה {failed.Station:0.00}: {failed.Error}");
+            if (result.Interrupted)
+                summary += $" · נעצר ב-Esc, {_typicalPicks.Count} סימונים ממתינים ליצירה";
             SetStatus(summary);
             Log(summary + (result.ArtifactPath != null ? " · " + result.ArtifactPath : ""));
 
@@ -446,7 +501,7 @@ public partial class CivilDeliveryControl
             }
             foreach (var warning in result.Warnings) lines.Add("אזהרה: " + warning);
             SectionDetail.Text = string.Join("\n", lines);
-            if (result.UnmatchedCount > 0 || failed != null || result.Warnings.Count > 0)
+            if (result.UnmatchedCount > 0 || failed != null || result.Interrupted || result.Warnings.Count > 0)
                 SectionDiagnostics.IsExpanded = true;
 
             // The margin is a factor of the extents (1.10 = 10 % around them); below 1 the zoom refuses silently,
@@ -484,7 +539,7 @@ public partial class CivilDeliveryControl
                              createdPicks.Any(pick => pick.FromPlan);
             _typicalResultWindow?.Close();
             var window = TypicalSectionsDialog.ForResult(
-                result.CreatedCount, result.NamedCount, result.UnmatchedCount, rows, subtitle, notes, failed != null, offerSheet);
+                result.CreatedCount, result.NamedCount, result.UnmatchedCount, rows, subtitle, notes, failed != null || result.Interrupted, offerSheet);
             window.RunFolder = result.ArtifactPath == null ? null : System.IO.Path.GetDirectoryName(result.ArtifactPath);
             window.ShowSectionRequested += handle => ZoomToTypicalSection(doc, handle);
             window.Closed += (_, _) =>

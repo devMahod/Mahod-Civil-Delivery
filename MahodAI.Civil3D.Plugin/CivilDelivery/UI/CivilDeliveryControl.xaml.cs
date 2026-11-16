@@ -772,7 +772,12 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
                 _ when stage.StartsWith("setup.", StringComparison.Ordinal) => "סורק את הגדרות הפרויקט",
                 _ when stage.StartsWith("discover.", StringComparison.Ordinal) => "סורק את מבנה השרטוט",
                 "typical.fix_corridor" => "בונה מחדש את הקורידור",
+                "typical.section" => "יוצר חתך",
                 _ when stage.StartsWith("typical.", StringComparison.Ordinal) => "יוצר חתכים טיפוסיים",
+                "scan.plan_references" => "טוען את ההפניות של התנוחה",
+                "scan.read_plan" => "קורא את התנוחה",
+                "scan.alignment" => "סורק תוואי",
+                "scan.mark" => "מסמן תחנות בשרטוט",
                 _ => "מעבד…",
             };
             if (string.IsNullOrWhiteSpace(detail) || detail!.Length > 60) return text;

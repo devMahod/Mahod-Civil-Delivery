@@ -68,7 +68,8 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
         }
 
         /// <summary>Before creating: every mark, with remove; create and add-more.</summary>
-        public static TypicalSectionsDialog ForReview(IReadOnlyList<PickRow> picks, string subtitle, double halfWidthM)
+        public static TypicalSectionsDialog ForReview(IReadOnlyList<PickRow> picks, string subtitle, double halfWidthM,
+            IReadOnlyList<string>? notes = null, bool expandNotes = false)
         {
             var dialog = new TypicalSectionsDialog();
             foreach (var pick in picks) dialog._picks.Add(pick);
@@ -81,6 +82,12 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
             dialog.RefreshReview();
             dialog.CountUp(dialog.StatValue1, picks.Count, "");
             dialog.CountUp(dialog.StatValue2, picks.Select(p => p.Alignment).Distinct(StringComparer.OrdinalIgnoreCase).Count(), "");
+            // What the scan said (where it cut the count) and, for a large run, how long it takes and that Esc stops it.
+            if (notes != null && notes.Count > 0)
+            {
+                dialog.ShowNotes(notes);
+                dialog.NotesExpander.IsExpanded = expandNotes;
+            }
             return dialog;
         }
 

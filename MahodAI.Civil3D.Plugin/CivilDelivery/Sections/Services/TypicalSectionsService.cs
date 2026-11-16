@@ -97,6 +97,8 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             public int NamedCount => Sections.Sum(section => section.NamedStrips);
             public int UnmatchedCount => Sections.Sum(section => section.UnmatchedStrips);
             public bool Stopped => Blockers.Count > 0 || Sections.Any(section => section.Error != null);
+            /// <summary>The engineer pressed Esc between two sections: what was drawn stays, the other marks wait.</summary>
+            public bool Interrupted { get; set; }
         }
 
         public Result Create(Document doc, Request request, StageLog? log)
@@ -324,8 +326,18 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                 log?.End("typical.plan_references", $"marking={planReferences.HasMarkingPlan}");
                 result.Warnings.AddRange(planReferences.Notes);
                 hasMarkingPlan = planReferences.HasMarkingPlan;
+                var index = 0;
                 foreach (var picked in picks)
                 {
+                    index++;
+                    // Esc stops the run between two sections (2026-11-15: 345 sections on 6403 had no way out): what
+                    // was drawn stays, the marks not reached wait in the panel for the next "צור".
+                    if (HostApplicationServices.Current.UserBreak())
+                    {
+                        result.Interrupted = true;
+                        result.Warnings.Add($"היצירה נעצרה ב-Esc אחרי {result.CreatedCount} חתכים; {picks.Count - index + 1} סימונים ממתינים ליצירה.");
+                        break;
+                    }
                     // The firm's code draws the road only where the corridor applied its assembly: cut at the nearest.
                     var station = TypicalSectionPickLogic.SnapToCorridorStation(picked.Station, corridorStations[picked.AlignmentName])
                                   ?? picked.Station;
@@ -337,6 +349,9 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                     result.Sections.Add(outcome);
                     var prerequisites = result.ByAlignment[picked.AlignmentName];
                     var (equations, endingStation) = stationing[picked.AlignmentName];
+                    // One stage per section: the progress window counts them, and a run that stops mid-way leaves its
+                    // last station in the log (2026-11-15: the log went silent after plan_references for the whole run).
+                    log?.Begin("typical.section", FormattableString.Invariant($"{index}/{picks.Count} {picked.AlignmentName} {station:0}"));
                     try
                     {
                         var pick = picked;
@@ -393,9 +408,13 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                         outcome.Error = ex.Message;
                         break;
                     }
+                    finally
+                    {
+                        log?.End("typical.section", outcome.Created ? "created" : "not created");
+                    }
                 }
             }
-            log?.End("typical.firm_sections", $"created={result.CreatedCount}");
+            log?.End("typical.firm_sections", $"created={result.CreatedCount}{(result.Interrupted ? " interrupted" : "")}");
             if (!hasMarkingPlan) AddLaneNote(result);
 
             // The office's sheet (DD-5001: A0, 1:100, the panels stacked) is its own command: building a layout right after
@@ -1035,6 +1054,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                     existing_surface_choices_needed = result.ExistingSurfaceChoicesNeeded,
                     blockers = result.Blockers,
                     warnings = result.Warnings,
+                    interrupted = result.Interrupted,
                     sections = result.Sections.Select(section => new
                     {
                         section.LineHandle, section.AlignmentName, section.Station, section.PickedStation, section.HalfWidthM,

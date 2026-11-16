@@ -143,23 +143,52 @@ public sealed class TypicalPlanVision
                 .GroupBy(f => f.Stage).Any(g => g.Max(f => f.Offset) - g.Min(f => f.Offset) >= 0.8);
     }
 
-    public sealed record Stretch(double From, double To, Sample Representative);
+    public sealed record Stretch(double From, double To, Sample Representative)
+    {
+        public double Length => To - From;
+    }
+
+    /// <summary>
+    /// Between two consecutive computed corridor stations, a boundary that moves more than this is in a
+    /// taper. A taper is never a typical section: the stable stretches on either side of it are.
+    /// </summary>
+    public const double ModelSteadyStepM = 0.35;
+
+    /// <summary>
+    /// A model stretch whose boundaries drift more than this from its first station to its last is a slow
+    /// taper read in pieces (0.2 m per 10 m station), not a stretch of road with one section.
+    /// </summary>
+    public const double ModelTaperDriftM = 0.75;
+
+    /// <summary>
+    /// How many typical sections one road (alignment or plan axis) may get from a scan, and how many one
+    /// scan may propose in all. 6403 (2026-11-15): the scan proposed 381 stations, 146 of them on road 40
+    /// — one every two corridor stations through its tapers — and the panel started creating them all.
+    /// The longest stretches win; the rest are the engineer's to add by hand.
+    /// </summary>
+    public const int MaxTypicalPerAlignment = 6;
+    public const int MaxTypicalPerScan = 30;
 
     /// <summary>Samples arrive in station order for one continuous axis/region. Unknown coverage
-    /// breaks a run. Isolated visual noise can be bridged only between two matching observations.</summary>
+    /// breaks a run. Isolated visual noise can be bridged only between two matching observations.
+    /// In a corridor region (<paramref name="modelRegion"/>) a station inside a taper neither starts
+    /// nor continues a stretch, and a stretch that is itself a slow taper gives no section.</summary>
     public static List<Stretch> Select(IReadOnlyList<Sample> samples, bool modelRegion = false)
     {
+        var steady = modelRegion ? Steady(samples) : null;
         var result = new List<Stretch>();
         for (int i = 0; i < samples.Count;)
         {
             var first = samples[i++];
             if (!first.HasEvidence) continue;
+            if (steady != null && !steady[i - 1]) continue;
             var startIndex = i - 1;
             var matching = new List<Sample> { first };
             while (i < samples.Count && samples[i].HasEvidence)
             {
+                if (steady != null && !steady[i]) break;
                 if (Same(first, samples[i])) matching.Add(samples[i++]);
-                else if (i + 1 < samples.Count && Same(first, samples[i + 1]))
+                else if (i + 1 < samples.Count && Same(first, samples[i + 1]) && (steady == null || steady[i + 1]))
                 {
                     matching.Add(samples[i + 1]);
                     i += 2;
@@ -171,6 +200,7 @@ public sealed class TypicalPlanVision
             if (matching.Count * 4 < (i - startIndex) * 3) continue;
             var last = matching[^1].Station;
             if (modelRegion && matching.Count < samples.Count && last - first.Station < 5.0 - 1e-6) continue;
+            if (modelRegion && Drift(first, matching[^1]) > ModelTaperDriftM) continue;
             var middle = first.Station + (last - first.Station) / 2;
             // Prefer positions away from a taper. A steady lateral migration of the
             // boundaries must not generate one section for every metre of widening.
@@ -184,15 +214,75 @@ public sealed class TypicalPlanVision
         return result;
     }
 
-    private static bool Same(Sample a, Sample b, double offsetTolerance = 1.0)
+    /// <summary>
+    /// For each computed station: false when it sits in a taper — every neighbour of the same road
+    /// structure moves a boundary by more than <see cref="ModelSteadyStepM"/>. A neighbour of another
+    /// structure (a lane begins) says nothing about steadiness; the stretch split handles it.
+    /// </summary>
+    internal static bool[] Steady(IReadOnlyList<Sample> samples)
     {
-        if (a.Assembly != b.Assembly || a.Features.Count != b.Features.Count) return false;
-        for (var i = 0; i < a.Features.Count; i++)
+        var steady = new bool[samples.Count];
+        for (int i = 0; i < samples.Count; i++)
         {
-            var x = a.Features[i];
-            var y = b.Features[i];
-            if (x.Kind != y.Kind || x.Stage != y.Stage || Math.Abs(x.Offset - y.Offset) > offsetTolerance) return false;
+            int comparable = 0, moving = 0;
+            foreach (var j in new[] { i - 1, i + 1 })
+            {
+                if (j < 0 || j >= samples.Count || !SameStructure(samples[i], samples[j])) continue;
+                comparable++;
+                if (!SameSection(samples[i], samples[j], ModelSteadyStepM)) moving++;
+            }
+            steady[i] = comparable == 0 || moving < comparable;
         }
+        return steady;
+    }
+
+    /// <summary>The largest boundary move between two samples of the same structure; 0 otherwise.</summary>
+    internal static double Drift(Sample a, Sample b)
+    {
+        if (!SameStructure(a, b)) return 0;
+        double drift = 0;
+        for (var i = 0; i < a.Features.Count; i++)
+            drift = Math.Max(drift, Math.Abs(a.Features[i].Offset - b.Features[i].Offset));
+        return drift;
+    }
+
+    /// <summary>
+    /// The stretches a scan keeps for one road: at most <paramref name="max"/>, the longest first, in
+    /// station order. With <paramref name="distinct"/> a stretch that repeats an earlier, longer one
+    /// (same section within 1 m, whatever the assembly: the two-lane road after its climbing lane) is
+    /// dropped — the typical section is drawn once. <paramref name="dropped"/> counts what was left out.
+    /// </summary>
+    public static List<Stretch> Prune(IReadOnlyList<Stretch> stretches, int max, bool distinct, out int dropped)
+    {
+        var kept = new List<Stretch>();
+        foreach (var stretch in stretches.OrderByDescending(s => s.Length).ThenBy(s => s.From))
+        {
+            if (kept.Count >= max) break;
+            if (distinct && kept.Any(k => SameSection(k.Representative, stretch.Representative))) continue;
+            kept.Add(stretch);
+        }
+        dropped = stretches.Count - kept.Count;
+        return kept.OrderBy(s => s.From).ToList();
+    }
+
+    private static bool Same(Sample a, Sample b, double offsetTolerance = 1.0) =>
+        a.Assembly == b.Assembly && SameSection(a, b, offsetTolerance);
+
+    /// <summary>The same road structure: as many boundaries, of the same kinds and stages, in the same order.</summary>
+    internal static bool SameStructure(Sample a, Sample b)
+    {
+        if (a.Features.Count != b.Features.Count) return false;
+        for (var i = 0; i < a.Features.Count; i++)
+            if (a.Features[i].Kind != b.Features[i].Kind || a.Features[i].Stage != b.Features[i].Stage) return false;
+        return true;
+    }
+
+    /// <summary>The same section: the same structure with every boundary within the tolerance.</summary>
+    public static bool SameSection(Sample a, Sample b, double offsetTolerance = 1.0)
+    {
+        if (!SameStructure(a, b)) return false;
+        for (var i = 0; i < a.Features.Count; i++)
+            if (Math.Abs(a.Features[i].Offset - b.Features[i].Offset) > offsetTolerance) return false;
         return true;
     }
 }
