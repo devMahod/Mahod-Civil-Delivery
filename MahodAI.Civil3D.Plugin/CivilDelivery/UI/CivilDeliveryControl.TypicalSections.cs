@@ -51,8 +51,12 @@ public partial class CivilDeliveryControl
 
     private void OnTypicalSections(object sender, RoutedEventArgs e)
     {
-        if (_typicalPicks.Count > 0) OnConfirmTypicalSections(sender, e);
-        else StartTypicalSections(true);
+        if (_typicalPicks.Count > 0) { OnConfirmTypicalSections(sender, e); return; }
+        // The first click asks how to mark (2026-11-16, owner): the scan, or clicks on the axis as before it.
+        var start = TypicalSectionsDialog.ForStart();
+        CivilModalHost.ShowFromPalette(start);
+        if (start.Choice == TypicalSectionsDialog.Outcome.Scan) StartTypicalSections(true);
+        else if (start.Choice == TypicalSectionsDialog.Outcome.Manual) StartTypicalSections(false);
     }
 
     private void OnTypicalManual(object sender, RoutedEventArgs e) => StartTypicalSections(false);

@@ -159,6 +159,29 @@ public sealed class TypicalSectionsDialogInteractionTests
         without.Close();
     });
 
+    [Fact]
+    public void Start_AsksScanOrManual_AndClosesWithTheChoice() => RunSta(() =>
+    {
+        // 2026-11-16, owner: the first click offers the scan or the clicks on the axis, as before the scan existed.
+        var scan = TypicalSectionsDialog.ForStart();
+        ((TextBlock)scan.FindName("HeadTitle")).Text.Should().Be("איך לסמן את החתכים?");
+        ((UIElement)scan.FindName("Stats")).Visibility.Should().Be(Visibility.Collapsed);
+        ((UIElement)scan.FindName("ListCard")).Visibility.Should().Be(Visibility.Collapsed);
+        var create = (Button)scan.FindName("BtnCreate");
+        create.Content.Should().Be("סריקה אוטומטית");
+        create.IsEnabled.Should().BeTrue();
+        ((Button)scan.FindName("BtnAddMore")).Content.Should().Be("סימון ידני על הציר");
+        ((Button)scan.FindName("BtnClose")).Content.Should().Be("ביטול");
+        Layout(scan);
+        create.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        scan.Choice.Should().Be(TypicalSectionsDialog.Outcome.Scan);
+
+        var byHand = TypicalSectionsDialog.ForStart();
+        Layout(byHand);
+        ((Button)byHand.FindName("BtnAddMore")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        byHand.Choice.Should().Be(TypicalSectionsDialog.Outcome.Manual);
+    });
+
     private static void Layout(Window window)
     {
         var content = (FrameworkElement)window.Content;

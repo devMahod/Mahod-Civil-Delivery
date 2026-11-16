@@ -182,7 +182,7 @@
     </Expander>
 
     <!-- the list: the marks (review), the created sections (result), or what is missing (blocked) -->
-    <Border Style="{StaticResource Card}" CornerRadius="18" Padding="6,6">
+    <Border x:Name="ListCard" Style="{StaticResource Card}" CornerRadius="18" Padding="6,6">
       <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <Grid>
 

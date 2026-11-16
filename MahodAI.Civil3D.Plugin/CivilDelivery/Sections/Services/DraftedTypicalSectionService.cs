@@ -634,8 +634,9 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                 if (geometry != null)
                 {
                     low = Math.Min(low, geometry.Ground.Select(p => p.Y).DefaultIfEmpty(low).Min());
-                    low = Math.Min(low, geometry.Layers.SelectMany(l => l.Outline).Select(p => p.Y).DefaultIfEmpty(low).Min());
-                    calloutRows = geometry.Layers.Select(l => l.Code).Distinct().Count();
+                    var drawnLayers = TypicalSheetGeometryLogic.DrawnLayers(geometry);
+                    low = Math.Min(low, drawnLayers.SelectMany(l => l.Outline).Select(p => p.Y).DefaultIfEmpty(low).Min());
+                    calloutRows = drawnLayers.Select(l => l.Code).Distinct().Count();
                 }
                 var chainY = top + ChainAboveM;
                 var titleTop = chainY + (plans.Count == 0 ? 6.0 : 2.5);
@@ -654,7 +655,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                 // ---- the road
                 if (geometry != null)
                 {
-                    foreach (var layer in geometry.Layers)
+                    foreach (var layer in TypicalSheetGeometryLogic.DrawnLayers(geometry))
                     {
                         var outline = Poly(PavementLayer, true, layer.Outline.Select(p => (p.X, p.Y)));
                         var (pattern, scale, color) = HatchFor(layer.Code);
@@ -879,14 +880,14 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                 Text("CL", 0, chainY + 1.5, TextHeight * 1.2, AxisLayer);
 
                 // ---- the pavement layers, called out under the road from the first carriageway right of the axis
-                if (geometry != null && geometry.Layers.Count > 0)
+                if (geometry != null && TypicalSheetGeometryLogic.DrawnLayers(geometry).Count > 0)
                 {
                     var refX = section.Strips.Where(s => s.FromM >= -0.05 && (IsLane(s.Name) || s.Name == "מיסעה"))
                         .Concat(section.Strips.Where(s => s.ToM > 0 && TypicalSheetGeometryLogic.IsPaved(geometry.Surface, s.FromM, s.ToM)))
                         .Select(s => (double?)((Math.Max(s.FromM, 0) + s.ToM) / 2)).FirstOrDefault()
                         ?? section.Strips.Select(s => (double?)((s.FromM + s.ToM) / 2)).FirstOrDefault() ?? 2.0;
                     // One callout per layer code, the topmost where two shapes of one code meet under the offset.
-                    var stack = TypicalSheetGeometryLogic.LayersAt(geometry.Layers, refX)
+                    var stack = TypicalSheetGeometryLogic.LayersAt(TypicalSheetGeometryLogic.DrawnLayers(geometry), refX)
                         .GroupBy(l => l.Code).Select(g => g.First()).ToList();
                     for (var i = 0; i < stack.Count; i++)
                     {

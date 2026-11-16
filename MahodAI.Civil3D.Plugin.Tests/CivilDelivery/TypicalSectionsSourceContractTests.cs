@@ -46,7 +46,13 @@ public sealed class TypicalSectionsSourceContractTests
     public void PickCommand_IsLaunchedWithAUniqueTokenAndReportsBackThroughThePalette()
     {
         var panel = Ui("CivilDeliveryControl.TypicalSections.cs");
-        Method(panel, "private void OnTypicalSections(").Should().Contain("StartTypicalSections(true)");
+        // The first click asks how to mark (2026-11-16): the scan, or clicks on the axis; with marks waiting it creates.
+        var first = Method(panel, "private void OnTypicalSections(");
+        first.Should().Contain("TypicalSectionsDialog.ForStart()")
+            .And.Contain("CivilModalHost.ShowFromPalette(start)")
+            .And.Contain("start.Choice == TypicalSectionsDialog.Outcome.Scan) StartTypicalSections(true)")
+            .And.Contain("start.Choice == TypicalSectionsDialog.Outcome.Manual) StartTypicalSections(false)");
+        At(first, "OnConfirmTypicalSections(sender, e)").Should().BeLessThan(At(first, "TypicalSectionsDialog.ForStart()"));
         panel.Should().Contain("OnTypicalManual(object sender, RoutedEventArgs e) => StartTypicalSections(false)");
         var start = Method(panel, "private void StartTypicalSections(");
         start.Should().Contain("Guid.NewGuid().ToString(\"N\")")
@@ -337,5 +343,24 @@ public sealed class TypicalSectionsSourceContractTests
         var cut = Method(service, "public static (List<Crossing> Crossings, List<PlacedObject> Objects) Cut(");
         cut.Should().Contain("chord.IntersectWith(curve, Intersect.OnBothOperands, cached.Plan, hits, IntPtr.Zero, IntPtr.Zero)")
             .And.NotContain("chord.IntersectWith(curve, Intersect.OnBothOperands, hits,");
+    }
+
+    [Fact]
+    public void TheSectionDrawsNoPavementStructure_ButStillReadsItForPavedLinksAndTheTitle()
+    {
+        // 2026-11-16, owner: the typical section shows the road's surface, not its layers - no outlines, hatches,
+        // callouts or sheet legend. The corridor's shapes are still read: they say what is paved and name the road.
+        var office = Read("CivilDelivery", "Sections", "Services", "OfficeTypicalRenderer.cs");
+        office.Should().Contain("foreach (var shape in TypicalSheetGeometryLogic.DrawnLayers(design))")
+            .And.Contain("var drawnLayers = TypicalSheetGeometryLogic.DrawnLayers(design);")
+            .And.Contain("if (design != null && drawnLayers.Count > 0)")
+            .And.Contain("var withAgum = design?.Layers.Any(", "the road title still says whether the structure has a subbase");
+        var drafted = Read("CivilDelivery", "Sections", "Services", "DraftedTypicalSectionService.cs");
+        drafted.Should().Contain("foreach (var layer in TypicalSheetGeometryLogic.DrawnLayers(geometry))")
+            .And.Contain("if (geometry != null && TypicalSheetGeometryLogic.DrawnLayers(geometry).Count > 0)")
+            .And.NotContain("foreach (var layer in geometry.Layers)");
+        var sheet = Read("CivilDelivery", "Sections", "Services", "OfficeTypicalSheetLayout.cs");
+        sheet.Should().Contain("TypicalSheetGeometryLogic.PavementLayersDrawn")
+            .And.Contain("if (legend.Length > 0) Text(\"מקרא:\"");
     }
 }

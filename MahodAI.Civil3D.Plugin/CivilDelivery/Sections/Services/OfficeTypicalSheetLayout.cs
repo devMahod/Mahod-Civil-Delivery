@@ -142,8 +142,11 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
                 Rect(Margin, Margin, Margin + Column, SheetH - Margin, frameLayer);
                 // legend
                 var lx = Margin + Column - 8;
-                Text("מקרא:", lx, SheetH - 40, 6);
-                var legend = new[] { ("אספלט", "SOLID", 1.0, (short)252), ("אגו\"מ", "AR-SAND", 0.05, (short)33), ("מצע סוג א'", "AR-CONC", 0.03, (short)33), ("מצע סוג ב'", "ANSI31", 0.6, (short)8) };
+                // The hatch legend goes with the pavement layers: none when the sections do not draw them.
+                var legend = MahodAI.CivilDelivery.Shared.TypicalSheetGeometryLogic.PavementLayersDrawn
+                    ? new[] { ("אספלט", "SOLID", 1.0, (short)252), ("אגו\"מ", "AR-SAND", 0.05, (short)33), ("מצע סוג א'", "AR-CONC", 0.03, (short)33), ("מצע סוג ב'", "ANSI31", 0.6, (short)8) }
+                    : Array.Empty<(string, string, double, short)>();
+                if (legend.Length > 0) Text("מקרא:", lx, SheetH - 40, 6);
                 for (var i = 0; i < legend.Length; i++)
                 {
                     var (label, pattern, scale, color) = legend[i];

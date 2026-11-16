@@ -108,4 +108,18 @@ public class TypicalSheetGeometryLogicTests
         at.Select(l => System.Math.Round(l.ThicknessM, 2)).Should().Equal(0.04, 0.05, 0.20);
         LayersAt(layers, 6).Should().BeEmpty();
     }
+
+    [Fact]
+    public void TheSectionDrawsNoPavementLayers_AndKeepsThemForWhatIsReadOffThem()
+    {
+        // 2026-11-16, owner: the section shows the surface, not the structure; the shapes still say what is paved.
+        var layers = new[] { new Layer("ASF-TAMA", new[] { new Pt(-5, 0), new Pt(5, 0), new Pt(5, -0.04), new Pt(-5, -0.04) }) };
+        var geometry = new SectionGeometry(Road, layers, System.Array.Empty<Pt>());
+
+        PavementLayersDrawn.Should().BeFalse();
+        DrawnLayers(geometry).Should().BeEmpty();
+        DrawnLayers(null).Should().BeEmpty();
+        geometry.Layers.Should().BeSameAs(layers);
+        geometry.Surface.Should().BeSameAs(Road);
+    }
 }

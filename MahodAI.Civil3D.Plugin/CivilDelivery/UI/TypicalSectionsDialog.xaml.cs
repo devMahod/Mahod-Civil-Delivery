@@ -19,7 +19,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
     /// </summary>
     public partial class TypicalSectionsDialog : Window
     {
-        public enum Outcome { None, Create, AddMore, Fix, Sheet }
+        public enum Outcome { None, Create, AddMore, Fix, Sheet, Scan, Manual }
 
         /// <summary>One line of a stopped run: an error, or a step the tool takes itself (<see cref="Fixable"/>).</summary>
         public sealed class IssueRow
@@ -65,6 +65,29 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
             FontFamily = CivilDeliveryTheme.Font;
             UiGuard.Attach(this, "חתכים טיפוסיים");
             Loaded += (_, _) => StartCountUps();
+        }
+
+        /// <summary>
+        /// The first click on "חתכים טיפוסיים" (2026-11-16, owner): how to mark the sections - the scan proposes them from
+        /// the corridors and the plan, or the engineer clicks the axis wherever a section is wanted, as before the scan.
+        /// Closes with <see cref="Outcome.Scan"/> or <see cref="Outcome.Manual"/>.
+        /// </summary>
+        public static TypicalSectionsDialog ForStart()
+        {
+            var dialog = new TypicalSectionsDialog();
+            dialog.Title = "חתכים טיפוסיים · סימון";
+            dialog.HeadTitle.Text = "איך לסמן את החתכים?";
+            dialog.HeadSub.Text = "סריקה מציעה חתך בכל קטע שבו הכביש משתנה, לאישור לפני היצירה · סימון ידני: לחיצה על הציר בכל מקום שרוצים חתך";
+            dialog.Stats.Visibility = Visibility.Collapsed;
+            dialog.ListCard.Visibility = Visibility.Collapsed;
+            dialog.MinHeight = 0;
+            dialog._startOffered = true;
+            dialog.BtnCreate.Content = "סריקה אוטומטית";
+            dialog.BtnCreate.Tag = "scan";
+            dialog.BtnCreate.IsEnabled = true;
+            dialog.BtnAddMore.Content = "סימון ידני על הציר";
+            dialog.BtnClose.Content = "ביטול";
+            return dialog;
         }
 
         /// <summary>Before creating: every mark, with remove; create and add-more.</summary>
@@ -195,6 +218,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
         }
 
         private bool _fixOffered;
+        private bool _startOffered;
 
         public IReadOnlyList<PickRow> RemainingPicks => _picks.ToList();
 
@@ -224,6 +248,12 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
 
         private void OnCreate(object sender, RoutedEventArgs e) => UiGuard.Run("יצירת חתכים", () =>
         {
+            if (_startOffered)
+            {
+                Choice = Outcome.Scan;
+                CloseWith(true);
+                return;
+            }
             if (_fixOffered)
             {
                 Choice = Outcome.Fix;
@@ -237,7 +267,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
 
         private void OnAddMore(object sender, RoutedEventArgs e) => UiGuard.Run("סימון חתכים נוספים", () =>
         {
-            Choice = Outcome.AddMore;
+            Choice = _startOffered ? Outcome.Manual : Outcome.AddMore;
             CloseWith(true);
         });
 

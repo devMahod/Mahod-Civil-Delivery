@@ -30,6 +30,18 @@ public static class TypicalSheetGeometryLogic
         public double MaxX => Surface.Count == 0 ? 0 : Surface.Max(l => Math.Max(l.A.X, l.B.X));
     }
 
+    /// <summary>
+    /// Whether a typical section draws the pavement structure: the corridor's shapes outlined and hatched under the
+    /// surface, their thicknesses called out beside the road, and the hatch legend on the sheet. 2026-11-16, owner: it
+    /// does not - the section shows the road's surface, its widths, its slopes and the existing ground; the structure
+    /// is not part of this drawing. The shapes are still read: they say which links are paved and name the road.
+    /// </summary>
+    public static readonly bool PavementLayersDrawn = false;
+
+    /// <summary>The layers a section draws: the geometry's when <see cref="PavementLayersDrawn"/>, else none.</summary>
+    public static IReadOnlyList<Layer> DrawnLayers(SectionGeometry? geometry) =>
+        PavementLayersDrawn && geometry != null ? geometry.Layers : Array.Empty<Layer>();
+
     /// <summary>The surface level at an offset (the highest link over it), or null beyond the corridor.</summary>
     public static double? LevelAt(IReadOnlyList<SurfaceLink> surface, double x)
     {

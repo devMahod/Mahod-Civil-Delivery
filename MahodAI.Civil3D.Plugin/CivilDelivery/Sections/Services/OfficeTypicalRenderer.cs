@@ -274,7 +274,7 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             {
                 foreach (var link in design.Surface)
                     Seg(link.A.X, link.A.Y, link.B.X, link.B.Y, "HW-CS");
-                foreach (var shape in design.Layers)
+                foreach (var shape in TypicalSheetGeometryLogic.DrawnLayers(design))
                 {
                     if (shape.Outline.Count < 3) continue;
                     Poly("HW-STRC-MISC", true, shape.Outline.Select(p => (p.X, p.Y)));
@@ -430,14 +430,16 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.Sections.Services
             Text("L", -0.1, chainY + 0.5, 0.3, "HW-TYP-CL", AttachmentPoint.BaseLeft, 0, cl: true);
 
             // ---- the pavement callouts: one stack per structure the corridor builds, under its widest strip
-            var bottom = design != null && design.Layers.Count > 0 ? design.Layers.SelectMany(s => s.Outline).Min(p => p.Y) : level(0) - 1.0;
+            // Only the layers the section draws (TypicalSheetGeometryLogic.PavementLayersDrawn) take room and get callouts.
+            var drawnLayers = TypicalSheetGeometryLogic.DrawnLayers(design);
+            var bottom = drawnLayers.Count > 0 ? drawnLayers.SelectMany(s => s.Outline).Min(p => p.Y) : level(0) - 1.0;
             if (design != null && design.Ground.Count > 0) bottom = Math.Min(bottom, design.Ground.Min(p => p.Y));
             var calloutsLow = bottom;
-            if (design != null && design.Layers.Count > 0)
+            if (design != null && drawnLayers.Count > 0)
             {
                 var stacks = section.Strips
                     .Where(s => s.WidthM >= 1.0 && TypicalSheetGeometryLogic.IsPaved(design.Surface, s.FromM, s.ToM))
-                    .Select(s => (Strip: s, Layers: TypicalSheetGeometryLogic.LayersAt(design.Layers, (s.FromM + s.ToM) / 2)))
+                    .Select(s => (Strip: s, Layers: TypicalSheetGeometryLogic.LayersAt(drawnLayers, (s.FromM + s.ToM) / 2)))
                     .Where(t => t.Layers.Count > 0)
                     .GroupBy(t => string.Join("|", t.Layers.Select(l => l.Code + "@" + Math.Round(l.ThicknessM, 3))))
                     .Select(g => g.OrderByDescending(t => t.Strip.WidthM).First())
