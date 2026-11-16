@@ -484,63 +484,17 @@ public sealed class SectionGuidedActionPolicyTests
     }
 
     [Fact]
-    public void TypicalSections_PickingAndPendingPicks_PrecedeStalePlanAndCreation()
+    public void UnconfiguredDrawing_OpensOnTheClSourceSetup_TypicalSectionsAreTheirOwnTool()
     {
-        // While the pick command owns the drawing the guide waits; the markers dirtied the
-        // drawing, so a stale plan must not turn into a re-plan demand before the confirm.
-        var picking = Selected() with { PickingTypicalSections = true, StalePlan = true, CanApplySelected = true };
-        var waiting = SectionGuidedActionPolicy.Evaluate(picking);
-        waiting.Action.Should().Be(SectionGuidedActionKind.WaitForTypicalPicks);
-        waiting.Stage.Should().Be(SectionGuidedStage.Planning);
-
-        var pending = Selected() with { TypicalPicksPending = 3, HasPlan = false, CanApplySelected = true };
-        var decision = SectionGuidedActionPolicy.Evaluate(pending);
-        decision.Action.Should().Be(SectionGuidedActionKind.ConfirmTypicalSections);
-        decision.Stage.Should().Be(SectionGuidedStage.Creation);
-        decision.Title.Should().Be("3 חתכים סומנו");
-        decision.ButtonText.Should().Be("צור 3 חתכים");
-        SectionGuidedActionPolicy.Evaluate(pending with { StalePlan = true, HasPlan = true }).Action
-            .Should().Be(SectionGuidedActionKind.ConfirmTypicalSections);
-
-        // Drawing, profile and preview recovery still come first.
-        SectionGuidedActionPolicy.Evaluate(pending with { HasDrawing = false }).Action
-            .Should().Be(SectionGuidedActionKind.OpenDrawing);
-        SectionGuidedActionPolicy.Evaluate(pending with { ProfileUsable = false }).Action
-            .Should().Be(SectionGuidedActionKind.ConfigureProfile);
-        SectionGuidedActionPolicy.Evaluate(pending with { PreviewCleanupBlocked = true }).Action
-            .Should().Be(SectionGuidedActionKind.RecoverPreview);
-
-        // The firm's section program needs no CL setup: an unconfigured profile does not hide the
-        // pending picks, and without picks the setup step is offered as before.
-        SectionGuidedActionPolicy.Evaluate(pending with { NeedsSectionSetup = true }).Action
-            .Should().Be(SectionGuidedActionKind.ConfirmTypicalSections);
-        SectionGuidedActionPolicy.Evaluate(picking with { NeedsSectionSetup = true, HasPlan = false }).Action
-            .Should().Be(SectionGuidedActionKind.WaitForTypicalPicks);
-        SectionGuidedActionPolicy.Evaluate(pending with { NeedsSectionSetup = true, TypicalPicksPending = 0 }).Action
-            .Should().Be(SectionGuidedActionKind.ConfigureSectionSources);
-    }
-
-    [Fact]
-    public void UnconfiguredDrawing_OpensOnTypicalSections_WhenTheFlowCanStart()
-    {
-        // Live 2026-10-26: the green card sent the engineer to the CL-file setup while the
-        // typical-sections button sat beside it. When the flow can start, it is the next step.
-        var fresh = new SectionGuidedActionSnapshot
-        { HasDrawing = true, ProfileUsable = true, NeedsSectionSetup = true, OfferTypicalSections = true };
-        var decision = SectionGuidedActionPolicy.Evaluate(fresh);
-        decision.Action.Should().Be(SectionGuidedActionKind.StartTypicalSections);
-        decision.ButtonText.Should().Be("חתכים טיפוסיים");
-        decision.Detail.Should().Contain("הגדרת פרויקט");
-
-        // Without the offer, and once a plan exists, nothing changes for CL-file projects.
-        SectionGuidedActionPolicy.Evaluate(fresh with { OfferTypicalSections = false }).Action
-            .Should().Be(SectionGuidedActionKind.ConfigureSectionSources);
+        // Typical sections left this guide on 2026-11-16 (the Mahod Typical Sections tool, its own window): a drawing
+        // with no CL setup opens on the CL-source setup again, and a configured one on the plan.
+        var fresh = new SectionGuidedActionSnapshot { HasDrawing = true, ProfileUsable = true, NeedsSectionSetup = true };
+        SectionGuidedActionPolicy.Evaluate(fresh).Action.Should().Be(SectionGuidedActionKind.ConfigureSectionSources);
         SectionGuidedActionPolicy.Evaluate(fresh with { NeedsSectionSetup = false }).Action
             .Should().Be(SectionGuidedActionKind.Plan);
-        SectionGuidedActionPolicy.Evaluate(fresh with { TypicalPicksPending = 2 }).Action
-            .Should().Be(SectionGuidedActionKind.ConfirmTypicalSections);
         SectionGuidedActionPolicy.Evaluate(fresh with { ProfileUsable = false }).Action
             .Should().Be(SectionGuidedActionKind.ConfigureProfile);
+        Enum.GetNames<SectionGuidedActionKind>().Should().NotContain(name => name.Contains("Typical"));
     }
 
     [Fact]

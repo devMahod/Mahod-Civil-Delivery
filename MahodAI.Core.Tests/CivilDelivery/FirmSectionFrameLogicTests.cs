@@ -348,7 +348,7 @@ public sealed class FirmSectionFrameLogicTests
     ];
 
     [Fact]
-    public void EveryFindingAndMatchReason_ReadsInHebrew_NotAsItsCode()
+    public void EveryFinding_ReadsInHebrew_NotAsItsCode()
     {
         var codes = typeof(Finding).GetFields()
             .Where(f => f.IsLiteral && f.FieldType == typeof(string))
@@ -356,12 +356,6 @@ public sealed class FirmSectionFrameLogicTests
         codes.Should().NotBeEmpty();
         foreach (var code in codes)
             Finding.DescribeHe(code).Should().NotBe(code).And.MatchRegex("[֐-׿]");
-
-        var reasons = typeof(TypicalSectionStripMatchLogic.Reason).GetFields()
-            .Where(f => f.IsLiteral && f.FieldType == typeof(string))
-            .Select(f => (string)f.GetRawConstantValue()!).ToList();
-        foreach (var reason in reasons)
-            TypicalSectionStripMatchLogic.Reason.DescribeHe(reason).Should().NotBe(reason).And.MatchRegex("[֐-׿]");
     }
 
     [Fact]

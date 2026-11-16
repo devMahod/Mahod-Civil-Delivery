@@ -119,7 +119,7 @@
                  TextTrimming="CharacterEllipsis"/>
     </DockPanel>
 
-    <TabControl x:Name="Tabs" SelectedIndex="3" Margin="12,0,12,8" Padding="0">
+    <TabControl x:Name="Tabs" SelectedIndex="2" Margin="12,0,12,8" Padding="0">
 
       <!-- ==================== SECTIONS ==================== -->
       <TabItem Header="חתכים">
@@ -154,12 +154,6 @@
                   <WrapPanel Margin="0,12,0,0">
                     <Button x:Name="BtnSectionNext" Content="התחל תכנון" Click="OnSectionNext" Style="{StaticResource PillPrimaryButton}" Tag="play"/>
                     <Button x:Name="BtnShow" Content="הצג מיקום בתכנית" Click="OnShow" Style="{StaticResource PillButton}" Tag="locate"/>
-                    <Button x:Name="BtnTypicalSections" Content="חתכים טיפוסיים" Click="OnTypicalSections" Style="{StaticResource PillButton}" Tag="pin"
-                            ToolTip="סורק את התוכנית ויוצר חתך מייצג בכל מקטע שבו זוהה מבנה כביש או מסילה שונה."/>
-                    <Button x:Name="BtnTypicalManual" Content="סימון ידני" Click="OnTypicalManual" Style="{StaticResource PillButton}"/>
-                    <Button x:Name="BtnTypicalCancel" Content="בטל סימון" Click="OnCancelTypicalPicks" Style="{StaticResource PillButton}" Visibility="Collapsed"/>
-                    <Button x:Name="BtnTypicalSheet" Content="גיליון חתכים" Click="OnTypicalSheet" Style="{StaticResource PillButton}" Tag="sheet"
-                            ToolTip="מעמיד חתכים טיפוסיים שכבר נוצרו על גיליונות A0 (1:100, מקרא וכותרת). בחר אותם בשרטוט, או Enter לכולם."/>
                     <Button x:Name="BtnNameAllSpans" Content="סקירת רצועות בכל החתכים…" Click="OnNameAllSectionSpans" Style="{StaticResource PillButton}" Tag="layers"
                             ToolTip="סקור את הרצועות בכל התכנון בחלון אחד. נשמרים רק שמות שבחרת ואישרת במפורש; אין אישור אוטומטי של הצעות."/>
                   </WrapPanel>
@@ -518,14 +512,6 @@
       </TabItem>
 
       <!-- ==================== PROJECT ==================== -->
-      <TabItem Header="תשתיות" Visibility="Collapsed">
-        <StackPanel Margin="16">
-          <TextBlock Text="כתב כמויות לתשתיות" Style="{StaticResource CardTitle}"/>
-          <TextBlock Text="מים, ביוב, ניקוז, גז, חשמל ותקשורת — ריכוז קווים לפי שכבה ומקור, חיפוש סעיף בעברית, וייצוא Excel ושרטוט שכבות נפרד." TextWrapping="Wrap" Margin="0,8"/>
-          <TextBlock Text="בחר שכבה, בחר סעיף מההצעות או חפש בעברית וייצא. השיוכים נשמרים במחשב, ללא הזנת שם מאשר. הסריקה כוללת את כל המודל והמקורות; תחום פוליגון אינו מוחל במסך זה." TextWrapping="Wrap" Margin="0,8"/>
-          <Button Content="פתח כתב כמויות תשתיות…" Click="OnInfrastructureBoq" HorizontalAlignment="Right"/>
-        </StackPanel>
-      </TabItem>
       <TabItem x:Name="ProjectTab" Header="פרויקט">
         <ScrollViewer VerticalScrollBarVisibility="Auto">
           <StackPanel>

@@ -1193,7 +1193,6 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
             PriceBookCombo.IsEnabled = profileUsable;
 
             BtnPlan.IsEnabled = gate.CanPlan;
-            RefreshTypicalSectionGates(profileUsable);
             BtnNextSectionIssue.IsEnabled = _sectionRows.Any(IsActionableSectionRow);
             BtnPreview.IsEnabled = gate.CanPreview &&
                                    SectionsGrid.SelectedItem is SectionRowViewModel previewRow &&

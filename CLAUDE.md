@@ -28,6 +28,15 @@ here (behind `(none: the standalone build defines `MAHOD_CD_STANDALONE`; the plu
 release refuses to run when the plugin's copy was edited since the last sync, because the mirror
 would revert that edit for every engineer — carry those plugin commits into this repo first.
 
+**Two tools left this repo on 2026-11-16** (owner: "Bill of quantities and typical section as separate tools"):
+the bill-of-quantities window (`MHD_BOQ`, `MHD_BOQ_AREA`; pavement report, concrete, earthworks) is now
+**devMahod/Mahod-BoQ**, and the typical sections (`MHD_TYPICAL_SECTIONS`, `MHD_TYPICAL_SHEET`, the scan, the office
+renderer) are **devMahod/Mahod-TypicalSection** — each with its own ribbon button, window, guide and release, built in
+MahodAI on top of this repo's core. This repo keeps the CL sections, the project-profile estimate (`MHD_ESTIMATE`, the
+chat) and the shared core both tools build on (price books, estimate models, xlsx, geometry, theme, project profile,
+the firm section adapter). A change that core needs for those tools is made HERE; a change to the tools themselves is
+made in their repos. Where each moved file came from: their `MOVED.txt`.
+
 In MahodAI the tool is the **Civil Delivery** button on the MahodAI ribbon tab
 (panel כלים הנדסיים) and the commands `MHD_CIVIL_DELIVERY` (the panel), `MHD_SETUP`, `MHD_SECTIONS`, `MHD_ESTIMATE` — Civil 3D only (the standalone build answered to `MCD_*`). Its version is `MahodCivilDelivery/VERSION`.
 

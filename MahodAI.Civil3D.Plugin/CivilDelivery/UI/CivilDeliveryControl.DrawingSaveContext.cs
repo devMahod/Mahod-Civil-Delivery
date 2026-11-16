@@ -79,7 +79,6 @@ public partial class CivilDeliveryControl
     {
         UnhookDrawingSaveContext(e.Document);
         CancelWorkflowSave(e.Document, "השרטוט נסגר — הפעולה הממתינה בוטלה");
-        CancelTypicalPick(e.Document, "השרטוט נסגר — סימון החתכים בוטל");
         ClearPreviewBeforeDocumentTransition(e.Document);
         ClearExportNoticeOf(e.Document);
     }

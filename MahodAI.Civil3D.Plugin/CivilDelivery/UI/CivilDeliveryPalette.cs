@@ -258,23 +258,6 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
             if (_paletteSet != null) _paletteSet.Visible = false;
         }
 
-        /// <summary>The bill of quantities lives in this window's "כתב כמויות" tab (owner 2026-11-11: one window, always open).
-        /// Shows the window on that tab and returns its panel.</summary>
-        /// <summary>
-        /// Focus back to this window after the BOQ tab's work (a pick on the plan leaves AutoCAD's focus in the drawing, and
-        /// the next press on the panel only activated it — "I click Export and nothing happens", live 2026-11-11).
-        /// </summary>
-        internal static void FocusPanel()
-        {
-            try { if (_paletteSet is { Visible: true }) _paletteSet.Activate(0); } catch (System.Exception) { }
-            try { _host?.Focus(); } catch (System.Exception) { }
-        }
-
-        internal static BoqPanel? ShowBoq()
-        {
-            Show();
-            return _control?.ShowBoqPanel();
-        }
 
         /// <summary>
         /// Invoked by the modal command queued immediately after QSAVE.  QSAVE owns
@@ -296,13 +279,6 @@ namespace MahodAI.Civil3D.Plugin.CivilDelivery.UI
             control.Dispatcher.BeginInvoke(new Action(() => control.ResumeWorkflowAfterExplicitSave(token)));
         }
 
-        /// <summary>The pick command's report (2026-10), posted after the command has returned, like the save resume.</summary>
-        internal static void ResumeTypicalSectionPicks(Sections.Services.TypicalSectionPickResult result)
-        {
-            var control = _control;
-            if (control == null) return;
-            control.Dispatcher.BeginInvoke(new Action(() => control.ResumeTypicalSectionPicks(result)));
-        }
 
         /// <summary>
         /// Opens the panel unless it is really on screen, then closes it. Returns true when the

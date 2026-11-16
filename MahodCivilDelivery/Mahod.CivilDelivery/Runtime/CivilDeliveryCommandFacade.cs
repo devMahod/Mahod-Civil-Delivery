@@ -51,10 +51,6 @@ public sealed class CivilDeliveryCommandFacade
     public void SmokeDiscover() { if (Ready()) Typed(null, typedFlow: true, SmokeDiscoverBody); }
     [CommandMethod(CivilDeliveryCommandNames.SmokeSections, CommandFlags.Modal)]
     public void SmokeSections() { if (Ready()) Typed(null, typedFlow: true, SmokeSectionsBody); }
-    [CommandMethod(CivilDeliveryCommandNames.TypicalSections, CommandFlags.Modal | CommandFlags.NoHistory)]
-    public void TypicalSections() { if (Ready()) TypicalSectionsBody(); }
-    [CommandMethod(CivilDeliveryCommandNames.SmokeTypical, CommandFlags.Modal)]
-    public void SmokeTypical() { if (Ready()) Typed(null, typedFlow: true, SmokeTypicalBody); }
 
     /// <summary>Identity of what is loaded: this plugin, its Core and the pairing verdict. Never needs Core.</summary>
     [CommandMethod("MCD_CHECK", CommandFlags.Modal)]
@@ -64,39 +60,6 @@ public sealed class CivilDeliveryCommandFacade
         if (ed == null) return;
         CivilDeliveryLoadGuard.EnsureReady();
         ed.WriteMessage("\n" + MahodCivilDeliveryApplication.Describe() + "\n" + CivilDeliveryLoadGuard.DiagnosticSummary + "\n");
-    }
-
-    [CommandMethod("MCD_INFRASTRUCTURE", CommandFlags.Modal)]
-    public void Infrastructure() { if (Ready()) InfrastructureBody(); }
-
-    [CommandMethod("MCD_BOQ", CommandFlags.Modal)]
-    public void Boq() { if (Ready()) InfrastructureBody(); }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void InfrastructureBody() => MahodAI.Civil3D.Plugin.CivilDelivery.UI.InfrastructureBoqWindow.Run();
-
-    [CommandMethod("MCD_BOQ_AREA", CommandFlags.Modal)]
-    public void BoqArea() { if (Ready()) BoqAreaBody(); }
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void BoqAreaBody() => MahodAI.Civil3D.Plugin.CivilDelivery.UI.InfrastructureBoqWindow.RunArea();
-
-    [CommandMethod("MCD_INFRA_AUDIT", CommandFlags.Modal)]
-    public void InfrastructureAudit() { if (Ready()) InfrastructureAuditBody(); }
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void InfrastructureAuditBody() => MahodAI.Civil3D.Plugin.CivilDelivery.UI.InfrastructureBoqWindow.ExportAudit();
-
-    [CommandMethod("MCD_IGOR_AUDIT", CommandFlags.Modal)]
-    public void IgorAudit() { if (Ready()) IgorAuditBody(); }
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void IgorAuditBody()
-    {
-        var doc = AcadApp.DocumentManager.MdiActiveDocument;
-        if (doc == null) return;
-        var result = MahodAI.Civil3D.Plugin.CivilDelivery.Estimate.IgorPolylineAudit.Capture(doc.Database);
-        var path = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Mahod Delivery", "Infrastructure", "igor-check-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".json");
-        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)!);
-        System.IO.File.WriteAllText(path, System.Text.Json.JsonSerializer.Serialize(result, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
-        doc.Editor.WriteMessage("\nIgor comparison: " + result.Status + "; " + path + "\n");
     }
 
     /// <summary>
@@ -141,8 +104,4 @@ public sealed class CivilDeliveryCommandFacade
     private static void SmokeDiscoverBody() => new MhdSmokeDiscoverCommand().Run();
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static void SmokeSectionsBody() => new MhdSmokeSectionsCommand().Run();
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void TypicalSectionsBody() => new MhdTypicalSectionsCommand().Run();
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void SmokeTypicalBody() => new MhdSmokeTypicalSectionsCommand().Run();
 }

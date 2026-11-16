@@ -21,9 +21,6 @@ namespace MahodAI.CivilDelivery.Shared
         LocateExistingView,
         ChooseAnnotationRecoveryRecord,
         ConfigureSectionSources,
-        WaitForTypicalPicks,
-        ConfirmTypicalSections,
-        StartTypicalSections,
     }
 
     public enum SectionGuidedStage
@@ -76,13 +73,6 @@ namespace MahodAI.CivilDelivery.Shared
         public bool ManagedViewLookupAvailable { get; init; }
         public bool SelectedVerified { get; init; }
         public int PlanRecordCount { get; init; }
-        // Typical sections (2026-10): the pick command is running in the drawing, or marked
-        // picks wait for the engineer's confirm.
-        public bool PickingTypicalSections { get; init; }
-        public int TypicalPicksPending { get; init; }
-        // The typical-sections flow can start here (usable profile, nothing pending): a drawing
-        // with no CL setup then opens on it instead of on the CL-file setup.
-        public bool OfferTypicalSections { get; init; }
     }
 
     public sealed record SectionGuidedActionDecision(
@@ -128,27 +118,6 @@ namespace MahodAI.CivilDelivery.Shared
                     "ניקוי התצוגה המקדימה לא הושלם. יש לחזור לשרטוט שבו נוצרה ולנסות לנקות אותה לפני המשך העבודה.",
                     "נקה תצוגה מקדימה");
 
-            // Typical sections (2026-10): while the engineer clicks in the drawing nothing else is
-            // offered, and marked picks are created before any setup or plan talk. The firm's section
-            // program needs no CL layers or sampled sources, and the markers dirtied the drawing, so
-            // the plan would read as stale and the guide would wrongly ask for a re-plan.
-            if (value.PickingTypicalSections)
-                return At(SectionGuidedActionKind.WaitForTypicalPicks, SectionGuidedStage.Planning,
-                    "איתור תחנות לחתכים טיפוסיים",
-                    "התחנות נקבעות בשרטוט לפי אופן ההפעלה שנבחר.",
-                    "מאתר תחנות…");
-
-            if (value.TypicalPicksPending > 0)
-                return At(SectionGuidedActionKind.ConfirmTypicalSections, SectionGuidedStage.Creation,
-                    FormattableString.Invariant($"{value.TypicalPicksPending} חתכים סומנו"),
-                    "לפני היצירה נפתחת סקירה של כל הסימונים; אפשר להסיר סימון או להוסיף עוד.",
-                    FormattableString.Invariant($"צור {value.TypicalPicksPending} חתכים"));
-
-            if (value.NeedsSectionSetup && !value.HasPlan && value.OfferTypicalSections)
-                return At(SectionGuidedActionKind.StartTypicalSections, SectionGuidedStage.Planning,
-                    "חתכים טיפוסיים לאורך התוואי",
-                    "הסריקה בוחרת תחנה מייצגת בכל מקטע יציב ויוצרת את החתכים. לחתכים לפי קובץ CL יש 'הגדרת פרויקט' בפעולות נוספות.",
-                    "חתכים טיפוסיים");
 
             if (value.NeedsSectionSetup && !value.HasPlan)
                 return At(SectionGuidedActionKind.ConfigureSectionSources, SectionGuidedStage.Setup,
