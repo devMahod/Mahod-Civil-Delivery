@@ -55,13 +55,24 @@ internal static class EarthworksReader
         public TimeSpan Took { get; init; }
     }
 
-    /// <summary>Every TIN surface of the drawing with what its name says it is.</summary>
+    /// <summary>
+    /// Every TIN surface of the drawing with what its name says it is. A corridor's own surface is design whatever its
+    /// name ("R-18 Surface - (18)"): never the ground as it is.
+    /// </summary>
     internal static IReadOnlyList<SurfaceInfo> Surfaces(Transaction tr)
     {
         var list = new List<SurfaceInfo>();
         CivilDocument? civil;
         try { civil = CivilApplication.ActiveDocument; } catch (System.Exception) { return list; }
         if (civil == null) return list;
+        var fromCorridors = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            foreach (ObjectId cid in civil.CorridorCollection)
+                if (tr.GetObject(cid, OpenMode.ForRead) is Corridor corridor)
+                    foreach (CorridorSurface cs in corridor.CorridorSurfaces) fromCorridors.Add(cs.Name);
+        }
+        catch (System.Exception) { }   // without the corridor list the names alone decide
         foreach (ObjectId id in civil.GetSurfaceIds())
         {
             try
@@ -69,12 +80,78 @@ internal static class EarthworksReader
                 if (tr.GetObject(id, OpenMode.ForRead) is not TinSurface s) continue;
                 var p = s.GetGeneralProperties();
                 if (p.NumberOfPoints < 3) continue;
-                list.Add(new SurfaceInfo(s.Name, Earthworks.Classify(s.Name, s.Layer, s.Description ?? ""), id,
+                var role = Earthworks.Classify(s.Name, s.Layer, s.Description ?? "");
+                if (fromCorridors.Contains(s.Name) && role is EarthRole.Existing or EarthRole.Unknown) role = EarthRole.Design;
+                list.Add(new SurfaceInfo(s.Name, role, id,
                     p.MinimumCoordinateX, p.MinimumCoordinateY, p.MaximumCoordinateX, p.MaximumCoordinateY, p.NumberOfPoints));
             }
             catch (System.Exception) { }   // an out-of-date or broken surface is not a source
         }
         return list;
+    }
+
+    /// <summary>About 200 plan points (host units) spread over the marked area: where a surface must be to be its ground or design.</summary>
+    internal static IReadOnlyList<(double X, double Y)> Probes(SpatialQuantityClip area)
+    {
+        var env = area.Boundary.EnvelopeInternal;
+        var step = Math.Sqrt(Math.Max(area.Boundary.Area, 1e-6) / 200);
+        for (var attempt = 0; attempt < 4; attempt++, step /= 2)
+        {
+            var probes = new List<(double, double)>();
+            for (var x = env.MinX + step / 2; x < env.MaxX; x += step)
+                for (var y = env.MinY + step / 2; y < env.MaxY; y += step)
+                    if (area.Contains(x, y)) probes.Add((x, y));
+            if (probes.Count >= 50) return probes;
+        }
+        return area.Vertices;
+    }
+
+    /// <summary>Plan points over a surface's extents where it has a level: where a design must lie to be graded against it.</summary>
+    private static IReadOnlyList<(double X, double Y)> Probes(Transaction tr, SurfaceInfo ground)
+    {
+        var s = (TinSurface)tr.GetObject(ground.Id, OpenMode.ForRead);
+        var probes = new List<(double, double)>();
+        for (var i = 0; i < 20; i++)
+            for (var j = 0; j < 20; j++)
+            {
+                var x = ground.MinX + (i + 0.5) / 20 * (ground.MaxX - ground.MinX);
+                var y = ground.MinY + (j + 0.5) / 20 * (ground.MaxY - ground.MinY);
+                if (Level(s, x, y) != null) probes.Add((x, y));
+            }
+        return probes;
+    }
+
+    private static double? Level(TinSurface s, double x, double y)
+    {
+        try { return s.FindElevationAtXY(x, y); }
+        catch (System.Exception) { return null; }   // off the surface (or in a hole of it)
+    }
+
+    /// <summary>
+    /// The surface among <paramref name="candidates"/> that covers the probes (<see cref="Earthworks.PickSurface"/>), not
+    /// the one whose extents are largest. Without probes: the one with the most points.
+    /// </summary>
+    private static SurfaceInfo? Best(Transaction tr, IEnumerable<SurfaceInfo> candidates, IReadOnlyList<(double X, double Y)>? probes, int prefer, bool byPlanArea = false)
+    {
+        var list = candidates.ToList();
+        if (list.Count == 0) return null;
+        if (probes is not { Count: > 0 }) return list.OrderByDescending(s => byPlanArea ? s.PlanArea : s.Points).First();
+        var levels = list.Select(c =>
+        {
+            var s = (TinSurface)tr.GetObject(c.Id, OpenMode.ForRead);
+            return (byPlanArea ? c.PlanArea : (double)c.Points, (IReadOnlyList<double?>)probes
+                .Select(p => p.X < c.MinX || p.X > c.MaxX || p.Y < c.MinY || p.Y > c.MaxY ? null : Level(s, p.X, p.Y)).ToArray());
+        }).ToList();
+        var k = Earthworks.PickSurface(levels, prefer);
+        return k < 0 ? null : list[k];
+    }
+
+    /// <summary>The share of the probes a surface covers.</summary>
+    private static double Cover(Transaction tr, SurfaceInfo surface, IReadOnlyList<(double X, double Y)> probes)
+    {
+        if (probes.Count == 0) return 1;
+        var s = (TinSurface)tr.GetObject(surface.Id, OpenMode.ForRead);
+        return probes.Count(p => Level(s, p.X, p.Y) != null) / (double)probes.Count;
     }
 
     /// <summary>The triangles of a Civil 3D surface inside the window (metres).</summary>
@@ -193,20 +270,27 @@ internal static class EarthworksReader
         bool Overlaps(SurfaceInfo s) => window is not { } w || !(s.MaxX < w.Item1 || s.MinX > w.Item3 || s.MaxY < w.Item2 || s.MinY > w.Item4);
         var usable = surfaces.Where(Overlaps).ToList();
 
-        // Ground: chosen by name, else an existing-ground surface (the largest), else the one an unnamed pair leaves.
+        // A surface is this area's ground or design only where it has levels: its extents prove nothing (a data shortcut of
+        // another project, kilometres long, overlaps every area and covers none of it — and won the old "most points" pick,
+        // leaving the road out and grading a level platform instead). Probes over the marked area; for the whole drawing,
+        // over the ground surface, so the design picked is one that lies on it.
+        var probes = area != null ? Probes(area) : null;
+        // Ground: chosen by name, else an existing-ground surface, else the widest unnamed one (the survey; a design covers less).
         SurfaceInfo? ground = settings.ExistingName is { } en ? usable.FirstOrDefault(s => s.Name == en) : null;
-        ground ??= usable.Where(s => s.Role == EarthRole.Existing).OrderByDescending(s => s.Points).FirstOrDefault();
-        var unknown = usable.Where(s => s.Role == EarthRole.Unknown).OrderByDescending(s => s.PlanArea).ToList();
-        if (ground == null && unknown.Count > 0) ground = unknown[0];   // the widest unnamed surface is the survey; the design covers less
-        // Design: chosen by name, else a subgrade, else a design surface, else (two unnamed) the smaller one.
+        ground ??= Best(tr, usable.Where(s => s.Role == EarthRole.Existing), probes, prefer: 0);
+        var unknown = usable.Where(s => s.Role == EarthRole.Unknown).ToList();
+        ground ??= Best(tr, unknown, probes, prefer: 0, byPlanArea: true);
+        // Design: chosen by name, else a subgrade (the lowest), else a design surface (the highest), else an unnamed one.
         SurfaceInfo? design = null;
+        var designProbes = probes ?? (ground != null ? Probes(tr, ground) : null);
         if (!settings.ForcePlatform)
         {
             design = settings.DesignName is { } dn ? usable.FirstOrDefault(s => s.Name == dn && s != ground) : null;
-            design ??= usable.Where(s => s != ground && s.Role == EarthRole.Subgrade).OrderByDescending(s => s.Points).FirstOrDefault();
-            design ??= usable.Where(s => s != ground && s.Role == EarthRole.Design).OrderByDescending(s => s.Points).FirstOrDefault();
-            design ??= unknown.FirstOrDefault(s => s != ground);
+            design ??= Best(tr, usable.Where(s => s != ground && s.Role == EarthRole.Subgrade), designProbes, prefer: -1);
+            design ??= Best(tr, usable.Where(s => s != ground && s.Role == EarthRole.Design), designProbes, prefer: +1);
+            design ??= Best(tr, unknown.Where(s => s != ground), designProbes, prefer: +1);
         }
+        var designCover = design != null && probes != null ? Cover(tr, design, probes) : 1;
 
         // Without a marked area the work area is the design's own footprint; with neither there is nothing to grade.
         if (window == null)
@@ -274,6 +358,8 @@ internal static class EarthworksReader
 
         var coverage = grid.InsideCells > 0 ? (double)grid.GroundCells / grid.InsideCells : 1;
         if (coverage < 0.97) notes.Add($"הקרקע הקיימת מכסה {coverage * 100:0}% מתחום העבודה — הכמויות לחלק המכוסה בלבד.");
+        if (designTin != null && designCover < 0.97)
+            notes.Add($"משטח התכנון {design!.Name} מכסה {designCover * 100:0}% מהאזור המסומן — עבודות העפר רק בחלק הזה (משטח אחר אפשר לבחור בהגדרות).");
         if (topo.SteepFillShare > 0.05) notes.Add($"{topo.SteepFillShare * 100:0}% מהמילוי על קרקע בשיפוע מעל 15% — נדרש מידור (מדרגות ברוחב 2 מ׳ לפחות) לפני המילוי.");
         if (topo.Terrain == "הררית" && settings.RockPercent == 0) notes.Add("שטח הררי — צפויה חציבה. לפי המפרטים החציבה כלולה במחיר החפירה; אם דו״ח הקרקע קובע סעיף חציבה נפרד, הזינו אחוז סלע בהגדרות.");
         if (designTin == null) notes.Add($"מדרונות הפילוס: 1:{settings.FillSlope:0.#} במילוי, 1:{settings.CutSlope:0.#} בחפירה — ערכים טיפוסיים ללא דו״ח קרקע.");

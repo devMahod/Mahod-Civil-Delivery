@@ -141,6 +141,10 @@ public class EarthworksTests
     [InlineData("Corridor (1) Top", "", "Design")]
     [InlineData("Corridor (1) Datum", "", "Subgrade")]
     [InlineData("Surface1", "0", "Unknown")]
+    // C-TOPO is where Civil 3D puts every surface: on drawing 6403 it made corridor and landscape surfaces "existing ground".
+    [InlineData("R-18 Surface - (18)", "C-TOPO", "Unknown")]
+    [InlineData("LA-DES-10-BIKE", "C-TOPO", "Unknown")]
+    [InlineData("Surface1", "TOPO-SURVEY", "Existing")]
     public void SurfacesAreRecognisedByName(string name, string layer, string role)
         => Assert.Equal(Enum.Parse<EarthRole>(role), Earthworks.Classify(name, layer));
 
@@ -204,5 +208,61 @@ public class EarthworksTests
         Assert.Equal(0.5, Earthworks.CellSizeFor(10_000));
         Assert.Equal(1, Earthworks.CellSizeFor(300_000));
         Assert.Equal(5, Earthworks.CellSizeFor(8_000_000));
+    }
+
+    // ───── which surface is the area's (drawing 6403, a strip along road 40) ─────
+
+    private static IReadOnlyList<double?> Levels(int n, Func<int, double?> at) => Enumerable.Range(0, n).Select(at).ToArray();
+
+    [Fact]
+    public void ASurfaceThatOnlyOverlapsByItsExtentsIsNeverPicked()
+    {
+        // ZIR-10.4-1@Bot: a data shortcut of another project, 13 km long, 80,032 points, no level in the strip. It won the
+        // old "most points" pick and the strip was graded as a level platform instead of road 40.
+        var picked = Earthworks.PickSurface(new (double, IReadOnlyList<double?>)[]
+        {
+            (80_032, Levels(100, _ => null)),
+            (16_425, Levels(100, k => 62 + k * 0.01)),
+        }, prefer: -1);
+        Assert.Equal(1, picked);
+    }
+
+    [Fact]
+    public void NoSurfaceCoveringTheAreaPicksNone()
+        => Assert.Equal(-1, Earthworks.PickSurface(new (double, IReadOnlyList<double?>)[] { (500, Levels(10, _ => null)) }, prefer: 0));
+
+    [Fact]
+    public void TheSubgradeIsTheLowestBottomNotTheOneWithMorePoints()
+    {
+        // RD-40 "BOT" (16,425 points) is the subgrade, 0.84 m under the top; "BOT-IN" (16,654 points) lies 0.40 m above it.
+        var picked = Earthworks.PickSurface(new (double, IReadOnlyList<double?>)[]
+        {
+            (16_654, Levels(100, k => 62.40 + k * 0.01)),
+            (16_425, Levels(100, k => 62.00 + k * 0.01)),
+        }, prefer: -1);
+        Assert.Equal(1, picked);
+    }
+
+    [Fact]
+    public void TheFinishedGradeIsTheHighestDesignNotTheOneWithMorePoints()
+    {
+        // RD-40 "TOP-2.00" (16,823 points) lies exactly 2 m under "-TOP" (16,432 points).
+        var picked = Earthworks.PickSurface(new (double, IReadOnlyList<double?>)[]
+        {
+            (16_823, Levels(100, k => 61.24 + k * 0.01)),
+            (16_432, Levels(100, k => 63.24 + k * 0.01)),
+        }, prefer: +1);
+        Assert.Equal(1, picked);
+    }
+
+    [Fact]
+    public void CoveringMoreOfTheAreaBeatsHavingMorePoints()
+    {
+        var picked = Earthworks.PickSurface(new (double, IReadOnlyList<double?>)[]
+        {
+            (10_000, Levels(100, k => k < 40 ? 70 : null)),
+            (500, Levels(100, _ => 70)),
+        }, prefer: 0);
+        Assert.Equal(1, picked);
     }
 }

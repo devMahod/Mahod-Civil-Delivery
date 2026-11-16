@@ -267,12 +267,49 @@ public static class Earthworks
 
     public static EarthRole Classify(string name, string layer = "", string description = "")
     {
+        // Civil 3D puts every surface on C-TOPO unless told otherwise: that layer says nothing about what a surface is (its
+        // "TOPO" made every corridor and landscape surface of a project drawing "existing ground").
+        if (layer.Trim().Equals("C-TOPO", StringComparison.OrdinalIgnoreCase)) layer = "";
         var tokens = Regex.Split((name + " " + layer + " " + description).ToUpperInvariant(), @"[^\p{L}\p{Nd}]+").Where(t => t.Length > 0).ToHashSet();
         bool Any(string[] words) => words.Any(tokens.Contains);
         if (Any(SubgradeWords)) return EarthRole.Subgrade;
         if (Any(DesignWords) && !Any(new[] { "EG", "EXIST", "EXISTING", "קיים", "קיימת" })) return EarthRole.Design;
         if (Any(ExistingWords)) return EarthRole.Existing;
         return EarthRole.Unknown;
+    }
+
+    /// <summary>
+    /// Which of several surfaces of one role is the work area's, judged by its level at probe points spread over the area
+    /// (null = the surface is not there). A surface whose extents merely overlap the area — a data shortcut of another
+    /// project kilometres long — covers no probe and is never picked. The one covering most wins; among those covering
+    /// about as much (at least 95% of the most), <paramref name="prefer"/> +1 takes the highest over the probes they share
+    /// (the finished grade, not the corridor's "TOP-2.00" two metres below it), −1 the lowest (the subgrade, not a "BOT-IN"
+    /// above it), 0 neither; then the larger <c>Weight</c> (points, or plan area). −1 when none covers any probe.
+    /// </summary>
+    public static int PickSurface(IReadOnlyList<(double Weight, IReadOnlyList<double?> Levels)> candidates, int prefer)
+    {
+        if (candidates.Count == 0 || candidates[0].Levels.Count == 0) return -1;
+        var n = candidates[0].Levels.Count;
+        double Cover(int i) => candidates[i].Levels.Count(l => l.HasValue) / (double)n;
+        var covering = Enumerable.Range(0, candidates.Count).Where(i => Cover(i) > 0).ToList();
+        if (covering.Count == 0) return -1;
+        var most = covering.Max(Cover);
+        var tied = covering.Where(i => Cover(i) >= most * 0.95).ToList();   // relative: one road covers 2% of a whole drawing's ground
+        bool Beats(int b, int a)
+        {
+            if (prefer != 0)
+            {
+                var shared = Enumerable.Range(0, n).Where(k => candidates[a].Levels[k].HasValue && candidates[b].Levels[k].HasValue).ToArray();
+                if (shared.Length > 0)
+                {
+                    var above = shared.Average(k => candidates[b].Levels[k]!.Value - candidates[a].Levels[k]!.Value);
+                    if (Math.Abs(above) > 0.05) return prefer > 0 ? above > 0 : above < 0;
+                }
+            }
+            if (Math.Abs(Cover(b) - Cover(a)) > 1e-9) return Cover(b) > Cover(a);
+            return candidates[b].Weight > candidates[a].Weight;
+        }
+        return tied.Aggregate((a, b) => Beats(b, a) ? b : a);
     }
 
     // ───────────── settings ─────────────
